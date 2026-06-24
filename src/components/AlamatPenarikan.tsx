@@ -1,0 +1,131 @@
+import React, { useState } from 'react';
+import { Upload, ArrowLeft } from 'lucide-react';
+
+interface AlamatPenarikanProps {
+  onBack: () => void;
+  onConfirm: (data: { method: string, number: string, name: string }) => void;
+  savedData?: { method: string, number: string, name: string };
+  showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
+}
+
+const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, savedData, showAlert }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [method, setMethod] = useState(savedData?.method || 'Dana');
+  const [number, setNumber] = useState(savedData?.number || '');
+  const [name, setName] = useState(savedData?.name || '');
+  const [file, setFile] = useState<File | null>(null);
+  const isSaved = !!savedData?.method && !isEditing;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      if (e.target.files[0].size > 1024 * 1024) {
+        showAlert('Gagal!', 'Ukuran file maksimal 1MB', 'error');
+        return;
+      }
+      setFile(e.target.files[0]);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+        <div className="flex items-center gap-4 mb-6">
+          <button onClick={onBack} className="p-2 bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100">
+            <ArrowLeft size={20} />
+          </button>
+          <h2 className="text-xl font-bold">Alamat Penarikan</h2>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Metode Penarikan</label>
+            <select 
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:border-blue-400 focus:bg-white outline-none appearance-none font-medium"
+            >
+              <option value="Dana">Dana</option>
+              <option value="Gopay">Gopay</option>
+              <option value="Qris">Qris</option>
+            </select>
+          </div>
+
+          {method !== 'Qris' ? (
+            <>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nomor E-Wallet</label>
+                <input 
+                  type="tel" 
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={number}
+                  onChange={(e) => setNumber(e.target.value.replace(/\D/g, ''))}
+                  placeholder="0812xxxx"
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:border-blue-400 focus:bg-white outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Pengguna</label>
+                <input 
+                  type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Nama Lengkap"
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:border-blue-400 focus:bg-white outline-none"
+                />
+              </div>
+            </>
+          ) : (
+            <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 bg-gray-50/50">
+              <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
+                <Upload size={24} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-gray-700">{file ? file.name : 'Upload QRIS Anda'}</p>
+                <p className="text-[10px] text-gray-400 mt-1">Maksimal ukuran file: 1MB</p>
+              </div>
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden" 
+                id="qris-upload" 
+              />
+              <label 
+                htmlFor="qris-upload"
+                className="mt-2 bg-blue-600 text-white px-6 py-2 rounded-full text-xs font-bold cursor-pointer hover:bg-blue-700 transition-colors shadow-md shadow-blue-100"
+              >
+                Pilih File
+              </label>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 mt-4">
+            <button 
+              onClick={() => !isSaved && onConfirm({ method, number, name })}
+              disabled={isSaved}
+              className={`w-full py-4 rounded-2xl font-bold shadow-lg transition-all ${
+                isSaved 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none' 
+                : 'bg-blue-600 text-white shadow-blue-100 active:scale-95'
+              }`}
+            >
+              {isSaved ? 'Tersimpan' : 'Konfirmasi'}
+            </button>
+            
+            {!!savedData?.method && !isEditing && (
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="w-full py-3 text-blue-600 font-bold text-sm hover:bg-blue-50 rounded-xl transition-colors"
+              >
+                Edit Alamat Penarikan
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AlamatPenarikan;
