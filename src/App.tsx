@@ -38,7 +38,7 @@ const App: React.FC = () => {
 
         // Fallback kalo ga ada ?code
         if (!session) {
-          const { data: { session: s } = await supabase.auth.getSession();
+          const { data: { session: s }} = await supabase.auth.getSession();
           session = s;
         }
 
@@ -86,7 +86,7 @@ const App: React.FC = () => {
     handleAuth();
 
     // Listener buat logout/refresh
-    const { data: { subscription } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription }} = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setUserRole('guest');
         setIsLoading(false);
