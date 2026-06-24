@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon } from 'lucide-react';
+import { supabase } from '../supabase';
 
 // Components
 import Dashboard from './components/Dashboard';
@@ -18,10 +19,100 @@ type Page = 'dashboard' | 'gacha' | 'setoran' | 'profil' | 'penarikan' | 'withdr
 type AdminTab = 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
 
 const App: React.FC = () => {
+//pembatas
   const [userRole, setUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [activeTab, setActiveTab] = useState<Page>('dashboard');
   const [adminActiveTab, setAdminActiveTab] = useState<AdminTab>('dashboard');
-  
+  const [isLoading, setIsLoading] = useState(true); // tambah loading biar ga kedip guest
+
+  useEffect(() => {
+    let mounted = true;
+
+    const handleAuth = async () => {
+      setIsLoading(true);
+
+      try {
+        // STEP 1: Tuker ?code jadi session - ini kunci buat OAuth Google
+        const { data: sessionData } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        let session = sessionData?.session;
+
+        // Fallback kalo ga ada ?code
+        if (!session) {
+          const { data: { session: s } = await supabase.auth.getSession();
+          session = s;
+        }
+
+        // STEP 2: Bersihin URL ?code biar ga aneh
+        if (window.location.search.includes('code=')) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+
+        if (!session?.user) {
+          if (mounted) {
+            setUserRole('guest');
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        // STEP 3: Ambil role dari table 'pengguna' - sama kayak contoh lu
+        const { data: profile } = await supabase
+          .from('pengguna') // ganti nama table lu kalo beda
+          .select('peran')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        const role = profile?.peran || 'user';
+
+        if (!mounted) return;
+
+        setUserRole(role as 'user' | 'admin');
+
+        // STEP 4: Set tab awal sesuai role
+        if (role === 'admin') {
+          setAdminActiveTab('dashboard'); // dashboard admin
+        } else {
+          setActiveTab('dashboard'); // dashboard user
+        }
+
+      } catch (err) {
+        console.error('GAGAL LOAD USER:', err);
+        if (mounted) setUserRole('guest');
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    handleAuth();
+
+    // Listener buat logout/refresh
+    const { data: { subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUserRole('guest');
+        setIsLoading(false);
+      }
+      if (event === 'TOKEN_REFRESHED' && session) {
+        handleAuth(); // refresh role juga
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Tambah loading biar ga flash login dulu
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+  }
+
+  if (userRole === 'guest') {
+    return <AuthPage onLogin={(role) => setUserRole(role)} />;
+  }
+
+//pembatas
+
   const [balance, setBalance] = useState(0);
   const [spins, setSpins] = useState(3);
   const [tasksDone, setTasksDone] = useState(0);
