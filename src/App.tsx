@@ -20,6 +20,8 @@ type AdminTab = 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settin
 
 const App: React.FC = () => {
   // === 1. SEMUA STATE DI ATAS ===
+const [userName, setUserName] = useState<string>('');
+const [userEmail, setUserEmail] = useState<string>('');
   const [userRole, setUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [activeTab, setActiveTab] = useState<Page>('dashboard');
   const [adminActiveTab, setAdminActiveTab] = useState<AdminTab>('dashboard');
@@ -46,73 +48,120 @@ const App: React.FC = () => {
 
   // === 2. useEffect AUTH ===
   useEffect(() => {
-    let mounted = true;
-    let handledCode = false;
+  let mounted = true;
+  let handledCode = false;
 
-    const handleAuth = async () => {
-      if (handledCode) return;
-      handledCode = true;
-      setIsLoading(true);
+  const handleAuth = async () => {
+    if (handledCode) return;
+    handledCode = true;
+    setIsLoading(true);
 
-      try {
-        const { data: sessionData, error: codeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
-        if (codeError) console.error('Code exchange error:', codeError);
-        let session = sessionData?.session;
+    try {
+      const { data: sessionData, error: codeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      if (codeError) console.error('Code exchange error:', codeError);
+      let session = sessionData?.session;
 
-        if (window.location.search.includes('code=')) {
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-
-        if (!session) {
-          const { data: { session: s }} = await supabase.auth.getSession();
-          session = s;
-        }
-
-        if (!session?.user) {
-          if (mounted) {
-            setUserRole('guest');
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        const { data: profile, error: profileError } = await supabase
-          .from('pengguna')
-          .select('peran')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (profileError) console.error('Profile error:', profileError);
-
-        const role = profile?.peran || 'user';
-        if (!mounted) return;
-
-        setUserRole(role as 'user' | 'admin');
-        if (role === 'admin') setAdminActiveTab('dashboard');
-        else setActiveTab('dashboard');
-
-      } catch (err) {
-        console.error('GAGAL LOAD USER:', err);
-        if (mounted) setUserRole('guest');
-      } finally {
-        if (mounted) setIsLoading(false);
+      if (window.location.search.includes('code=')) {
+        window.history.replaceState(null, '', window.location.pathname);
       }
-    };
 
-    handleAuth();
+      if (!session) {
+        const { data: { session: s }} = await supabase.auth.getSession();
+        session = s;
+      }
 
-    const { data: { subscription }} = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
+      if (!session?.user) {
+        if (mounted) {
+          setUserRole('guest');
+          setUserName('');
+          setUserEmail('');
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // AMBIL NAMA + EMAIL DARI GOOGLE AUTH
+      const name = session.user_metadata?.full_name || session.user_metadata?.name || '';
+      const email = session.user.email || '';
+      if (mounted) {
+        setUserName(name);
+        setUserEmail(email);
+      }
+
+      // AMBIL ROLE DARI TABLE PENGGUNA
+      const { data: profile, error: profileError } = await supabase
+       .from('pengguna')
+       .select('peran')
+       .eq('id', session.user.id)
+       .maybeSingle();
+
+      if (profileError) console.error('Profile error:', profileError);
+
+      const role = profile?.peran || 'user';
+      if (!mounted) return;
+
+      setUserRole(role as 'user' | 'admin');
+      if (role === 'admin') setAdminActiveTab('dashboard');
+      else setActiveTab('dashboard');
+
+    } catch (err) {
+      console.error('GAGAL LOAD USER:', err);
+      if (mounted) {
         setUserRole('guest');
-        setIsLoading(false);
+        setUserName('');
+        setUserEmail('');
       }
-    });
+    } finally {
+      if (mounted) setIsLoading(false);
+    }
+  };
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+  handleAuth();
+
+  const { data: { subscription }} = supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      setUserRole('guest');
+      setUserName('');
+      setUserEmail('');
+      setIsLoading(false);
+    }
+  });
+
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
+}, []);
+
+useEffect(() => {
+  const userPathMap: Record<Page, string> = {
+    dashboard: '/dashboard',
+    gacha: '/gacha',
+    setoran: '/setoran',
+    profil: '/profil',
+    penarikan: '/penarikan',
+    withdraw: '/withdraw',
+    history: '/history'
+  };
+
+  const adminPathMap: Record<AdminTab, string> = {
+    dashboard: '/admin',
+    setoran: '/admin/setoran',
+    payout: '/admin/payout',
+    profil: '/admin/profil',
+    'withdraw-settings': '/admin/withdraw-settings',
+    'task-settings': '/admin/task-settings'
+  };
+
+  // Cek role dulu baru ganti URL
+  if (userRole === 'admin') {
+    window.history.pushState(null, '', adminPathMap[adminActiveTab]);
+  } else if (userRole === 'user') {
+    window.history.pushState(null, '', userPathMap[activeTab]);
+  } else {
+    window.history.pushState(null, '', '/'); // guest = root
+  }
+}, [activeTab, adminActiveTab, userRole]);
 
   // === 3. useEffect GUARD WITHDRAW - FIX CRASH setState pas render ===
   useEffect(() => {
@@ -200,7 +249,15 @@ const handleLogout = async () => {
   const renderUserContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard balance={balance} onWithdraw={() => setActiveTab('withdraw')} settings={systemSettings} />;
+  return (
+    <Dashboard
+      balance={balance}
+      onWithdraw={() => setActiveTab('withdraw')}
+      settings={systemSettings}
+      userName={userName}
+      userEmail={userEmail}
+    />
+  );
       case 'gacha':
         return <Gacha spins={spins} setSpins={setSpins} setBalance={setBalance} setTotalIncome={setTotalIncome} />;
       case 'setoran':

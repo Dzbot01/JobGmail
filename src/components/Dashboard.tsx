@@ -15,8 +15,25 @@ interface DashboardProps {
     withdrawSchedule: string;
   };
 }
+interface DashboardProps {
+  balance: number;
+  onWithdraw: () => void;
+  settings: { taskReward: number; withdrawSchedule: string };
+  userName: string;
+  userEmail: string;
+}
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings }) => {
+const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, userName, userEmail }) => {
+  return (
+    <div className="space-y-6">
+      {/* GREETING */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-4 text-white shadow-lg">
+        <p className="text- font-medium opacity-90">Selamat datang</p>
+        <h2 className="text-lg font-bold truncate">
+          {userName || userEmail.split('@')[0] || 'User'}
+        </h2>
+      </div>
+      
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [fakeLogs, setFakeLogs] = useState<any[]>([]);
 
