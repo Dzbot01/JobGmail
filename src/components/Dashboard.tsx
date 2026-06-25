@@ -121,7 +121,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 opacity-50" />
         <p className="text-gray-500 text-sm font-medium">Saldo Utama</p>
-        <h2 className="text-3xl font-bold mt-1 text-gray-900">Rp. {balance.toLocaleString('id-ID')}</h2>
+        <h2 className="text-3xl font-bold mt-1 text-gray-900">Rp. {(balance ?? 0).toLocaleString('id-ID')}</h2>
 
         <div className="mt-6 flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border-blue-100">
           <div className="flex items-center gap-2">

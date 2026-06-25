@@ -43,7 +43,7 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
     setLoading(true);
 
     try {
-      const { data: { user } = await supabase.auth.getUser();
+      const { data: { user }} = await supabase.auth.getUser();
       if (!user) throw new Error('User belum login');
 
       // 1. Ambil history lama dari kolom pengguna.history
