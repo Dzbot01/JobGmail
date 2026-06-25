@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon } from 'lucide-react';
-import { supabase } from '../supabase';
+import { supabase } from './supabase';
 
 // Components
 import Dashboard from './components/Dashboard';
