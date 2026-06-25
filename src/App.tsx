@@ -89,13 +89,19 @@ const App: React.FC = () => {
           setUserEmail(email);
         }
 
-        const { data: profile, error: profileError } = await supabase
-        .from('pengguna')
-        .select('peran')
-        .eq('id', session.user.id)
-        .maybeSingle();
+const { data: profile, error: profileError } = await supabase
+  .from('pengguna')
+  .select('peran, saldo, history')
+  .eq('id', session.user.id)
+  .single();
 
-        if (profileError) console.error('Profile error:', profileError);
+if (profileError) {
+  console.error('Gagal fetch profile:', profileError);
+  return;
+}
+
+setBalance(profile?.saldo ?? 0);
+setAllSubmissions(profile?.history ?? []);
 
         const role = profile?.peran || 'user';
         if (!mounted) return;

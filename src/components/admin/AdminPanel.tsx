@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Users, Database, CreditCard, CheckCircle, Mail, Settings, Wallet, ClipboardList, LogOut, ChevronRight, User as UserIcon } from 'lucide-react';
+import { supabase } from '.../supabase';
 
 interface AdminPanelProps {
   submissions: any[];
@@ -14,37 +15,108 @@ interface AdminPanelProps {
   showAlert: (message: string, subtext: string, type?: 'success' | 'error') => void;
 }
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ 
-  submissions, 
-  withdrawRequests, 
-  onUpdateStatus, 
-  onUpdateWithdrawStatus, 
-  activeTab, 
+const AdminPanel: React.FC<AdminPanelProps> = ({
+  submissions,
+  withdrawRequests,
+  onUpdateStatus: onUpdateStatusProp,
+  onUpdateWithdrawStatus,
+  activeTab,
   setTab,
   onLogout,
   settings,
   updateSettings,
   showAlert
 }) => {
+  const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
+
+  // Fetch semua history dari semua user
+  const fetchAllSubmissions = async () => {
+    const { data, error } = await supabase
+     .from('pengguna')
+     .select('id, email, history')
+     .not('history', 'is', null);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const flat = (data || []).flatMap(user =>
+      (user.history || []).map((task: any) => ({
+       ...task,
+        userId: user.id,
+        userEmail: user.email
+      }))
+    );
+
+    setAllSubmissions(flat.sort((a, b) =>
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    ));
+  };
+
+  // Override onUpdateStatus biar update ke Supabase
+  const handleUpdateStatus = async (taskId: string, status: 'paid' | 'rejected', reason?: string) => {
+    try {
+      const task = allSubmissions.find(t => t.id === taskId);
+      if (!task) return;
+
+      const { data: userData } = await supabase
+       .from('pengguna')
+       .select('history, saldo')
+       .eq('id', task.userId)
+       .single();
+
+      let historyArr = userData?.history || [];
+      historyArr = historyArr.map((t: any) =>
+        t.id === taskId
+         ? {...t, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
+          : t
+      );
+
+      await supabase
+       .from('pengguna')
+       .update({ history: historyArr })
+       .eq('id', task.userId);
+
+      // Kalo paid, tambah saldo
+      if (status === 'paid') {
+        await supabase
+         .from('pengguna')
+         .update({ saldo: (userData?.saldo?? 0) + (settings.taskReward || 1000) })
+         .eq('id', task.userId);
+      }
+
+      showAlert('Sukses!', `Status diubah ke ${status}`, 'success');
+      fetchAllSubmissions();
+      onUpdateStatusProp(taskId, status, reason); // trigger refresh parent kalo perlu
+    } catch (err: any) {
+      showAlert('Gagal!', err.message, 'error');
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'setoran') fetchAllSubmissions();
+  }, [activeTab]);
+
   if (activeTab === 'dashboard') {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100">
+          <div className="bg-white p-5 rounded-2xl shadow-lg border-gray-100">
             <div className="bg-blue-50 w-10 h-10 rounded-xl flex items-center justify-center text-blue-600 mb-3">
               <Users size={20} />
             </div>
             <p className="text-[10px] font-bold text-gray-400 uppercase">User Terdaftar</p>
             <p className="text-2xl font-black text-gray-800">1,284</p>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100">
+          <div className="bg-white p-5 rounded-2xl shadow-lg border-gray-100">
             <div className="bg-emerald-50 w-10 h-10 rounded-xl flex items-center justify-center text-emerald-600 mb-3">
               <Database size={20} />
             </div>
             <p className="text-[10px] font-bold text-gray-400 uppercase">Total Akun</p>
             <p className="text-2xl font-black text-gray-800">8,492</p>
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 col-span-2">
+          <div className="bg-white p-5 rounded-2xl shadow-lg border-gray-100 col-span-2">
             <div className="bg-purple-50 w-10 h-10 rounded-xl flex items-center justify-center text-purple-600 mb-3">
               <CreditCard size={20} />
             </div>
@@ -53,14 +125,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         </div>
 
-        {/* Setting Panel Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border-gray-100">
           <div className="flex items-center gap-2 mb-4">
             <Settings size={20} className="text-gray-400" />
             <h3 className="font-bold text-gray-800 uppercase text-xs tracking-wider">Setting Panel</h3>
           </div>
           <div className="space-y-3">
-            <button 
+            <button
               onClick={() => setTab('withdraw-settings')}
               className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
             >
@@ -70,7 +141,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
               <ChevronRight size={16} className="text-gray-400" />
             </button>
-            <button 
+            <button
               onClick={() => setTab('task-settings')}
               className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
             >
@@ -83,15 +154,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border-gray-100">
           <h3 className="font-bold text-gray-800 mb-4">Aktivitas Terakhir</h3>
           <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center gap-3 border-b border-gray-50 pb-3">
+            {allSubmissions.slice(0, 3).map(i => (
+              <div key={i.id} className="flex items-center gap-3 border-b border-gray-50 pb-3">
                 <div className="w-8 h-8 bg-gray-100 rounded-full" />
                 <div className="flex-1">
-                  <p className="text-xs font-bold text-gray-700">User #829{i} submit tugas</p>
-                  <p className="text-[10px] text-gray-400">2 menit yang lalu</p>
+                  <p className="text-xs font-bold text-gray-700">{i.userEmail} submit tugas</p>
+                  <p className="text-[10px] text-gray-400">{new Date(i.timestamp).toLocaleString('id-ID')}</p>
                 </div>
               </div>
             ))}
@@ -104,7 +175,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   if (activeTab === 'withdraw-settings') {
     return (
       <div className="space-y-6">
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border-gray-100">
           <div className="flex items-center gap-4 mb-8">
             <button onClick={() => setTab('dashboard')} className="p-2 bg-gray-50 rounded-full">
               <ChevronRight className="rotate-180" size={20} />
@@ -115,10 +186,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-widest">Jadwalkan Withdraw</label>
-              <select 
+              <select
                 value={settings.withdrawSchedule}
-                onChange={(e) => updateSettings({ ...settings, withdrawSchedule: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 font-bold text-gray-700 outline-none"
+                onChange={(e) => updateSettings({...settings, withdrawSchedule: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border-gray-100 font-bold text-gray-700 outline-none"
               >
                 <option value="Selalu Buka">Selalu Buka</option>
                 <option value="Senin - Jumat">Senin - Jumat</option>
@@ -126,12 +197,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 <option value="Kunci">Kunci (Tutup Sepenuhnya)</option>
               </select>
             </div>
-            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+            <div className="p-4 bg-blue-50 rounded-xl border-blue-100">
               <p className="text-[10px] text-blue-700 font-medium leading-relaxed italic">
                 * Jika diatur ke hari tertentu, tombol withdraw pada POV user hanya akan aktif pada hari tersebut.
               </p>
             </div>
-            <button 
+            <button
               onClick={() => { showAlert("Berhasil!", "Setting withdraw berhasil disimpan!"); setTab('dashboard'); }}
               className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg"
             >
@@ -146,7 +217,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   if (activeTab === 'task-settings') {
     return (
       <div className="space-y-6">
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border-gray-100">
           <div className="flex items-center gap-4 mb-8">
             <button onClick={() => setTab('dashboard')} className="p-2 bg-gray-50 rounded-full">
               <ChevronRight className="rotate-180" size={20} />
@@ -157,32 +228,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="space-y-5">
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Bayaran Per Akun (IDR)</label>
-              <input 
+              <input
                 type="number"
                 value={settings.taskReward}
-                onChange={(e) => updateSettings({ ...settings, taskReward: parseInt(e.target.value) })}
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 font-bold outline-none"
+                onChange={(e) => updateSettings({...settings, taskReward: parseInt(e.target.value) })}
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border-gray-100 font-bold outline-none"
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Password Tugas (Kunci)</label>
-              <input 
+              <input
                 type="text"
                 value={settings.taskPassword}
-                onChange={(e) => updateSettings({ ...settings, taskPassword: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 font-bold outline-none"
+                onChange={(e) => updateSettings({...settings, taskPassword: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border-gray-100 font-bold outline-none"
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Deskripsi Tugas</label>
-              <textarea 
+              <textarea
                 rows={4}
                 value={settings.taskDescription}
-                onChange={(e) => updateSettings({ ...settings, taskDescription: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 font-medium text-sm outline-none resize-none"
+                onChange={(e) => updateSettings({...settings, taskDescription: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-gray-50 border-gray-100 font-medium text-sm outline-none resize-none"
               />
             </div>
-            <button 
+            <button
               onClick={() => { showAlert("Berhasil!", "Setting tugas berhasil disimpan!"); setTab('dashboard'); }}
               className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg"
             >
@@ -197,17 +268,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   if (activeTab === 'profil') {
     return (
       <div className="space-y-6">
-        <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 text-center">
+        <div className="bg-white rounded-2xl p-8 shadow-lg border-gray-100 text-center">
           <div className="w-24 h-24 bg-blue-100 rounded-full mx-auto mb-6 flex items-center justify-center border-4 border-white shadow-md">
             <UserIcon size={48} className="text-blue-500" />
           </div>
           <h2 className="text-xl font-bold text-gray-800">Administrator</h2>
           <p className="text-xs text-gray-400 font-bold mt-1 uppercase tracking-widest">Main Admin Account</p>
-          
+
           <div className="mt-10 border-t border-gray-50 pt-8">
-            <button 
+            <button
               onClick={onLogout}
-              className="w-full py-4 rounded-2xl bg-white border border-red-100 text-red-500 font-bold shadow-lg flex items-center justify-center gap-2 active:bg-red-50"
+              className="w-full py-4 rounded-2xl bg-white border-red-100 text-red-500 font-bold shadow-lg flex items-center justify-center gap-2 active:bg-red-50"
             >
               <LogOut size={18} />
               Logout System
@@ -222,22 +293,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-gray-800 mb-2">Data Setoran User</h2>
-        {submissions.length === 0 ? (
+        {allSubmissions.length === 0? (
           <div className="bg-white p-10 rounded-2xl shadow-lg text-center text-gray-400">
              Belum ada setoran masuk
           </div>
         ) : (
-          submissions.map((sub) => (
-            <div key={sub.id} className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 space-y-4">
+          allSubmissions.map((sub) => (
+            <div key={sub.id} className="bg-white p-5 rounded-2xl shadow-lg border-gray-100 space-y-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-2">
                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 flex-shrink-0">
                       <Mail size={16} />
                    </div>
-                   <p className="text-sm font-bold text-gray-700 break-all">{sub.email}</p>
+                   <div>
+                     <p className="text-sm font-bold text-gray-700 break-all">{sub.email}</p>
+                     <p className="text-[10px] text-gray-400">{sub.userEmail}</p>
+                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-3 rounded-xl space-y-2">
                 <div className="flex justify-between text-[11px]">
                    <span className="text-gray-400">Password</span>
@@ -245,20 +319,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
                 <div className="flex justify-between text-[11px]">
                    <span className="text-gray-400">Status</span>
-                   <span className={`font-bold uppercase ${sub.status === 'paid' ? 'text-emerald-600' : sub.status === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>{sub.status}</span>
+                   <span className={`font-bold uppercase ${sub.status === 'paid'? 'text-emerald-600' : sub.status === 'rejected'? 'text-red-600' : 'text-orange-600'}`}>{sub.status}</span>
                 </div>
               </div>
 
               {sub.status === 'process' && (
                 <div className="flex gap-2">
-                  <button 
-                    onClick={() => onUpdateStatus(sub.id, 'paid')}
+                  <button
+                    onClick={() => handleUpdateStatus(sub.id, 'paid')}
                     className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold"
                   >
                     Set Paid
                   </button>
-                  <button 
-                    onClick={() => onUpdateStatus(sub.id, 'rejected')}
+                  <button
+                    onClick={() => handleUpdateStatus(sub.id, 'rejected')}
                     className="flex-1 py-2 bg-red-100 text-red-600 rounded-lg text-xs font-bold"
                   >
                     Tolak
@@ -276,13 +350,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-gray-800 mb-2 px-2">Withdrawal Requests</h2>
-        {withdrawRequests.length === 0 ? (
+        {withdrawRequests.length === 0? (
           <div className="bg-white p-10 rounded-2xl shadow-lg text-center text-gray-400">
              Belum ada request withdraw
           </div>
         ) : (
           withdrawRequests.map((req) => (
-            <div key={req.id} className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100">
+            <div key={req.id} className="bg-white p-5 rounded-2xl shadow-lg border-gray-100">
               <div className="flex items-center justify-between mb-4">
                  <div>
                     <p className="text-xs font-bold text-gray-400 uppercase">Amount</p>
@@ -309,16 +383,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                  </div>
               </div>
 
-              {req.status === 'process' ? (
+              {req.status === 'process'? (
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={() => onUpdateWithdrawStatus(req.id, 'paid')}
                     className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 active:scale-95"
                   >
                     <CheckCircle size={18} />
                     Bayar
                   </button>
-                  <button 
+                  <button
                     onClick={() => onUpdateWithdrawStatus(req.id, 'rejected')}
                     className="flex-1 py-3 bg-red-100 text-red-600 rounded-xl font-bold shadow-sm"
                   >
@@ -326,9 +400,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                   </button>
                 </div>
               ) : (
-                <div className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed ${req.status === 'paid' ? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-400'}`}>
+                <div className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed ${req.status === 'paid'? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-400'}`}>
                   <CheckCircle size={18} />
-                  {req.status === 'paid' ? 'Sudah Terbayar' : 'Ditolak'}
+                  {req.status === 'paid'? 'Sudah Terbayar' : 'Ditolak'}
                 </div>
               )}
             </div>
