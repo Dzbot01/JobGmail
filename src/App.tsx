@@ -215,7 +215,15 @@ const handleLogout = async () => {
           />
         );
       case 'profil':
-        return <Profil tasksDone={tasksDone} totalIncome={totalIncome} isVerified={isVerified} onNavigateToWithdraw={() => setActiveTab('penarikan')} />;
+  return (
+    <Profil 
+      tasksDone={tasksDone} 
+      totalIncome={totalIncome} 
+      isVerified={isVerified} 
+      onNavigateToWithdraw={() => setActiveTab('penarikan')} 
+      onLogout={handleLogout} // <-- TAMBAH INI
+    />
+  );
       case 'penarikan':
         return (
           <AlamatPenarikan 

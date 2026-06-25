@@ -2,10 +2,11 @@ import React from 'react';
 import { BadgeCheck, XCircle, Wallet, Info, ChevronRight } from 'lucide-react';
 
 interface ProfilProps {
-  tasksDone: number;
-  totalIncome: number;
-  isVerified: boolean;
-  onNavigateToWithdraw: () => void;
+  tasksDone: number
+  totalIncome: number  
+  isVerified: boolean
+  onNavigateToWithdraw: () => void
+  onLogout?: () => void // TAMBAH INI kalo belum ada
 }
 
 const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, onNavigateToWithdraw }) => {
@@ -70,7 +71,7 @@ const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, onN
       </div>
 
       <button 
-        onClick={handleLogout}
+        onClick={onLogout}
         className="w-full mt-4 py-4 rounded-2xl bg-white border border-red-100 text-red-500 font-bold shadow-lg active:bg-red-50"
       >
         Logout
