@@ -14,19 +14,16 @@ interface DashboardProps {
     taskReward: number;
     withdrawSchedule: string;
   };
-}
-interface DashboardProps {
-  balance: number;
-  onWithdraw: () => void;
-  settings: { taskReward: number; withdrawSchedule: string };
   userName: string;
   userEmail: string;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, userName, userEmail }) => {
-      
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [fakeLogs, setFakeLogs] = useState<any[]>([]);
+  const [names, setNames] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   // Fake logs generation
   useEffect(() => {
@@ -35,17 +32,16 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
     const generateLog = () => {
       const isWithdraw = Math.random() > 0.5;
       const name = names[Math.floor(Math.random() * names.length)];
-      const censoredName = name.length > 2 ? name.substring(0, 2) + "***" : name + "***";
-      
+      const censoredName = name.length > 2? name.substring(0, 2) + "***" : name + "***";
+
       if (isWithdraw) {
-        // Bias towards small amounts (receh)
         let amount;
         const roll = Math.random();
-        if (roll < 0.7) { // 70% chance for Rp. 1.000 - 10.000
+        if (roll < 0.7) {
           amount = Math.floor(Math.random() * 9001) + 1000;
-        } else if (roll < 0.95) { // 25% chance for Rp. 10.000 - 50.000
+        } else if (roll < 0.95) {
           amount = Math.floor(Math.random() * 40001) + 10000;
-        } else { // 5% chance for Rp. 50.000 - 100.000
+        } else {
           amount = Math.floor(Math.random() * 50001) + 50000;
         }
 
@@ -68,26 +64,15 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       }
     };
 
-    // Initial 3 logs
     setFakeLogs([generateLog(), generateLog(), generateLog()]);
 
     const interval = setInterval(() => {
-      setFakeLogs(prev => [generateLog(), ...prev.slice(0, 2)]);
+      setFakeLogs(prev => [generateLog(),...prev.slice(0, 2)]);
     }, 4000);
 
     return () => clearInterval(interval);
   }, []);
 
-  return (
-    <div className="space-y-6">
-      {/* GREETING */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-4 text-white shadow-lg">
-        <p className="text-sm font-medium opacity-90">Selamat datang</p>
-        <h2 className="text-lg font-bold truncate">
-          {userName || userEmail.split('@')[0] || 'User'}
-        </h2>
-      </div>
-      
   const faqs = [
     {
       q: "Kenapa tugas saya ditolak?",
@@ -98,15 +83,12 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       a: "Withdraw ditolak karena tidak memenuhi syarat dan ketentuan yang berlaku yaitu terdapat biaya admin/fee pada alamat penarikan nya."
     }
   ];
-  const [names, setNames] = useState<string[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const generateNames = () => {
     setIsGenerating(true);
     const prefixes = ['John', 'Emily', 'Michael', 'Sarah', 'David', 'Jessica', 'Robert', 'Ashley', 'William', 'Taylor', 'James', 'Linda', 'Brian', 'Karen', 'Steven', 'Susan', 'Kevin', 'Donna', 'Jason', 'Carol'];
     const surnames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'];
-    
+
     setTimeout(() => {
       const newNames = Array.from({ length: 5 }, () => {
         const p = prefixes[Math.floor(Math.random() * prefixes.length)];
@@ -127,17 +109,25 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
 
   return (
     <div className="space-y-6">
+      {/* GREETING */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-4 text-white shadow-lg">
+        <p className="text-sm font-medium opacity-90">Selamat datang</p>
+        <h2 className="text-lg font-bold truncate">
+          {userName || userEmail.split('@')[0] || 'User'}
+        </h2>
+      </div>
+
       {/* Balance Card */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 relative overflow-hidden">
+      <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 opacity-50" />
         <p className="text-gray-500 text-sm font-medium">Saldo Utama</p>
         <h2 className="text-3xl font-bold mt-1 text-gray-900">Rp. {balance.toLocaleString('id-ID')}</h2>
-        
-        <div className="mt-6 flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+
+        <div className="mt-6 flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border-blue-100">
           <div className="flex items-center gap-2">
             <p className="text-xs text-blue-700 font-medium">Minimal penarikan: <span className="font-bold">Rp. 1.000</span></p>
           </div>
-          <button 
+          <button
             onClick={onWithdraw}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md active:scale-95"
           >
@@ -145,8 +135,6 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
           </button>
         </div>
       </div>
-
-
 
       {/* Flat Rate Info - ELECTRIC BORDER */}
       <ElectricBorder
@@ -165,7 +153,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       </ElectricBorder>
 
       {/* Slider */}
-      <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-100">
+      <div className="rounded-2xl overflow-hidden shadow-lg border-gray-100">
         <Swiper
           modules={[Autoplay, Pagination]}
           autoplay={{ delay: 3000 }}
@@ -182,10 +170,10 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       </div>
 
       {/* Generate Name Card */}
-      <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-xl border-gray-100">
         <h3 className="font-bold text-lg mb-4 text-gray-800">Generate Nama Amerika</h3>
-        
-        <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
+
+        <div className="bg-gray-50 rounded-xl p-4 mb-5 border-gray-100">
           <p className="text-xs text-gray-500 leading-relaxed font-medium">
             Fitur ini adalah cara cepat kamu mendapatkan nama random yang sudah ter-filter sistem untuk di daftarkan pada aplikasi Gmail lalu di setorkan kesini.
           </p>
@@ -193,7 +181,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
             * Alamat email ini bersifat random dan mungkin saja sudah terdaftar, ini hanya sebagai referensi cepat.
           </p>
         </div>
-        
+
         <div className="space-y-3 mb-6">
           <div className="flex justify-between items-center text-sm">
             <span className="text-gray-600 font-medium">Buat nama dari Amerika (ini)</span>
@@ -206,26 +194,26 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
         </div>
 
         <div className="flex justify-end mb-4">
-          <button 
+          <button
             onClick={generateNames}
             disabled={isGenerating}
             className="flex items-center gap-2 bg-blue-50 text-blue-600 px-5 py-2.5 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors"
           >
-            <RefreshCw size={14} className={isGenerating ? 'animate-spin' : ''} />
-            {names.length > 0 ? 'Re generate' : 'Generate'}
+            <RefreshCw size={14} className={isGenerating? 'animate-spin' : ''} />
+            {names.length > 0? 'Re generate' : 'Generate'}
           </button>
         </div>
 
         {names.length > 0 && (
           <div className="space-y-2">
             {names.map((name, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
+              <div key={idx} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl border-gray-100 shadow-sm">
                 <span className="text-sm font-semibold text-gray-700">{name}</span>
-                <button 
+                <button
                   onClick={() => copyToClipboard(name, idx)}
                   className="p-2 text-gray-400 hover:text-blue-500 transition-colors relative"
                 >
-                  {copiedIndex === idx ? <CheckCircle2 size={18} className="text-green-500" /> : <Copy size={18} />}
+                  {copiedIndex === idx? <CheckCircle2 size={18} className="text-green-500" /> : <Copy size={18} />}
                 </button>
               </div>
             ))}
@@ -234,22 +222,22 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       </div>
 
       {/* Log Fake User Activity - MOVED TO CENTER */}
-      <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl p-5 shadow-lg border-gray-100 overflow-hidden">
         <div className="flex items-center gap-2 mb-4">
           <Bell className="text-blue-600" size={18} />
           <h3 className="font-black text-xs text-gray-800 uppercase tracking-widest">Aktivitas Terbaru</h3>
         </div>
         <div className="space-y-3">
           {fakeLogs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+            <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border-gray-100">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.type === 'wd' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                  {log.type === 'wd' ? <CreditCard size={14} /> : <Mail size={14} />}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.type === 'wd'? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                  {log.type === 'wd'? <CreditCard size={14} /> : <Mail size={14} />}
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">{log.title}</p>
                   <p className="text-xs font-bold text-gray-700">
-                    {log.user} {log.type === 'wd' ? '' : `- ${log.email}`}
+                    {log.user} {log.type === 'wd'? '' : `- ${log.email}`}
                   </p>
                 </div>
               </div>
@@ -264,7 +252,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       </div>
 
       {/* Real-time Activity Card */}
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl border-gray-100 overflow-hidden">
         <div className="press">
           <div className="sheet"></div>
           <div className="roll"></div>
@@ -287,13 +275,13 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       </div>
 
       {/* Web View Section */}
-      <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-xl border-gray-100">
         <h3 className="font-bold text-lg mb-2 text-gray-800">Cek Ketersediaan Email</h3>
         <p className="text-xs text-gray-500 mb-4">Kamu bisa cek ketersediaan alamat email dari nama random disini.</p>
         <div className="flex justify-start">
-          <a 
-            href="https://www.gmailchecklive.com/" 
-            target="_blank" 
+          <a
+            href="https://www.gmailchecklive.com/"
+            target="_blank"
             rel="noopener noreferrer"
             className="bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-bold shadow-sm hover:bg-blue-700 transition-colors inline-block"
           >
@@ -303,17 +291,17 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       </div>
 
       {/* FAQ Section */}
-      <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-xl border-gray-100">
         <h3 className="font-bold text-lg mb-4 text-gray-800">FAQ</h3>
         <div className="space-y-3">
           {faqs.map((faq, i) => (
             <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
-              <button 
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              <button
+                onClick={() => setOpenFaq(openFaq === i? null : i)}
                 className="w-full flex items-center justify-between p-4 bg-gray-50/50 hover:bg-gray-50 transition-colors text-left"
               >
                 <span className="text-sm font-bold text-gray-700">{faq.q}</span>
-                <ChevronDown size={18} className={`text-gray-400 transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
+                <ChevronDown size={18} className={`text-gray-400 transition-transform ${openFaq === i? 'rotate-180' : ''}`} />
               </button>
               {openFaq === i && (
                 <div className="p-4 bg-white border-t border-gray-100 animate-in fade-in slide-in-from-top-1 duration-200">
