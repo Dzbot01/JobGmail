@@ -20,13 +20,15 @@
     "react-router-dom": "^7.18.0",
     "swiper": "^12.2.0",
     "tailwind-merge": "^3.4.0",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "uuid": "^14.0.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.17",
     "@types/node": "22.19.17",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "5.1.1",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
