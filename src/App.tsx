@@ -190,81 +190,9 @@ useEffect(() => {
     return <AuthPage onLogin={(role) => setUserRole(role)} />;
   }
 
-  const renderUserContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard balance={balance} onWithdraw={() => setActiveTab('withdraw')} settings={systemSettings} />;
-      case 'gacha':
-        return <Gacha spins={spins} setSpins={setSpins} setBalance={setBalance} setTotalIncome={setTotalIncome} />;
-      case 'setoran':
-        return (
-          <Setoran 
-            onTaskSubmit={handleTaskSubmit} 
-            showAlert={showAlert} 
-            settings={{
-              ...systemSettings,
-              withdrawDetailsSet: !!withdrawDetails.method
-            }} 
-          />
-        );
-      case 'profil':
-        return <Profil tasksDone={tasksDone} totalIncome={totalIncome} isVerified={isVerified} onNavigateToWithdraw={() => setActiveTab('penarikan')} />;
-      case 'penarikan':
-        return (
-          <AlamatPenarikan 
-            onBack={() => setActiveTab('profil')} 
-            savedData={withdrawDetails.method ? withdrawDetails : undefined}
-            showAlert={showAlert}
-            onConfirm={(data) => { 
-              setIsVerified(true); 
-              setWithdrawDetails(data); 
-              showAlert('Berhasil!', 'Alamat penarikan telah disimpan.');
-              setActiveTab('profil'); 
-            }} 
-          />
-        );
-      case 'withdraw':
-        if (!withdrawDetails.method) {
-          showAlert('Gagal!', 'Harap isi alamat penarikan di menu Profil terlebih dahulu!', 'error');
-          setActiveTab('profil');
-          return null;
-        }
-        
-        // System Withdraw Locking Logic
-        if (systemSettings.withdrawSchedule === 'Kunci') {
-          showAlert('Informasi', 'Fitur withdraw sedang ditutup sementara oleh Admin.', 'error');
-          setActiveTab('dashboard');
-          return null;
-        }
-
-        return (
-          <WithdrawPage 
-            balance={balance} 
-            history={withdrawHistory} 
-            onBack={() => setActiveTab('dashboard')} 
-            showAlert={showAlert}
-            onWithdrawSuccess={(amount) => {
-              setBalance(prev => prev - amount);
-              const newItem: HistoryItem = {
-                id: Math.random().toString(36).substr(2, 9),
-                amount: amount,
-                status: 'process',
-                date: new Date().toLocaleString('id-ID'),
-                walletNumber: withdrawDetails.number,
-                userName: withdrawDetails.name,
-                method: withdrawDetails.method
-              };
-              setWithdrawHistory([newItem, ...withdrawHistory]);
-              showAlert('Berhasil!', 'Withdraw sedang di proses.');
-            }} 
-          />
-        );
-      case 'history':
-        return <UserHistory submissions={allSubmissions} />;
-      default:
-        return <Dashboard balance={balance} onWithdraw={() => setActiveTab('withdraw')} settings={systemSettings} />;
-    }
-  };
+const renderUserContent = () => {
+  return <div className="p-20">Login sukses! Role: {userRole}</div>
+}
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 pb-24 font-sans">
