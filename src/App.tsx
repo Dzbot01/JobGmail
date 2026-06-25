@@ -24,83 +24,81 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Page>('dashboard');
   const [adminActiveTab, setAdminActiveTab] = useState<AdminTab>('dashboard');
   const [isLoading, setIsLoading] = useState(true); // tambah loading biar ga kedip guest
+  
+useEffect(() => {
+  let mounted = true;
+  let handledCode = false; // guard biar cuma jalan sekali
 
-  useEffect(() => {
-    let mounted = true;
+  const handleAuth = async () => {
+    if (handledCode) return; // cegah dobel
+    handledCode = true;
+    setIsLoading(true);
 
-    const handleAuth = async () => {
-      setIsLoading(true);
+    try {
+      // STEP 1: Tuker ?code jadi session
+      const { data: sessionData, error: codeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+      
+      if (codeError) console.error('Code exchange error:', codeError);
+      let session = sessionData?.session;
 
-      try {
-        // STEP 1: Tuker ?code jadi session - ini kunci buat OAuth Google
-        const { data: sessionData } = await supabase.auth.exchangeCodeForSession(window.location.href);
-        let session = sessionData?.session;
-
-        // Fallback kalo ga ada ?code
-        if (!session) {
-          const { data: { session: s }} = await supabase.auth.getSession();
-          session = s;
-        }
-
-        // STEP 2: Bersihin URL ?code biar ga aneh
-        if (window.location.search.includes('code=')) {
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-
-        if (!session?.user) {
-          if (mounted) {
-            setUserRole('guest');
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        // STEP 3: Ambil role dari table 'pengguna' - sama kayak contoh lu
-        const { data: profile } = await supabase
-          .from('pengguna') // ganti nama table lu kalo beda
-          .select('peran')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        const role = profile?.peran || 'user';
-
-        if (!mounted) return;
-
-        setUserRole(role as 'user' | 'admin');
-
-        // STEP 4: Set tab awal sesuai role
-        if (role === 'admin') {
-          setAdminActiveTab('dashboard'); // dashboard admin
-        } else {
-          setActiveTab('dashboard'); // dashboard user
-        }
-
-      } catch (err) {
-        console.error('GAGAL LOAD USER:', err);
-        if (mounted) setUserRole('guest');
-      } finally {
-        if (mounted) setIsLoading(false);
+      // STEP 2: Bersihin URL SEBELUM getSession
+      if (window.location.search.includes('code=')) {
+        window.history.replaceState(null, '', window.location.pathname);
       }
-    };
 
-    handleAuth();
-
-    // Listener buat logout/refresh
-    const { data: { subscription }} = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setUserRole('guest');
-        setIsLoading(false);
+      // Fallback kalo ga ada ?code
+      if (!session) {
+        const { data: { session: s }} = await supabase.auth.getSession();
+        session = s;
       }
-      if (event === 'TOKEN_REFRESHED' && session) {
-        handleAuth(); // refresh role juga
-      }
-    });
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+      if (!session?.user) {
+        if (mounted) {
+          setUserRole('guest');
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // STEP 3: Ambil role dari table 'pengguna'
+      const { data: profile, error: profileError } = await supabase
+        .from('pengguna')
+        .select('peran')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (profileError) console.error('Profile error:', profileError);
+
+      const role = profile?.peran || 'user';
+      if (!mounted) return;
+
+      setUserRole(role as 'user' | 'admin');
+      if (role === 'admin') setAdminActiveTab('dashboard');
+      else setActiveTab('dashboard');
+
+    } catch (err) {
+      console.error('GAGAL LOAD USER:', err);
+      if (mounted) setUserRole('guest');
+    } finally {
+      if (mounted) setIsLoading(false);
+    }
+  };
+
+  handleAuth();
+
+  // Listener buat logout doang, jangan refresh role
+  const { data: { subscription }} = supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') {
+      setUserRole('guest');
+      setIsLoading(false);
+    }
+  });
+
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
+}, []);
 
   // Tambah loading biar ga flash login dulu
   if (isLoading) {

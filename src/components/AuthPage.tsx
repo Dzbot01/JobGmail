@@ -9,34 +9,38 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [isRegister, setIsRegister] = useState(false);
 
   const handleGoogleLogin = async () => {
-    await signInWithGoogle();
-    // After OAuth redirect, user should ideally be logged in. 
-    // For this simulation, we'll let Supabase handle the redirect.
+    try {
+      await signInWithGoogle();
+      // jangan panggil onLogin di sini, biarin App.tsx yg handle
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Gagal login: ' + error.message);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex-col items-center justify-center p-6 font-sans">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border-gray-100 overflow-hidden">
         <div className="p-8">
           <div className="flex justify-center mb-8">
-            <img 
-              src="https://cdn.phototourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png" 
-              alt="Logo" 
+            <img
+              src="https://cdn.photourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
+              alt="Logo"
               className="h-16 w-auto object-contain"
             />
           </div>
-          
+
           <div className="text-center mb-10">
             <h1 className="text-2xl font-black text-gray-800 tracking-tight">
-              {isRegister ? 'Buat Akun Baru' : 'Selamat Datang'}
+              {isRegister? 'Buat Akun Baru' : 'Selamat Datang'}
             </h1>
             <p className="text-sm text-gray-400 font-medium mt-1">
-              {isRegister ? 'Daftar untuk mulai mengelola Gmail' : 'Pusat Gmail - Kelola Akun Anda'}
+              {isRegister? 'Daftar untuk mulai mengelola Gmail' : 'Pusat Gmail - Kelola Akun Anda'}
             </p>
           </div>
 
           <div className="space-y-4">
-            <button 
+            <button
               onClick={handleGoogleLogin}
               className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-gray-100 rounded-xl font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm text-sm"
             >
@@ -44,27 +48,17 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
               Login via Google
             </button>
 
-            <button 
-              onClick={() => onLogin('user')}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 text-sm"
-            >
-              Login with User
-            </button>
-
-            <button 
-              onClick={() => onLogin('admin')}
-              className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold shadow-lg shadow-gray-200 hover:bg-gray-900 text-sm"
-            >
-              Login with Admin
-            </button>
+            {/* HAPUS 2 tombol ini biar ga kacau */}
+            {/* <button onClick={() => onLogin('user')}>Login with User</button> */}
+            {/* <button onClick={() => onLogin('admin')}>Login with Admin</button> */}
           </div>
 
           <div className="mt-8 text-center">
-            <button 
+            <button
               onClick={() => setIsRegister(!isRegister)}
               className="text-sm font-bold text-blue-600 hover:underline"
             >
-              {isRegister ? 'Sudah punya akun? Login' : 'Belum punya akun? Register'}
+              {isRegister? 'Sudah punya akun? Login' : 'Belum punya akun? Register'}
             </button>
           </div>
         </div>
