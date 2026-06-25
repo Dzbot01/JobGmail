@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Database, CreditCard, CheckCircle, Mail, Settings, Wallet, ClipboardList, LogOut, ChevronRight, User as UserIcon } from 'lucide-react';
-import { supabase } from '.../supabase';
+import { supabase } from '../../supabase';
 
 interface AdminPanelProps {
   submissions: any[];
