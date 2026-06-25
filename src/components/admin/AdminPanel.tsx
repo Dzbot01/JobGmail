@@ -15,6 +15,47 @@ interface AdminPanelProps {
   showAlert: (message: string, subtext: string, type?: 'success' | 'error') => void;
 }
 
+const handleUpdateWithdrawStatus = async (withdrawId: string, status: 'paid' | 'rejected', reason?: string) => {
+  try {
+    // 1. Cari withdraw data dari state
+    const req = withdrawData.find(r => r.id === withdrawId);
+    if (!req?.userId) {
+      showAlert('Error', 'Data withdraw tidak ditemukan', 'error');
+      return;
+    }
+
+    // 2. Ambil history user
+    const { data: userData, error: fetchError } = await supabase
+   .from('pengguna')
+   .select('history')
+   .eq('id', req.userId)
+   .single();
+
+    if (fetchError) throw fetchError;
+
+    // 3. Update status withdraw di array history
+    const historyArr = (userData?.history || []).map((h: any) =>
+      h.id === withdrawId && h.type === 'withdraw'
+     ? {...h, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
+       : h
+    );
+
+    // 4. Update ke DB
+    const { error: updateError } = await supabase
+   .from('pengguna')
+   .update({ history: historyArr })
+   .eq('id', req.userId);
+
+    if (updateError) throw updateError;
+
+    showAlert('Sukses!', `Withdraw diubah ke ${status}`, 'success');
+    fetchWithdrawRequests(); // refresh list payout
+  } catch (err: any) {
+    showAlert('Gagal!', err.message, 'error');
+    console.error(err);
+  }
+};
+
 const AdminPanel: React.FC<AdminPanelProps> = ({
   submissions,
   withdrawRequests,
@@ -28,13 +69,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   showAlert
 }) => {
   const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
+  const [withdrawData, setWithdrawData] = useState<any[]>([]); // state baru buat payout
 
   // Fetch semua history dari semua user
   const fetchAllSubmissions = async () => {
     const { data, error } = await supabase
-     .from('pengguna')
-     .select('id, email, history')
-     .not('history', 'is', null);
+    .from('pengguna')
+    .select('id, email, history')
+    .not('history', 'is', null);
 
     if (error) {
       console.error(error);
@@ -42,65 +84,99 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
 
     const flat = (data || []).flatMap(user =>
-  (user.history || [])
-   .filter(task => task && task.id) // buang data kosong
-   .map((task: any) => ({
-     ...task,
-     userId: user.id,
-     userEmail: user.email
-   }))
-);
-setAllSubmissions(flat);
+      (user.history || [])
+      .filter(task => task && task.id && task.type!== 'withdraw') // buang withdraw dari setoran
+      .map((task: any) => ({
+        ...task,
+         userId: user.id,
+         userEmail: user.email
+       }))
+    );
 
     setAllSubmissions(flat.sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     ));
   };
 
-  // Override onUpdateStatus biar update ke Supabase
-const handleUpdateStatus = async (taskId: string, status: 'paid' | 'rejected', reason?: string) => {
-  try {
-    const task = allSubmissions.find(t => t.id === taskId);
-    if (!task?.userId) {
-      showAlert('Error', 'userId kosong. Refresh dulu admin panel', 'error');
+  // Fetch withdraw + gabungin data payment user
+  const fetchWithdrawRequests = async () => {
+    const { data, error } = await supabase
+    .from('pengguna')
+    .select('id, email, payment, history')
+    .not('history', 'is', null);
+
+    if (error) {
+      console.error(error);
       return;
     }
 
-    const { data: userData, error: fetchError } = await supabase
-     .from('pengguna')
-     .select('history, saldo')
-     .eq('id', task.userId)
-     .single();
+    const requests = data.flatMap(user => {
+      const payment = user.payment || {};
 
-    if (fetchError) throw fetchError;
+      return (user.history || [])
+      .filter((h: any) => h.type === 'withdraw' && h.status === 'process')
+      .map((h: any) => ({
+         id: h.id,
+         userId: user.id,
+         userEmail: user.email,
+         amount: h.amount,
+         date: new Date(h.timestamp || h.date).toLocaleDateString('id-ID'),
+         status: h.status,
+         method: payment.method || 'E-Wallet',
+         walletNumber: payment.method === 'Qris'? 'QRIS' : payment.number || '-',
+         userName: payment.method === 'Qris'? 'QRIS' : payment.name || '-',
+         qrisUrl: payment.qris_url || null
+       }));
+    });
 
-    const historyArr = (userData?.history || []).map((t: any) =>
-      t.id === taskId
-       ? { ...t, status, reason: status === 'rejected' ? (reason || 'Ditolak admin') : null }
-       : t
-    );
+    setWithdrawData(requests.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  };
 
-    const newSaldo = status === 'paid' 
-      ? (userData?.saldo ?? 0) + (settings.taskReward || 1000)
-      : userData?.saldo;
+  // Override onUpdateStatus biar update ke Supabase
+  const handleUpdateStatus = async (taskId: string, status: 'paid' | 'rejected', reason?: string) => {
+    try {
+      const task = allSubmissions.find(t => t.id === taskId);
+      if (!task?.userId) {
+        showAlert('Error', 'userId kosong. Refresh dulu admin panel', 'error');
+        return;
+      }
 
-    const { error: updateError } = await supabase
-     .from('pengguna')
-     .update({ history: historyArr, saldo: newSaldo })
-     .eq('id', task.userId);
+      const { data: userData, error: fetchError } = await supabase
+      .from('pengguna')
+      .select('history, saldo')
+      .eq('id', task.userId)
+      .single();
 
-    if (updateError) throw updateError;
+      if (fetchError) throw fetchError;
 
-    showAlert('Sukses!', `Status diubah ke ${status}`, 'success');
-    fetchAllSubmissions(); // refresh tabel
-  } catch (err: any) {
-    showAlert('Gagal!', err.message, 'error');
-    console.error(err);
-  }
-};
+      const historyArr = (userData?.history || []).map((t: any) =>
+        t.id === taskId
+        ? {...t, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
+         : t
+      );
+
+      const newSaldo = status === 'paid'
+       ? (userData?.saldo?? 0) + (settings.taskReward || 1000)
+        : userData?.saldo;
+
+      const { error: updateError } = await supabase
+      .from('pengguna')
+      .update({ history: historyArr, saldo: newSaldo })
+      .eq('id', task.userId);
+
+      if (updateError) throw updateError;
+
+      showAlert('Sukses!', `Status diubah ke ${status}`, 'success');
+      fetchAllSubmissions();
+    } catch (err: any) {
+      showAlert('Gagal!', err.message, 'error');
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     if (activeTab === 'setoran') fetchAllSubmissions();
+    if (activeTab === 'payout') fetchWithdrawRequests(); // tambah ini
   }, [activeTab]);
 
   if (activeTab === 'dashboard') {
@@ -355,12 +431,12 @@ const handleUpdateStatus = async (taskId: string, status: 'paid' | 'rejected', r
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-gray-800 mb-2 px-2">Withdrawal Requests</h2>
-        {withdrawRequests.length === 0? (
+        {withdrawData.length === 0? (
           <div className="bg-white p-10 rounded-2xl shadow-lg text-center text-gray-400">
              Belum ada request withdraw
           </div>
         ) : (
-          withdrawRequests.map((req) => (
+          withdrawData.map((req) => (
             <div key={req.id} className="bg-white p-5 rounded-2xl shadow-lg border-gray-100">
               <div className="flex items-center justify-between mb-4">
                  <div>
@@ -369,19 +445,32 @@ const handleUpdateStatus = async (taskId: string, status: 'paid' | 'rejected', r
                  </div>
                  <div className="text-right">
                     <p className="text-xs font-bold text-gray-400 uppercase">Method</p>
-                    <p className="text-sm font-bold text-blue-600">{req.method || 'E-Wallet'}</p>
+                    <p className="text-sm font-bold text-blue-600">{req.method}</p>
                  </div>
               </div>
 
               <div className="bg-gray-50 p-4 rounded-xl mb-4 space-y-2">
                  <div className="flex justify-between text-[11px]">
-                    <span className="text-gray-400">Nomor/Account</span>
-                    <span className="font-bold text-gray-800">{req.walletNumber || '0812XXXXXXXX'}</span>
+                    <span className="text-gray-400">Email User</span>
+                    <span className="font-bold text-gray-800 break-all">{req.userEmail}</span>
                  </div>
-                 <div className="flex justify-between text-[11px]">
-                    <span className="text-gray-400">Nama Pengguna</span>
-                    <span className="font-bold text-gray-800">{req.userName || 'User Member'}</span>
-                 </div>
+                 {req.method === 'Qris' && req.qrisUrl? (
+                  <div className="pt-2">
+                    <span className="text-[11px] text-gray-400 block mb-1">QRIS User:</span>
+                    <img src={req.qrisUrl} className="w-32 h-32 rounded-lg border-gray-200 object-contain bg-white" />
+                  </div>
+                 ) : (
+                  <>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-gray-400">Nomor/Account</span>
+                      <span className="font-bold text-gray-800">{req.walletNumber}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-gray-400">Nama Pengguna</span>
+                      <span className="font-bold text-gray-800">{req.userName}</span>
+                    </div>
+                  </>
+                 )}
                  <div className="flex justify-between text-[11px]">
                     <span className="text-gray-400">Tanggal</span>
                     <span className="font-bold text-gray-800">{req.date}</span>
@@ -391,7 +480,7 @@ const handleUpdateStatus = async (taskId: string, status: 'paid' | 'rejected', r
               {req.status === 'process'? (
                 <div className="flex gap-2">
                   <button
-                    onClick={() => onUpdateWithdrawStatus(req.id, 'paid')}
+                    onClick={() => handleUpdateWithdrawStatus(req.id, 'paid')}
                     className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 active:scale-95"
                   >
                     <CheckCircle size={18} />
