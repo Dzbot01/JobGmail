@@ -9,7 +9,7 @@ interface ProfilProps {
   onLogout?: () => void // TAMBAH INI kalo belum ada
 }
 
-const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, onNavigateToWithdraw }) => {
+const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, onNavigateToWithdraw, onLogout = () => {} }) => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 text-center relative overflow-hidden">

@@ -100,13 +100,8 @@ const App: React.FC = () => {
         const role = profile?.peran || 'user';
         if (!mounted) return;
 
-        setUserRole(role as 'user' | 'admin');
-        if (role === 'admin') {
-          setAdminActiveTab('dashboard');
-          navigate('/admin', { replace: true });
-        } else {
-          navigate('/dashboard', { replace: true });
-        }
+       setUserRole(role as 'user' | 'admin');
+        if (role === 'admin') setAdminActiveTab('dashboard');
 
       } catch (err) {
         console.error('GAGAL LOAD USER:', err);
