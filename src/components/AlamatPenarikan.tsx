@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, ArrowLeft } from 'lucide-react';
-import { supabase } from '../supabase'; // sesuaikan path
+import { supabase } from '../supabase';
 
 interface AlamatPenarikanProps {
   onBack: () => void;
   onConfirm: (data: { method: string, number: string, name: string, qris_url?: string }) => void;
   savedData?: { method: string, number: string, name: string, qris_url?: string };
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
-  userId: string; // wajib kirim userId dari parent
+  userId: string;
 }
 
 const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, savedData, showAlert, userId }) => {
@@ -18,17 +18,41 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
   const [qrisUrl, setQrisUrl] = useState(savedData?.qris_url || '');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initLoading, setInitLoading] = useState(true);
 
   const isSaved =!!savedData?.method &&!isEditing;
 
   useEffect(() => {
-    if (savedData) {
-      setMethod(savedData.method);
-      setNumber(savedData.number);
-      setName(savedData.name);
-      setQrisUrl(savedData.qris_url || '');
-    }
-  }, [savedData]);
+    const init = async () => {
+      // Guard: kalo userId kosong langsung balik
+      if (!userId) {
+        showAlert('Gagal', 'User ID tidak ditemukan. Refresh halaman', 'error');
+        onBack();
+        return;
+      }
+
+      // Ambil data terbaru dari DB biar sinkron
+      const { data } = await supabase
+       .from('pengguna')
+       .select('payment')
+       .eq('id', userId)
+       .single();
+
+      if (data?.payment) {
+        setMethod(data.payment.method || 'Dana');
+        setNumber(data.payment.number || '');
+        setName(data.payment.name || '');
+        setQrisUrl(data.payment.qris_url || '');
+      } else if (savedData) {
+        setMethod(savedData.method);
+        setNumber(savedData.number);
+        setName(savedData.name);
+        setQrisUrl(savedData.qris_url || '');
+      }
+      setInitLoading(false);
+    };
+    init();
+  }, [userId, savedData]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -41,6 +65,10 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
   };
 
   const handleSave = async () => {
+    if (!userId) {
+      showAlert('Gagal!', 'User ID belum ke-load', 'error');
+      return;
+    }
     if (!number && method!== 'Qris') {
       showAlert('Gagal!', 'Nomor e-wallet wajib diisi', 'error');
       return;
@@ -58,18 +86,17 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
     try {
       let finalQrisUrl = qrisUrl;
 
-      // Upload QRIS ke storage kalo ada file baru
       if (method === 'Qris' && file) {
         const fileName = `${userId}_${Date.now()}.png`;
         const { error: uploadError } = await supabase.storage
-        .from('qris') // bikin bucket "qris" di Supabase Storage, set public
-        .upload(fileName, file, { upsert: true });
+         .from('qris')
+         .upload(fileName, file, { upsert: true });
 
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-        .from('qris')
-        .getPublicUrl(fileName);
+         .from('qris')
+         .getPublicUrl(fileName);
 
         finalQrisUrl = urlData.publicUrl;
         setQrisUrl(finalQrisUrl);
@@ -82,11 +109,10 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
         qris_url: method === 'Qris'? finalQrisUrl : null
       };
 
-      // Simpan ke kolom payment
       const { error: updateError } = await supabase
-      .from('pengguna')
-      .update({ payment: paymentData })
-      .eq('id', userId);
+       .from('pengguna')
+       .update({ payment: paymentData })
+       .eq('id', userId);
 
       if (updateError) throw updateError;
 
@@ -99,6 +125,15 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
       setLoading(false);
     }
   };
+
+  // Loading state biar ga render form duluan pas userId null
+  if (initLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500 text-sm">Memuat data...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -184,8 +219,8 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
               disabled={isSaved || loading}
               className={`w-full py-4 rounded-2xl font-bold shadow-lg transition-all ${
                 isSaved
-               ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                : 'bg-blue-600 text-white shadow-blue-100 active:scale-95 disabled:opacity-60'
+                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                  : 'bg-blue-600 text-white shadow-blue-100 active:scale-95 disabled:opacity-60'
               }`}
             >
               {loading? 'Menyimpan...' : isSaved? 'Tersimpan' : 'Konfirmasi'}
