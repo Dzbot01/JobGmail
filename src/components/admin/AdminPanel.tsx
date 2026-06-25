@@ -42,12 +42,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     }
 
     const flat = (data || []).flatMap(user =>
-      (user.history || []).map((task: any) => ({
-       ...task,
-        userId: user.id,
-        userEmail: user.email
-      }))
-    );
+  (user.history || [])
+   .filter(task => task && task.id) // buang data kosong
+   .map((task: any) => ({
+     ...task,
+     userId: user.id,
+     userEmail: user.email
+   }))
+);
+setAllSubmissions(flat);
 
     setAllSubmissions(flat.sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -55,44 +58,46 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   // Override onUpdateStatus biar update ke Supabase
-  const handleUpdateStatus = async (taskId: string, status: 'paid' | 'rejected', reason?: string) => {
-    try {
-      const task = allSubmissions.find(t => t.id === taskId);
-      if (!task) return;
-
-      const { data: userData } = await supabase
-       .from('pengguna')
-       .select('history, saldo')
-       .eq('id', task.userId)
-       .single();
-
-      let historyArr = userData?.history || [];
-      historyArr = historyArr.map((t: any) =>
-        t.id === taskId
-         ? {...t, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
-          : t
-      );
-
-      await supabase
-       .from('pengguna')
-       .update({ history: historyArr })
-       .eq('id', task.userId);
-
-      // Kalo paid, tambah saldo
-      if (status === 'paid') {
-        await supabase
-         .from('pengguna')
-         .update({ saldo: (userData?.saldo?? 0) + (settings.taskReward || 1000) })
-         .eq('id', task.userId);
-      }
-
-      showAlert('Sukses!', `Status diubah ke ${status}`, 'success');
-      fetchAllSubmissions();
-      onUpdateStatusProp(taskId, status, reason); // trigger refresh parent kalo perlu
-    } catch (err: any) {
-      showAlert('Gagal!', err.message, 'error');
+const handleUpdateStatus = async (taskId: string, status: 'paid' | 'rejected', reason?: string) => {
+  try {
+    const task = allSubmissions.find(t => t.id === taskId);
+    if (!task?.userId) {
+      showAlert('Error', 'userId kosong. Refresh dulu admin panel', 'error');
+      return;
     }
-  };
+
+    const { data: userData, error: fetchError } = await supabase
+     .from('pengguna')
+     .select('history, saldo')
+     .eq('id', task.userId)
+     .single();
+
+    if (fetchError) throw fetchError;
+
+    const historyArr = (userData?.history || []).map((t: any) =>
+      t.id === taskId
+       ? { ...t, status, reason: status === 'rejected' ? (reason || 'Ditolak admin') : null }
+       : t
+    );
+
+    const newSaldo = status === 'paid' 
+      ? (userData?.saldo ?? 0) + (settings.taskReward || 1000)
+      : userData?.saldo;
+
+    const { error: updateError } = await supabase
+     .from('pengguna')
+     .update({ history: historyArr, saldo: newSaldo })
+     .eq('id', task.userId);
+
+    if (updateError) throw updateError;
+
+    showAlert('Sukses!', `Status diubah ke ${status}`, 'success');
+    fetchAllSubmissions(); // refresh tabel
+  } catch (err: any) {
+    showAlert('Gagal!', err.message, 'error');
+    console.error(err);
+  }
+};
 
   useEffect(() => {
     if (activeTab === 'setoran') fetchAllSubmissions();
