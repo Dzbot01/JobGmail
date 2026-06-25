@@ -275,11 +275,15 @@ setAllSubmissions(profile?.history ?? []);
           } />
 <Route path="/penarikan" element={
   <AlamatPenarikan
-    userId={userId} // ini wajib ada
-    onBack={() => navigate('/profil')}
+    userId={userId}
     savedData={withdrawDetails.method? withdrawDetails : undefined}
     showAlert={showAlert}
-    onConfirm={(data) => {...}}
+    onConfirm={(data) => {
+      setIsVerified(true);
+      setWithdrawDetails(data);
+      showAlert('Berhasil!', 'Alamat penarikan telah disimpan.');
+      navigate('/profil');
+    }}
   />
 } />
           <Route path="/withdraw" element={
