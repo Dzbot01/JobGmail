@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, ArrowLeft } from 'lucide-react';
-import { supabase } from '../lib/supabase'; // sesuaikan path
+import { supabase } from '../supabase'; // sesuaikan path
 
 interface AlamatPenarikanProps {
   onBack: () => void;
