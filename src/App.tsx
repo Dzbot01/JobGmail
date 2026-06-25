@@ -133,6 +133,13 @@ const App: React.FC = () => {
   const showAlert = (message: string, subtext: string, type: 'success' | 'error' = 'success') => {
     setAlertState({ show: true, message, subtext, type });
   };
+  
+const handleLogout = async () => {
+  await supabase.auth.signOut(); // ini yg matiin session beneran
+  setUserRole('guest');
+  setActiveTab('dashboard');
+  window.location.href = '/'; // reset biar ga ada state nyangkut
+}
 
   const handleTaskSubmit = (data: { email: string, pass: string }) => {
     const newSub = {
@@ -281,7 +288,7 @@ const App: React.FC = () => {
             onUpdateWithdrawStatus={updateWithdrawStatus}
             activeTab={adminActiveTab}
             setTab={setAdminActiveTab}
-            onLogout={() => setUserRole('guest')}
+            onLogout={handleLogout} // PAKE INI
             settings={systemSettings}
             updateSettings={setSystemSettings}
             showAlert={showAlert}

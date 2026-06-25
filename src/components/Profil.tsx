@@ -70,7 +70,7 @@ const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, onN
       </div>
 
       <button 
-        onClick={() => window.location.reload()}
+        onClick={handleLogout}
         className="w-full mt-4 py-4 rounded-2xl bg-white border border-red-100 text-red-500 font-bold shadow-lg active:bg-red-50"
       >
         Logout
