@@ -428,83 +428,83 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   }
 
   if (activeTab === 'payout') {
-    return (
-      <div className="space-y-4">
-        <h2 className="text-xl font-bold text-gray-800 mb-2 px-2">Withdrawal Requests</h2>
-        {withdrawData.length === 0? (
-          <div className="bg-white p-10 rounded-2xl shadow-lg text-center text-gray-400">
-             Belum ada request withdraw
-          </div>
-        ) : (
-          withdrawData.map((req) => (
-            <div key={req.id} className="bg-white p-5 rounded-2xl shadow-lg border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                 <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase">Amount</p>
-                    <p className="text-lg font-black text-gray-800">Rp. {req.amount.toLocaleString('id-ID')}</p>
-                 </div>
-                 <div className="text-right">
-                    <p className="text-xs font-bold text-gray-400 uppercase">Method</p>
-                    <p className="text-sm font-bold text-blue-600">{req.method}</p>
-                 </div>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-xl mb-4 space-y-2">
-                 <div className="flex justify-between text-[11px]">
-                    <span className="text-gray-400">Email User</span>
-                    <span className="font-bold text-gray-800 break-all">{req.userEmail}</span>
-                 </div>
-                 {req.method === 'Qris' && req.qrisUrl? (
-                  <div className="pt-2">
-                    <span className="text-[11px] text-gray-400 block mb-1">QRIS User:</span>
-                    <img src={req.qrisUrl} className="w-32 h-32 rounded-lg border-gray-200 object-contain bg-white" />
-                  </div>
-                 ) : (
-                  <>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-gray-400">Nomor/Account</span>
-                      <span className="font-bold text-gray-800">{req.walletNumber}</span>
-                    </div>
-                    <div className="flex justify-between text-[11px]">
-                      <span className="text-gray-400">Nama Pengguna</span>
-                      <span className="font-bold text-gray-800">{req.userName}</span>
-                    </div>
-                  </>
-                 )}
-                 <div className="flex justify-between text-[11px]">
-                    <span className="text-gray-400">Tanggal</span>
-                    <span className="font-bold text-gray-800">{req.date}</span>
-                 </div>
-              </div>
-
-              {req.status === 'process'? (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleUpdateWithdrawStatus(req.id, 'paid')}
-                    className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 active:scale-95"
-                  >
-                    <CheckCircle size={18} />
-                    Bayar
-                  </button>
-                  <button
-                    onClick={() => onUpdateWithdrawStatus(req.id, 'rejected')}
-                    className="flex-1 py-3 bg-red-100 text-red-600 rounded-xl font-bold shadow-sm"
-                  >
-                    Tolak
-                  </button>
-                </div>
-              ) : (
-                <div className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed ${req.status === 'paid'? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-400'}`}>
-                  <CheckCircle size={18} />
-                  {req.status === 'paid'? 'Sudah Terbayar' : 'Ditolak'}
-                </div>
-              )}
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-bold text-gray-800 mb-2 px-2">Withdrawal Requests</h2>
+      {withdrawRequests.length === 0? ( // <-- ganti withdrawData -> withdrawRequests
+        <div className="bg-white p-10 rounded-2xl shadow-lg text-center text-gray-400">
+           Belum ada request withdraw
+        </div>
+      ) : (
+        withdrawRequests.map((req) => ( // <-- ganti di sini juga
+          <div key={req.id} className="bg-white p-5 rounded-2xl shadow-lg border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+               <div>
+                  <p className="text-xs font-bold text-gray-400 uppercase">Amount</p>
+                  <p className="text-lg font-black text-gray-800">Rp. {req.amount.toLocaleString('id-ID')}</p>
+               </div>
+               <div className="text-right">
+                  <p className="text-xs font-bold text-gray-400 uppercase">Method</p>
+                  <p className="text-sm font-bold text-blue-600">{req.method}</p>
+               </div>
             </div>
-          ))
-        )}
-      </div>
-    );
-  }
+
+            <div className="bg-gray-50 p-4 rounded-xl mb-4 space-y-2">
+               <div className="flex justify-between text-[11px]">
+                  <span className="text-gray-400">Email User</span>
+                  <span className="font-bold text-gray-800 break-all">{req.userEmail}</span>
+               </div>
+               {req.method === 'Qris' && req.qrisUrl? (
+                <div className="pt-2">
+                  <span className="text-[11px] text-gray-400 block mb-1">QRIS User:</span>
+                  <img src={req.qrisUrl} className="w-32 h-32 rounded-lg border-gray-200 object-contain bg-white" />
+                </div>
+               ) : (
+                <>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-gray-400">Nomor/Account</span>
+                    <span className="font-bold text-gray-800">{req.walletNumber}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-gray-400">Nama Pengguna</span>
+                    <span className="font-bold text-gray-800">{req.userName}</span>
+                  </div>
+                </>
+               )}
+               <div className="flex justify-between text-[11px]">
+                  <span className="text-gray-400">Tanggal</span>
+                  <span className="font-bold text-gray-800">{req.date}</span>
+               </div>
+            </div>
+
+            {req.status === 'process'? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onUpdateWithdrawStatus(req.id, 'paid')} // <-- ini juga ganti handleUpdate -> onUpdate
+                  className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <CheckCircle size={18} />
+                  Bayar
+                </button>
+                <button
+                  onClick={() => onUpdateWithdrawStatus(req.id, 'rejected')}
+                  className="flex-1 py-3 bg-red-100 text-red-600 rounded-xl font-bold shadow-sm"
+                >
+                  Tolak
+                </button>
+              </div>
+            ) : (
+              <div className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 cursor-not-allowed ${req.status === 'paid'? 'bg-gray-100 text-gray-400' : 'bg-red-50 text-red-400'}`}>
+                <CheckCircle size={18} />
+                {req.status === 'paid'? 'Sudah Terbayar' : 'Ditolak'}
+              </div>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
 
   return null;
 };

@@ -304,28 +304,30 @@ const App: React.FC = () => {
               }}
             />
           } />
-          <Route path="/withdraw" element={
-            <WithdrawPage
-              balance={balance}
-              history={withdrawHistory}
-              onBack={() => navigate('/dashboard')}
-              showAlert={showAlert}
-              onWithdrawSuccess={(amount) => {
-                setBalance(prev => prev - amount);
-                const newItem: HistoryItem = {
-                  id: Math.random().toString(36).substr(2, 9),
-                  amount: amount,
-                  status: 'process',
-                  date: new Date().toLocaleString('id-ID'),
-                  walletNumber: withdrawDetails.number,
-                  userName: withdrawDetails.name,
-                  method: withdrawDetails.method
-                };
-                setWithdrawHistory([newItem,...withdrawHistory]);
-                showAlert('Berhasil!', 'Withdraw sedang di proses.');
-              }}
-            />
-          } />
+<Route path="/withdraw" element={
+  <WithdrawPage
+    balance={balance}
+    history={withdrawHistory}
+    onBack={() => navigate('/dashboard')}
+    showAlert={showAlert}
+    onWithdrawSuccess={(amount) => {
+      setBalance(prev => prev - amount);
+      const newItem: HistoryItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        amount: amount,
+        status: 'process',
+        date: new Date().toLocaleString('id-ID'),
+        walletNumber: withdrawDetails.number,
+        userName: withdrawDetails.name,
+        method: withdrawDetails.method,
+        userEmail: userEmail, // <-- TAMBAH INI
+        qrisUrl: withdrawDetails.method === 'Qris' ? withdrawDetails.qris_url : undefined // <-- TAMBAH INI
+      };
+      setWithdrawHistory([newItem,...withdrawHistory]);
+      showAlert('Berhasil!', 'Withdraw sedang di proses.');
+    }}
+  />
+} />
           <Route path="/history" element={<UserHistory submissions={allSubmissions} />} />
 
           {/* ADMIN ROUTES */}
