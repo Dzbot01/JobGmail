@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon } from 'lucide-react';
-import { Routes, Route, Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './supabase';
 
 // Components
@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const location = useLocation();
 
   // === 1. SEMUA STATE DI ATAS ===
+  const [userId, setUserId] = useState<string>(''); // TAMBAH INI
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [userRole, setUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
@@ -75,6 +76,7 @@ const App: React.FC = () => {
         if (!session?.user) {
           if (mounted) {
             setUserRole('guest');
+            setUserId(''); // reset userId
             setUserName('');
             setUserEmail('');
             setIsLoading(false);
@@ -85,34 +87,43 @@ const App: React.FC = () => {
         const name = session.user_metadata?.full_name || session.user_metadata?.name || '';
         const email = session.user.email || '';
         if (mounted) {
+          setUserId(session.user.id); // SET USERID
           setUserName(name);
           setUserEmail(email);
         }
 
-const { data: profile, error: profileError } = await supabase
-  .from('pengguna')
-  .select('peran, saldo, history')
-  .eq('id', session.user.id)
-  .single();
+        const { data: profile, error: profileError } = await supabase
+         .from('pengguna')
+         .select('peran, saldo, history, payment')
+         .eq('id', session.user.id)
+         .single();
 
-if (profileError) {
-  console.error('Gagal fetch profile:', profileError);
-  return;
-}
-
-setBalance(profile?.saldo ?? 0);
-setAllSubmissions(profile?.history ?? []);
+        if (profileError) {
+          console.error('Gagal fetch profile:', profileError);
+        } else {
+          setBalance(profile?.saldo?? 0);
+          setAllSubmissions(profile?.history?? []);
+          // Load payment ke withdrawDetails biar sinkron
+          if (profile?.payment?.method) {
+            setWithdrawDetails({
+              method: profile.payment.method,
+              number: profile.payment.number || '',
+              name: profile.payment.name || ''
+            });
+          }
+        }
 
         const role = profile?.peran || 'user';
         if (!mounted) return;
 
-       setUserRole(role as 'user' | 'admin');
+        setUserRole(role as 'user' | 'admin');
         if (role === 'admin') setAdminActiveTab('dashboard');
 
       } catch (err) {
         console.error('GAGAL LOAD USER:', err);
         if (mounted) {
           setUserRole('guest');
+          setUserId('');
           setUserName('');
           setUserEmail('');
         }
@@ -123,9 +134,15 @@ setAllSubmissions(profile?.history ?? []);
 
     handleAuth();
 
-    const { data: { subscription }} = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription }} = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUserId(session.user.id); // update userId pas login
+        setUserName(session.user_metadata?.full_name || session.user_metadata?.name || '');
+        setUserEmail(session.user.email || '');
+      }
       if (event === 'SIGNED_OUT') {
         setUserRole('guest');
+        setUserId(''); // reset userId
         setUserName('');
         setUserEmail('');
         setIsLoading(false);
@@ -162,13 +179,14 @@ setAllSubmissions(profile?.history ?? []);
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUserRole('guest');
+    setUserId(''); // reset userId
     navigate('/', { replace: true });
   }
 
   const handleTaskSubmit = (data: { email: string, pass: string }) => {
     const newSub = {
       id: Math.random().toString(36).substr(2, 9),
-      userId: 'USER_ID_123',
+      userId: userId, // pake userId beneran
       email: data.email,
       password: data.pass,
       status: 'process',
@@ -273,19 +291,19 @@ setAllSubmissions(profile?.history ?? []);
               onLogout={handleLogout}
             />
           } />
-<Route path="/penarikan" element={
-  <AlamatPenarikan
-    userId={userId}
-    savedData={withdrawDetails.method? withdrawDetails : undefined}
-    showAlert={showAlert}
-    onConfirm={(data) => {
-      setIsVerified(true);
-      setWithdrawDetails(data);
-      showAlert('Berhasil!', 'Alamat penarikan telah disimpan.');
-      navigate('/profil');
-    }}
-  />
-} />
+          <Route path="/penarikan" element={
+            <AlamatPenarikan
+              userId={userId} // SEKARANG ADA
+              savedData={withdrawDetails.method? withdrawDetails : undefined}
+              showAlert={showAlert}
+              onConfirm={(data) => {
+                setIsVerified(true);
+                setWithdrawDetails(data);
+                showAlert('Berhasil!', 'Alamat penarikan telah disimpan.');
+                navigate('/profil');
+              }}
+            />
+          } />
           <Route path="/withdraw" element={
             <WithdrawPage
               balance={balance}

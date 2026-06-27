@@ -23,20 +23,22 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
   const isSaved =!!savedData?.method &&!isEditing;
 
   useEffect(() => {
-    const init = async () => {
-      // Guard: kalo userId kosong langsung balik
-      if (!userId) {
-        showAlert('Gagal', 'User ID tidak ditemukan. Refresh halaman', 'error');
-        onBack();
-        return;
-      }
+  const init = async () => {
+    // Guard: kalo userId kosong skip aja
+    if (!userId) {
+      setInitLoading(false);
+      return;
+    }
 
+    try {
       // Ambil data terbaru dari DB biar sinkron
-      const { data } = await supabase
-       .from('pengguna')
-       .select('payment')
-       .eq('id', userId)
-       .single();
+      const { data, error } = await supabase
+      .from('pengguna')
+      .select('payment')
+      .eq('id', userId)
+      .single();
+
+      if (error) throw error;
 
       if (data?.payment) {
         setMethod(data.payment.method || 'Dana');
@@ -44,15 +46,27 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
         setName(data.payment.name || '');
         setQrisUrl(data.payment.qris_url || '');
       } else if (savedData) {
+        // fallback kalo DB kosong
         setMethod(savedData.method);
         setNumber(savedData.number);
         setName(savedData.name);
         setQrisUrl(savedData.qris_url || '');
       }
+    } catch (err: any) {
+      console.error('Gagal load payment:', err.message);
+      // kalo DB error, tetep pake savedData biar form ga kosong
+      if (savedData) {
+        setMethod(savedData.method);
+        setNumber(savedData.number);
+        setName(savedData.name);
+        setQrisUrl(savedData.qris_url || '');
+      }
+    } finally {
       setInitLoading(false);
-    };
-    init();
-  }, [userId, savedData]);
+    }
+  };
+  init();
+}, [userId]); // HAPUS savedData dari sini
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
