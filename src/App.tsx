@@ -92,26 +92,29 @@ const App: React.FC = () => {
           setUserEmail(email);
         }
 
-        const { data: profile, error: profileError } = await supabase
-         .from('pengguna')
-         .select('peran, saldo, history, payment')
-         .eq('id', session.user.id)
-         .single();
+      const { data: profile, error: profileError } = await supabase
+  .from('pengguna')
+  .select('peran, saldo, history, payment, withdraw_history') // <-- tambah ini
+  .eq('id', session.user.id)
+  .single();
 
-        if (profileError) {
-          console.error('Gagal fetch profile:', profileError);
-        } else {
-          setBalance(profile?.saldo?? 0);
-          setAllSubmissions(profile?.history?? []);
-          // Load payment ke withdrawDetails biar sinkron
-          if (profile?.payment?.method) {
-            setWithdrawDetails({
-              method: profile.payment.method,
-              number: profile.payment.number || '',
-              name: profile.payment.name || ''
-            });
-          }
-        }
+if (profileError) {
+  console.error('Gagal fetch profile:', profileError);
+} else {
+  setBalance(profile?.saldo?? 0);
+  setAllSubmissions(profile?.history?? []);
+  setWithdrawHistory(profile?.withdraw_history?? []); // <-- LOAD DARI DB INI KUNCINYA
+  
+  // Load payment ke withdrawDetails biar sinkron
+  if (profile?.payment?.method) {
+    setWithdrawDetails({
+      method: profile.payment.method,
+      number: profile.payment.number || '',
+      name: profile.payment.name || '',
+      qris_url: profile.payment.qris_url || '' // <-- sekalian qris_url biar QRIS nya ga ilang
+    });
+  }
+}
 
         const role = profile?.peran || 'user';
         if (!mounted) return;
@@ -310,22 +313,36 @@ const App: React.FC = () => {
     history={withdrawHistory}
     onBack={() => navigate('/dashboard')}
     showAlert={showAlert}
-    onWithdrawSuccess={(amount) => {
-      setBalance(prev => prev - amount);
-      const newItem: HistoryItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        amount: amount,
-        status: 'process',
-        date: new Date().toLocaleString('id-ID'),
-        walletNumber: withdrawDetails.number,
-        userName: withdrawDetails.name,
-        method: withdrawDetails.method,
-        userEmail: userEmail, // <-- TAMBAH INI
-        qrisUrl: withdrawDetails.method === 'Qris' ? withdrawDetails.qris_url : undefined // <-- TAMBAH INI
-      };
-      setWithdrawHistory([newItem,...withdrawHistory]);
-      showAlert('Berhasil!', 'Withdraw sedang di proses.');
-    }}
+onWithdrawSuccess={async (amount) => {
+  setBalance(prev => prev - amount);
+  const newItem: HistoryItem = {
+    id: Math.random().toString(36).substr(2, 9),
+    amount: amount,
+    status: 'process',
+    date: new Date().toLocaleString('id-ID'),
+    walletNumber: withdrawDetails.number,
+    userName: withdrawDetails.name,
+    method: withdrawDetails.method,
+    userEmail: userEmail,
+    qrisUrl: withdrawDetails.method === 'Qris' ? withdrawDetails.qris_url : undefined
+  };
+  
+  const newHistory = [newItem, ...withdrawHistory];
+  setWithdrawHistory(newHistory); // update state
+
+  // SIMPAN KE DB BANG, INI KUNCINYA
+  const { error } = await supabase
+    .from('pengguna')
+    .update({ withdraw_history: newHistory })
+    .eq('id', userId);
+
+  if (error) {
+    console.error('Gagal simpan withdraw:', error);
+    showAlert('Gagal!', 'Gagal simpan riwayat ke server', 'error');
+  } else {
+    showAlert('Berhasil!', 'Withdraw sedang di proses.');
+  }
+}}
   />
 } />
           <Route path="/history" element={<UserHistory submissions={allSubmissions} />} />

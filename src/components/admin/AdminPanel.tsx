@@ -17,39 +17,53 @@ interface AdminPanelProps {
 
 const handleUpdateWithdrawStatus = async (withdrawId: string, status: 'paid' | 'rejected', reason?: string) => {
   try {
-    // 1. Cari withdraw data dari state
-    const req = withdrawData.find(r => r.id === withdrawId);
-    if (!req?.userId) {
+    // 1. Cari withdraw data dari state admin
+    const req = withdrawRequests.find(r => r.id === withdrawId);
+    if (!req?.userEmail) { // pake userEmail aja, userId ga ada di HistoryItem
       showAlert('Error', 'Data withdraw tidak ditemukan', 'error');
       return;
     }
 
-    // 2. Ambil history user
+    // 2. Cari userId dari email, karena HistoryItem ga nyimpen userId
     const { data: userData, error: fetchError } = await supabase
-   .from('pengguna')
-   .select('history')
-   .eq('id', req.userId)
-   .single();
+      .from('pengguna')
+      .select('id, withdraw_history, saldo')
+      .eq('email', req.userEmail) // <-- pake email buat cari user
+      .single();
 
     if (fetchError) throw fetchError;
+    if (!userData) throw new Error('User tidak ditemukan');
 
-    // 3. Update status withdraw di array history
-    const historyArr = (userData?.history || []).map((h: any) =>
-      h.id === withdrawId && h.type === 'withdraw'
-     ? {...h, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
-       : h
+    // 3. Update status withdraw di array withdraw_history
+    let newHistory = (userData.withdraw_history || []).map((h: any) =>
+      h.id === withdrawId
+        ? {...h, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
+        : h
     );
 
-    // 4. Update ke DB
+    // 4. Kalo ditolak, balikin saldo
+    let newSaldo = userData.saldo;
+    if (status === 'rejected') {
+      const reqAmount = newHistory.find((h: any) => h.id === withdrawId)?.amount || 0;
+      newSaldo = userData.saldo + reqAmount;
+    }
+
+    // 5. Update ke DB kolom withdraw_history + saldo
     const { error: updateError } = await supabase
-   .from('pengguna')
-   .update({ history: historyArr })
-   .eq('id', req.userId);
+      .from('pengguna')
+      .update({ 
+        withdraw_history: newHistory,
+        saldo: newSaldo // <-- balikin saldo kalo ditolak
+      })
+      .eq('id', userData.id);
 
     if (updateError) throw updateError;
 
     showAlert('Sukses!', `Withdraw diubah ke ${status}`, 'success');
-    fetchWithdrawRequests(); // refresh list payout
+    
+    // 6. Update state admin biar ga perlu refresh
+    onUpdateWithdrawStatus(withdrawId, status, reason); // panggil prop dari App.tsx
+
   } catch (err: any) {
     showAlert('Gagal!', err.message, 'error');
     console.error(err);
