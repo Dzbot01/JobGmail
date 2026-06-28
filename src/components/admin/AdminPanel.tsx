@@ -13,17 +13,14 @@ interface AdminPanelProps {
   updateSettings: (s: any) => void;
   showAlert: (message: string, subtext: string, type?: 'success' | 'error') => void;
 }
-
 const handleUpdateWithdrawStatus = async (withdrawId: string, status: 'paid' | 'rejected', reason?: string) => {
   try {
-    // 1. FIX 1: GANTI withdrawRequests -> withdrawData
     const req = withdrawData.find(r => r.id === withdrawId); 
     if (!req?.userEmail) {
       showAlert('Error', 'Data withdraw tidak ditemukan. Coba refresh admin', 'error');
       return;
     }
 
-    // 2. Cari user pake email
     const { data: userData, error: fetchError } = await supabase
       .from('pengguna')
       .select('id, withdraw_history, saldo')
@@ -33,40 +30,38 @@ const handleUpdateWithdrawStatus = async (withdrawId: string, status: 'paid' | '
     if (fetchError) throw fetchError;
     if (!userData) throw new Error('User tidak ditemukan');
 
-    // 3. Ambil amount dari data lama. JANGAN dari newHistory biar aman
     const oldReq = (userData.withdraw_history || []).find((h: any) => h.id === withdrawId);
     const reqAmount = oldReq?.amount || 0;
 
-    // 4. Update status withdraw di array
     let newHistory = (userData.withdraw_history || []).map((h: any) =>
       h.id === withdrawId
         ? {...h, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
         : h
     );
 
-    // 5. FIX 2: Kalo ditolak, balikin saldo pake amount data lama
     let newSaldo = userData.saldo;
     if (status === 'rejected') {
       newSaldo = userData.saldo + reqAmount;
     }
 
-    // 6. Update ke DB
+    // 6. HAPUS .from().update() -> GANTI JADI INI
     const { error: updateError } = await supabase
-      .from('pengguna')
-      .update({ 
-        withdraw_history: newHistory,
-        saldo: newSaldo 
-      })
-      .eq('id', userData.id);
+      .rpc('admin_update_withdraw', { 
+        p_user_id: userData.id,
+        p_withdraw_id: withdrawId,
+        p_status: status,
+        p_reason: status === 'rejected' ? (reason || 'Ditolak admin') : null,
+        p_new_saldo: newSaldo,
+        p_new_history: newHistory
+      });
 
     if (updateError) throw updateError;
 
     showAlert('Sukses!', `Withdraw diubah ke ${status}`, 'success');
-    
-    // 7. Refresh data admin biar UI ke-update
-    fetchWithdrawRequests(); // <-- LEBIH AMAN DARI onUpdateWithdrawStatus
+    fetchWithdrawRequests(); 
 
   } catch (err: any) {
+    alert(`ERROR: ${err.message}`); // biar keliatan di HP
     showAlert('Gagal!', err.message, 'error');
   }
 };
