@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Wallet, History, ArrowLeft, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { supabase } from '../supabase'; // <-- 1. TAMBAH INI
+import { supabase } from '../supabase'; 
 
 export interface HistoryItem {
   id: string;
@@ -11,7 +11,7 @@ export interface HistoryItem {
   userName?: string;
   method?: string;
   reason?: string;
-  userEmail?: string; // <-- 2. TAMBAH INI BUAT ADMIN
+  userEmail?: string;
 }
 
 interface WithdrawPageProps {
@@ -25,11 +25,11 @@ interface WithdrawPageProps {
 const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, onWithdrawSuccess, showAlert }) => {
   const [activeSubTab, setActiveSubTab] = useState<'withdraw' | 'history'>('withdraw');
   const [amount, setAmount] = useState<string>('');
-  const [loading, setLoading] = useState(false); // <-- 4. TAMBAH LOADING
+  const [loading, setLoading] = useState(false); 
   
   const quickAmounts = [1000, 3000, 5000, 10000, 50000, 100000];
 
-  const handleWithdraw = async () => { // <-- 5. JADI ASYNC
+  const handleWithdraw = async () => { 
     const numAmount = parseInt(amount);
     if (isNaN(numAmount) || numAmount < 1000) {
       showAlert("Gagal!", "Minimal penarikan Rp. 1.000", "error");
@@ -42,7 +42,6 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
     
     setLoading(true);
     try {
-      // 1. AMBIL DATA USER LOGIN
       const { data: { user }} = await supabase.auth.getUser();
       if (!user) throw new Error("User tidak login");
 
@@ -53,13 +52,12 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
        .single();
       if (fetchError) throw fetchError;
 
-      // 2. BIKIN ITEM WITHDRAW BARU
       const newWithdrawId = Date.now().toString();
       const payment = userData.payment || {};
       const newWithdrawItem: HistoryItem = {
         id: newWithdrawId,
         amount: numAmount,
-        status: 'process', // <-- KUNCI ALIRAN A
+        status: 'process', 
         date: new Date().toLocaleString('id-ID'),
         method: payment.method || 'Dana',
         walletNumber: payment.number,
@@ -68,11 +66,9 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
         userEmail: userData.email
       };
 
-      // 3. POTONG SALDO + PUSH HISTORY
       const newSaldo = userData.saldo - numAmount;
       const newHistory = [newWithdrawItem,...(userData.withdraw_history || [])];
 
-      // 4. UPDATE KE DB SEKALIGUS
       const { error: updateError } = await supabase
        .from('pengguna')
        .update({ 
@@ -82,7 +78,6 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
        .eq('id', user.id);
       if (updateError) throw updateError;
 
-      // 5. SUKSES -> REFRESH UI
       showAlert("Berhasil!", `Request withdraw Rp ${numAmount.toLocaleString('id-ID')} dikirim`, "success");
       onWithdrawSuccess(); // <-- Suruh parent fetch ulang
       setAmount('');
@@ -149,7 +144,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
                     onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
                     placeholder="Masukkan nominal"
                     className="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border-gray-100 focus:border-blue-400 focus:bg-white outline-none font-bold text-lg"
-                    disabled={loading} // <-- 6. DISABLE PAS LOADING
+                    disabled={loading} 
                   />
                 </div>
                 <p className="text-[10px] text-gray-400 mt-2 italic">Minimal penarikan Rp. 1.000</p>
@@ -180,7 +175,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
             <div className="flex justify-center mt-8">
 <div 
   className={`u-container ${loading ? 'pointer-events-none opacity-70' : ''}`}
-  onClick={!loading ? handleWithdraw : undefined} // <-- 7. CEGAH DOUBLE CLICK
+  onClick={!loading ? handleWithdraw : undefined} 
 >
                 <div className="left-side">
                   <div className="u-card">
@@ -227,7 +222,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
                   <div>
                     <p className="text-sm font-bold text-gray-800">Rp {item.amount.toLocaleString('id-ID')}</p>
                     <p className="text-[10px] text-gray-400">{item.date}</p>
-                    {item.reason && <p className="text-[10px] text-red-500">Alasan: {item.reason}</p>} // <-- TAMBAHIN ALASAN TOLAK
+                    {item.reason && <p className="text-[10px] text-red-500">Alasan: {item.reason}</p>}
                   </div>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
