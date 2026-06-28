@@ -4,7 +4,6 @@ import { supabase } from '../../supabase';
 
 interface AdminPanelProps {
   submissions: any[];
-  withdrawRequests: any[];
   onUpdateStatus: (id: string, status: 'paid' | 'rejected', reason?: string) => void;
   onUpdateWithdrawStatus: (id: string, status: 'paid' | 'rejected', reason?: string) => void;
   activeTab: 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
@@ -113,38 +112,38 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   // Fetch withdraw + gabungin data payment user
-  const fetchWithdrawRequests = async () => {
-    const { data, error } = await supabase
+const fetchWithdrawRequests = async () => {
+  const { data, error } = await supabase
     .from('pengguna')
-    .select('id, email, payment, history')
-    .not('history', 'is', null);
+    .select('id, email, payment, withdraw_history') // <-- AMBIL withdraw_history
+    .not('withdraw_history', 'is', null); // <-- FILTER yg ada isinya
 
-    if (error) {
-      console.error(error);
-      return;
-    }
+  if (error) {
+    console.error(error);
+    return;
+  }
 
-    const requests = data.flatMap(user => {
-      const payment = user.payment || {};
+  const requests = data.flatMap(user => {
+    const payment = user.payment || {};
 
-      return (user.history || [])
-      .filter((h: any) => h.type === 'withdraw' && h.status === 'process')
+    return (user.withdraw_history || []) // <-- BACA DARI SINI
+      .filter((h: any) => h.status === 'process') // <-- GA USAH CEK type, karena ini udah pasti withdraw
       .map((h: any) => ({
          id: h.id,
          userId: user.id,
-         userEmail: user.email,
+         userEmail: h.userEmail || user.email, // <-- pake yg dari item, fallback ke email user
          amount: h.amount,
-         date: new Date(h.timestamp || h.date).toLocaleDateString('id-ID'),
+         date: h.date, // <-- lu udah format id-ID di App, jadi ga usah new Date lagi
          status: h.status,
-         method: payment.method || 'E-Wallet',
-         walletNumber: payment.method === 'Qris'? 'QRIS' : payment.number || '-',
-         userName: payment.method === 'Qris'? 'QRIS' : payment.name || '-',
-         qrisUrl: payment.qris_url || null
+         method: h.method || payment.method || 'E-Wallet', // <-- ambil dari item dulu
+         walletNumber: h.walletNumber || payment.number || '-',
+         userName: h.userName || payment.name || '-',
+         qrisUrl: h.qrisUrl || payment.qris_url || null
        }));
-    });
+  });
 
-    setWithdrawData(requests.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-  };
+  setWithdrawData(requests.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+};
 
   // Override onUpdateStatus biar update ke Supabase
   const handleUpdateStatus = async (taskId: string, status: 'paid' | 'rejected', reason?: string) => {
@@ -441,16 +440,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     );
   }
 
-  if (activeTab === 'payout') {
+if (activeTab === 'payout') {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-gray-800 mb-2 px-2">Withdrawal Requests</h2>
-      {withdrawRequests.length === 0? ( // <-- ganti withdrawData -> withdrawRequests
+      {withdrawData.length === 0? ( // <-- GANTI INI
         <div className="bg-white p-10 rounded-2xl shadow-lg text-center text-gray-400">
            Belum ada request withdraw
         </div>
       ) : (
-        withdrawRequests.map((req) => ( // <-- ganti di sini juga
+        withdrawData.map((req) => ( // <-- GANTI INI JUGA
           <div key={req.id} className="bg-white p-5 rounded-2xl shadow-lg border-gray-100">
             <div className="flex items-center justify-between mb-4">
                <div>

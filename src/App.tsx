@@ -379,7 +379,6 @@ onWithdrawSuccess={async (amount) => {
           <Route path="/admin/payout" element={
             <AdminPanel
               submissions={allSubmissions}
-              withdrawRequests={withdrawHistory}
               onUpdateStatus={updateSubmissionStatus}
               onUpdateWithdrawStatus={updateWithdrawStatus}
               activeTab="payout"
