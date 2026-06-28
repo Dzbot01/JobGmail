@@ -178,7 +178,10 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
               </div>
 
             <div className="flex justify-center mt-8">
-              <div className={`u-container ${loading? 'pointer-events-none opacity-70' : ''}`} onClick={!loading? handleWithdraw : undefined}> // <-- 7. CEGAH DOUBLE CLICK
+<div 
+  className={`u-container ${loading ? 'pointer-events-none opacity-70' : ''}`}
+  onClick={!loading ? handleWithdraw : undefined} // <-- 7. CEGAH DOUBLE CLICK
+>
                 <div className="left-side">
                   <div className="u-card">
                     <div className="card-line"></div>
