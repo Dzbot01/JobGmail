@@ -307,44 +307,39 @@ if (profileError) {
               }}
             />
           } />
+
 <Route path="/withdraw" element={
   <WithdrawPage
     balance={balance}
     history={withdrawHistory}
     onBack={() => navigate('/dashboard')}
     showAlert={showAlert}
-onWithdrawSuccess={async (amount) => {
-  setBalance(prev => prev - amount);
-  const newItem: HistoryItem = {
-    id: Math.random().toString(36).substr(2, 9),
-    amount: amount,
-    status: 'process',
-    date: new Date().toLocaleString('id-ID'),
-    walletNumber: withdrawDetails.number,
-    userName: withdrawDetails.name,
-    method: withdrawDetails.method,
-    userEmail: userEmail,
-    qrisUrl: withdrawDetails.method === 'Qris' ? withdrawDetails.qris_url : undefined
-  };
-  
-  const newHistory = [newItem, ...withdrawHistory];
-  setWithdrawHistory(newHistory); // update state
+    onWithdrawSuccess={async () => { // <-- 1. HAPUS PARAM (amount)
+      try {
+        const { data: { user }} = await supabase.auth.getUser();
+        if (!user) return;
 
-  // SIMPAN KE DB BANG, INI KUNCINYA
-  const { error } = await supabase
-    .from('pengguna')
-    .update({ withdraw_history: newHistory })
-    .eq('id', userId);
+        // 2. FETCH ULANG DATA TERBARU DARI DB
+        const { data, error } = await supabase
+          .from('pengguna')
+          .select('saldo, withdraw_history')
+          .eq('id', user.id)
+          .single();
 
-  if (error) {
-    console.error('Gagal simpan withdraw:', error);
-    showAlert('Gagal!', 'Gagal simpan riwayat ke server', 'error');
-  } else {
-    showAlert('Berhasil!', 'Withdraw sedang di proses.');
-  }
-}}
+        if (error) throw error;
+
+        // 3. SYNC STATE KE DATA DB TERBARU
+        setBalance(data?.saldo ?? 0);
+        setWithdrawHistory(data?.withdraw_history ?? []);
+
+      } catch (err: any) {
+        console.error('Gagal refresh withdraw:', err);
+        showAlert('Gagal!', 'Gagal sinkron data setelah withdraw', 'error');
+      }
+    }}
   />
 } />
+
           <Route path="/history" element={<UserHistory submissions={allSubmissions} />} />
 
           {/* ADMIN ROUTES */}

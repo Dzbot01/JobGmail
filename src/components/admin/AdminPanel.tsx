@@ -5,7 +5,6 @@ import { supabase } from '../../supabase';
 interface AdminPanelProps {
   submissions: any[];
   onUpdateStatus: (id: string, status: 'paid' | 'rejected', reason?: string) => void;
-  onUpdateWithdrawStatus: (id: string, status: 'paid' | 'rejected', reason?: string) => void;
   activeTab: 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
   setTab: (tab: any) => void;
   onLogout: () => void;
@@ -16,7 +15,6 @@ interface AdminPanelProps {
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
   submissions,
-  withdrawRequests,
   onUpdateStatus: onUpdateStatusProp,
   activeTab,
   setTab,

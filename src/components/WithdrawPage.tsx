@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Wallet, History, ArrowLeft, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { supabase } from '../supabase'; // <-- 1. TAMBAH INI
 
 export interface HistoryItem {
   id: string;
@@ -10,23 +11,25 @@ export interface HistoryItem {
   userName?: string;
   method?: string;
   reason?: string;
+  userEmail?: string; // <-- 2. TAMBAH INI BUAT ADMIN
 }
 
 interface WithdrawPageProps {
   balance: number;
   history: HistoryItem[];
   onBack: () => void;
-  onWithdrawSuccess: (amount: number) => void;
+  onWithdrawSuccess: () => void; // <-- 3. GANTI: GA USAH KIRIM AMOUNT LAGI
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
 }
 
 const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, onWithdrawSuccess, showAlert }) => {
   const [activeSubTab, setActiveSubTab] = useState<'withdraw' | 'history'>('withdraw');
   const [amount, setAmount] = useState<string>('');
+  const [loading, setLoading] = useState(false); // <-- 4. TAMBAH LOADING
   
   const quickAmounts = [1000, 3000, 5000, 10000, 50000, 100000];
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => { // <-- 5. JADI ASYNC
     const numAmount = parseInt(amount);
     if (isNaN(numAmount) || numAmount < 1000) {
       showAlert("Gagal!", "Minimal penarikan Rp. 1.000", "error");
@@ -37,59 +40,97 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
       return;
     }
     
-    // Add delay for animation
-    const container = document.querySelector('.u-container');
-    if (container) {
-      container.classList.add('animating');
-      setTimeout(() => {
-        onWithdrawSuccess(numAmount);
-        setAmount('');
-        setActiveSubTab('history');
-        container.classList.remove('animating');
-      }, 1500); // Wait for animation
-    } else {
-      onWithdrawSuccess(numAmount);
+    setLoading(true);
+    try {
+      // 1. AMBIL DATA USER LOGIN
+      const { data: { user } = await supabase.auth.getUser();
+      if (!user) throw new Error("User tidak login");
+
+      const { data: userData, error: fetchError } = await supabase
+       .from('pengguna')
+       .select('saldo, withdraw_history, email, payment')
+       .eq('id', user.id)
+       .single();
+      if (fetchError) throw fetchError;
+
+      // 2. BIKIN ITEM WITHDRAW BARU
+      const newWithdrawId = Date.now().toString();
+      const payment = userData.payment || {};
+      const newWithdrawItem: HistoryItem = {
+        id: newWithdrawId,
+        amount: numAmount,
+        status: 'process', // <-- KUNCI ALIRAN A
+        date: new Date().toLocaleString('id-ID'),
+        method: payment.method || 'Dana',
+        walletNumber: payment.number,
+        userName: payment.name,
+        qrisUrl: payment.qris_url,
+        userEmail: userData.email
+      };
+
+      // 3. POTONG SALDO + PUSH HISTORY
+      const newSaldo = userData.saldo - numAmount;
+      const newHistory = [newWithdrawItem,...(userData.withdraw_history || [])];
+
+      // 4. UPDATE KE DB SEKALIGUS
+      const { error: updateError } = await supabase
+       .from('pengguna')
+       .update({ 
+          saldo: newSaldo, 
+          withdraw_history: newHistory 
+        })
+       .eq('id', user.id);
+      if (updateError) throw updateError;
+
+      // 5. SUKSES -> REFRESH UI
+      showAlert("Berhasil!", `Request withdraw Rp ${numAmount.toLocaleString('id-ID')} dikirim`, "success");
+      onWithdrawSuccess(); // <-- Suruh parent fetch ulang
       setAmount('');
       setActiveSubTab('history');
+
+    } catch (err: any) {
+      showAlert("Gagal!", err.message, "error");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4 mb-2">
-        <button onClick={onBack} className="p-2 bg-white rounded-full text-gray-600 shadow-sm border border-gray-100">
+        <button onClick={onBack} className="p-2 bg-white rounded-full text-gray-600 shadow-sm border-gray-100">
           <ArrowLeft size={20} />
         </button>
         <h2 className="text-xl font-bold">Withdraw</h2>
       </div>
 
-      <div className="bg-white rounded-2xl p-1 shadow-md border border-gray-100 flex">
+      <div className="bg-white rounded-2xl p-1 shadow-md border-gray-100 flex">
         <button 
           onClick={() => setActiveSubTab('withdraw')}
-          className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeSubTab === 'withdraw' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400'}`}
+          className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeSubTab === 'withdraw'? 'bg-blue-600 text-white shadow-md' : 'text-gray-400'}`}
         >
           <Wallet size={16} />
           Withdraw
         </button>
         <button 
           onClick={() => setActiveSubTab('history')}
-          className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeSubTab === 'history' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400'}`}
+          className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 ${activeSubTab === 'history'? 'bg-blue-600 text-white shadow-md' : 'text-gray-400'}`}
         >
           <History size={16} />
           Riwayat
         </button>
       </div>
 
-      {activeSubTab === 'withdraw' ? (
+      {activeSubTab === 'withdraw'? (
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100">
             <p className="text-xs font-bold text-gray-400 uppercase mb-4">Pilih Nominal Cepat</p>
             <div className="grid grid-cols-3 gap-3">
               {quickAmounts.map((val) => (
                 <button 
                   key={val}
                   onClick={() => setAmount(val.toString())}
-                  className="py-3 px-1 rounded-xl border border-gray-100 bg-gray-50 text-xs font-bold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition-colors active:scale-95"
+                  className="py-3 px-1 rounded-xl border-gray-100 bg-gray-50 text-xs font-bold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition-colors active:scale-95"
                 >
                   Rp {val.toLocaleString('id-ID')}
                 </button>
@@ -107,14 +148,15 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
                     value={amount}
                     onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
                     placeholder="Masukkan nominal"
-                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-blue-400 focus:bg-white outline-none font-bold text-lg"
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border-gray-100 focus:border-blue-400 focus:bg-white outline-none font-bold text-lg"
+                    disabled={loading} // <-- 6. DISABLE PAS LOADING
                   />
                 </div>
                 <p className="text-[10px] text-gray-400 mt-2 italic">Minimal penarikan Rp. 1.000</p>
               </div>
 
               {/* T&C Withdraw */}
-              <div className="mt-8 bg-gray-50 rounded-2xl p-5 border border-gray-100 shadow-inner">
+              <div className="mt-8 bg-gray-50 rounded-2xl p-5 border-gray-100 shadow-inner">
                 <h4 className="text-xs font-black text-gray-700 uppercase mb-3 flex items-center gap-2">
                   <span className="w-1 h-4 bg-blue-600 rounded-full" />
                   Syarat & Ketentuan Penarikan
@@ -136,7 +178,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
               </div>
 
             <div className="flex justify-center mt-8">
-              <div className="u-container" onClick={handleWithdraw}>
+              <div className={`u-container ${loading? 'pointer-events-none opacity-70' : ''}`} onClick={!loading? handleWithdraw : undefined}> // <-- 7. CEGAH DOUBLE CLICK
                 <div className="left-side">
                   <div className="u-card">
                     <div className="card-line"></div>
@@ -152,8 +194,8 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
                   </div>
                 </div>
                 <div className="right-side">
-                  <div className="new">Konfirmasi Withdraw</div>
-                  <svg viewBox="0 0 451.846 451.847" height="512" width="512" xmlns="http://www.w3.org/2000/svg" className="arrow"><path fill="#cfcfcf" data-old_color="#000000" className="active-path" data-original="#000000" d="M345.441 248.292L151.154 442.573c-12.359 12.365-32.397 12.365-44.75 0-12.354-12.354-12.354-32.391 0-44.744L278.318 225.92 106.409 54.017c-12.354-12.359-12.354-32.394 0-44.748 12.354-12.359 32.391-12.359 44.75 0l194.287 194.284c6.177 6.18 9.262 14.271 9.262 22.366 0 8.099-3.091 16.196-9.267 22.373z"></path></svg>
+                  <div className="new">{loading? 'Memproses...' : 'Konfirmasi Withdraw'}</div> // <-- 8. GANTI TEKS
+                  <svg viewBox="0 0 451.846 451.847" height="512" width="512" xmlns="http://www.w3.org/2000/svg" className="arrow"><path fill="#cf" data-old_color="#000" className="active-path" data-original="#000" d="M345.441 248.292L151.154 442.573c-12.359 12.365-32.397 12.365-44.75 0-12.354-12.354-12.354-32.391 0-44.744L278.318 225.92 106.409 54.017c-12.354-12.359-12.354-32.394 0-44.748 12.354-12.359 32.391-12.359 44.75 0l194.287 194.284c6.177 6.18 9.262 14.271 9.262 22.366 0 8.099-3.091 16.196-9.267 22.373z"></path></svg>
                 </div>
               </div>
             </div>
@@ -161,8 +203,8 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
         </div>
       ) : (
         <div className="space-y-4">
-          {history.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
+          {history.length === 0? (
+            <div className="bg-white rounded-2xl p-12 shadow-lg border-gray-100 flex-col items-center justify-center text-center">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
                 <History size={32} />
               </div>
@@ -170,23 +212,24 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
             </div>
           ) : (
             history.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center justify-between">
+              <div key={item.id} className="bg-white rounded-2xl p-4 shadow-lg border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    item.status === 'paid' ? 'bg-green-50 text-green-500' : 
-                    item.status === 'rejected' ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'
+                    item.status === 'paid'? 'bg-green-50 text-green-500' : 
+                    item.status === 'rejected'? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'
                   }`}>
-                    {item.status === 'paid' ? <CheckCircle size={20} /> : 
-                     item.status === 'rejected' ? <XCircle size={20} /> : <Clock size={20} />}
+                    {item.status === 'paid'? <CheckCircle size={20} /> : 
+                     item.status === 'rejected'? <XCircle size={20} /> : <Clock size={20} />}
                   </div>
                   <div>
                     <p className="text-sm font-bold text-gray-800">Rp {item.amount.toLocaleString('id-ID')}</p>
                     <p className="text-[10px] text-gray-400">{item.date}</p>
+                    {item.reason && <p className="text-[10px] text-red-500">Alasan: {item.reason}</p>} // <-- TAMBAHIN ALASAN TOLAK
                   </div>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                  item.status === 'paid' ? 'bg-green-100 text-green-600' : 
-                  item.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'
+                  item.status === 'paid'? 'bg-green-100 text-green-600' : 
+                  item.status === 'rejected'? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'
                 }`}>
                   {item.status}
                 </span>
