@@ -16,43 +16,46 @@ interface AdminPanelProps {
 
 const handleUpdateWithdrawStatus = async (withdrawId: string, status: 'paid' | 'rejected', reason?: string) => {
   try {
-    // 1. Cari withdraw data dari state admin
-    const req = withdrawRequests.find(r => r.id === withdrawId);
-    if (!req?.userEmail) { // pake userEmail aja, userId ga ada di HistoryItem
-      showAlert('Error', 'Data withdraw tidak ditemukan', 'error');
+    // 1. FIX 1: GANTI withdrawRequests -> withdrawData
+    const req = withdrawData.find(r => r.id === withdrawId); 
+    if (!req?.userEmail) {
+      showAlert('Error', 'Data withdraw tidak ditemukan. Coba refresh admin', 'error');
       return;
     }
 
-    // 2. Cari userId dari email, karena HistoryItem ga nyimpen userId
+    // 2. Cari user pake email
     const { data: userData, error: fetchError } = await supabase
       .from('pengguna')
       .select('id, withdraw_history, saldo')
-      .eq('email', req.userEmail) // <-- pake email buat cari user
+      .eq('email', req.userEmail) 
       .single();
 
     if (fetchError) throw fetchError;
     if (!userData) throw new Error('User tidak ditemukan');
 
-    // 3. Update status withdraw di array withdraw_history
+    // 3. Ambil amount dari data lama. JANGAN dari newHistory biar aman
+    const oldReq = (userData.withdraw_history || []).find((h: any) => h.id === withdrawId);
+    const reqAmount = oldReq?.amount || 0;
+
+    // 4. Update status withdraw di array
     let newHistory = (userData.withdraw_history || []).map((h: any) =>
       h.id === withdrawId
         ? {...h, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
         : h
     );
 
-    // 4. Kalo ditolak, balikin saldo
+    // 5. FIX 2: Kalo ditolak, balikin saldo pake amount data lama
     let newSaldo = userData.saldo;
     if (status === 'rejected') {
-      const reqAmount = newHistory.find((h: any) => h.id === withdrawId)?.amount || 0;
       newSaldo = userData.saldo + reqAmount;
     }
 
-    // 5. Update ke DB kolom withdraw_history + saldo
+    // 6. Update ke DB
     const { error: updateError } = await supabase
       .from('pengguna')
       .update({ 
         withdraw_history: newHistory,
-        saldo: newSaldo // <-- balikin saldo kalo ditolak
+        saldo: newSaldo 
       })
       .eq('id', userData.id);
 
@@ -60,12 +63,11 @@ const handleUpdateWithdrawStatus = async (withdrawId: string, status: 'paid' | '
 
     showAlert('Sukses!', `Withdraw diubah ke ${status}`, 'success');
     
-    // 6. Update state admin biar ga perlu refresh
-    onUpdateWithdrawStatus(withdrawId, status, reason); // panggil prop dari App.tsx
+    // 7. Refresh data admin biar UI ke-update
+    fetchWithdrawRequests(); // <-- LEBIH AMAN DARI onUpdateWithdrawStatus
 
   } catch (err: any) {
     showAlert('Gagal!', err.message, 'error');
-    console.error(err);
   }
 };
 
