@@ -493,14 +493,14 @@ if (activeTab === 'payout') {
             {req.status === 'process'? (
               <div className="flex gap-2">
                 <button
-                  onClick={() => onUpdateWithdrawStatus(req.id, 'paid')} // <-- ini juga ganti handleUpdate -> onUpdate
+                  onClick={() => handleUpdateStatus(sub.id, 'paid')}// <-- ini juga ganti handleUpdate -> onUpdate
                   className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 active:scale-95"
                 >
                   <CheckCircle size={18} />
                   Bayar
                 </button>
                 <button
-                  onClick={() => onUpdateWithdrawStatus(req.id, 'rejected')}
+                  onClick={() => handleUpdateStatus(sub.id, 'rejected')}
                   className="flex-1 py-3 bg-red-100 text-red-600 rounded-xl font-bold shadow-sm"
                 >
                   Tolak
