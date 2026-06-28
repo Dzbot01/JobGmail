@@ -43,7 +43,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
     setLoading(true);
     try {
       // 1. AMBIL DATA USER LOGIN
-      const { data: { user } = await supabase.auth.getUser();
+      const { data: { user }} = await supabase.auth.getUser();
       if (!user) throw new Error("User tidak login");
 
       const { data: userData, error: fetchError } = await supabase
