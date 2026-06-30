@@ -3,8 +3,10 @@ import { Users, Database, CreditCard, CheckCircle, Mail, Settings, Wallet, Clipb
 import { supabase } from '../../supabase';
 
 interface AdminPanelProps {
-  submissions: any[];
-  onUpdateStatus: (id: string, status: 'paid' | 'rejected', reason?: string) => void;
+  submissions: any[]; // <-- 1. INI GA DIPAKE LAGI, KITA FETCH SENDIRI
+  withdrawRequests: any[]; // <-- 1. INI GA DIPAKE LAGI
+  onUpdateStatus: (id: string, status: 'paid' | 'rejected', reason?: string) => void; // <-- 1. INI GA DIPAKE LAGI
+  onUpdateWithdrawStatus: (id: string, status: 'paid' | 'rejected', reason?: string) => void; // <-- 1. INI GA DIPAKE LAGI
   activeTab: 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
   setTab: (tab: any) => void;
   onLogout: () => void;
@@ -14,8 +16,6 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({
-  submissions,
-  onUpdateStatus: onUpdateStatusProp,
   activeTab,
   setTab,
   onLogout,
@@ -23,10 +23,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   updateSettings,
   showAlert
 }) => {
+  // === 2. STATE & LOGIC PINDAH KE DALAM SINI LAGI ===
   const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
   const [withdrawData, setWithdrawData] = useState<any[]>([]);
 
-  // 1. PINDAH KE DALAM SINI BIAR BISA AKSES STATE & PROPS
   const handleUpdateWithdrawStatus = async (withdrawId: string, status: 'paid' | 'rejected', reason?: string) => {
     try {
       const req = withdrawData.find(r => r.id === withdrawId);
@@ -36,10 +36,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       }
 
       const { data: userData, error: fetchError } = await supabase
-       .from('pengguna')
-       .select('id, withdraw_history, saldo')
-       .eq('email', req.userEmail)
-       .single();
+      .from('pengguna')
+      .select('id, withdraw_history, saldo')
+      .eq('email', req.userEmail)
+      .single();
 
       if (fetchError) throw fetchError;
       if (!userData) throw new Error('User tidak ditemukan');
@@ -49,7 +49,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
       let newHistory = (userData.withdraw_history || []).map((h: any) =>
         h.id === withdrawId
-         ? {...h, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
+        ? {...h, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
           : h
       );
 
@@ -59,7 +59,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       }
 
       const { error: updateError } = await supabase
-       .rpc('admin_update_withdraw', {
+      .rpc('admin_update_withdraw', {
           p_user_id: userData.id,
           p_withdraw_id: withdrawId,
           p_status: status,
@@ -81,9 +81,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const fetchAllSubmissions = async () => {
     const { data, error } = await supabase
-   .from('pengguna')
-   .select('id, email, history')
-   .not('history', 'is', null);
+  .from('pengguna')
+  .select('id, email, history')
+  .not('history', 'is', null);
 
     if (error) {
       console.error(error);
@@ -92,9 +92,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
     const flat = (data || []).flatMap(user =>
       (user.history || [])
-     .filter(task => task && task.id && task.type!== 'withdraw')
-     .map((task: any) => ({
-       ...task,
+    .filter(task => task && task.id && task.type!== 'withdraw')
+    .map((task: any) => ({
+      ...task,
          userId: user.id,
          userEmail: user.email
        }))
@@ -107,9 +107,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
   const fetchWithdrawRequests = async () => {
     const { data, error } = await supabase
-     .from('pengguna')
-     .select('id, email, payment, withdraw_history')
-     .not('withdraw_history', 'is', null);
+    .from('pengguna')
+    .select('id, email, payment, withdraw_history')
+    .not('withdraw_history', 'is', null);
 
     if (error) {
       console.error(error);
@@ -119,11 +119,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
     const requests = data.flatMap(user => {
       const payment = user.payment || {};
       return (user.withdraw_history || [])
-       .filter((h: any) => h.status === 'process')
-       .map((h: any) => ({
+      .filter((h: any) => h.status === 'process')
+      .map((h: any) => ({
            id: h.id,
            userId: user.id,
-           userEmail: h.userEmail || user.email,
+           userEmail: h.userEmail || user.email, // <-- 3. UI BARU: EMAIL USER DITAMPILIN
            amount: h.amount,
            date: h.date,
            status: h.status,
@@ -146,27 +146,27 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       }
 
       const { data: userData, error: fetchError } = await supabase
-     .from('pengguna')
-     .select('history, saldo')
-     .eq('id', task.userId)
-     .single();
+    .from('pengguna')
+    .select('history, saldo')
+    .eq('id', task.userId)
+    .single();
 
       if (fetchError) throw fetchError;
 
       const historyArr = (userData?.history || []).map((t: any) =>
         t.id === taskId
-       ? {...t, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
+      ? {...t, status, reason: status === 'rejected'? (reason || 'Ditolak admin') : null }
          : t
       );
 
       const newSaldo = status === 'paid'
-      ? (userData?.saldo?? 0) + (settings.taskReward || 1000)
+     ? (userData?.saldo?? 0) + (settings.taskReward || 1000)
         : userData?.saldo;
 
       const { error: updateError } = await supabase
-     .from('pengguna')
-     .update({ history: historyArr, saldo: newSaldo })
-     .eq('id', task.userId);
+    .from('pengguna')
+    .update({ history: historyArr, saldo: newSaldo })
+    .eq('id', task.userId);
 
       if (updateError) throw updateError;
 
@@ -191,21 +191,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             <div className="bg-blue-50 w-10 h-10 rounded-xl flex items-center justify-center text-blue-600 mb-3">
               <Users size={20} />
             </div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase">User Terdaftar</p>
+            <p className="text- font-bold text-gray-400 uppercase">User Terdaftar</p>
             <p className="text-2xl font-black text-gray-800">1,284</p>
           </div>
           <div className="bg-white p-5 rounded-2xl shadow-lg border-gray-100">
             <div className="bg-emerald-50 w-10 h-10 rounded-xl flex items-center justify-center text-emerald-600 mb-3">
               <Database size={20} />
             </div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase">Total Akun</p>
+            <p className="text- font-bold text-gray-400 uppercase">Total Akun</p>
             <p className="text-2xl font-black text-gray-800">8,492</p>
           </div>
           <div className="bg-white p-5 rounded-2xl shadow-lg border-gray-100 col-span-2">
             <div className="bg-purple-50 w-10 h-10 rounded-xl flex items-center justify-center text-purple-600 mb-3">
               <CreditCard size={20} />
             </div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase">Total Pendapatan Sistem</p>
+            <p className="text- font-bold text-gray-400 uppercase">Total Pendapatan Sistem</p>
             <p className="text-2xl font-black text-gray-800">Rp. 13.587.200</p>
           </div>
         </div>
@@ -242,12 +242,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="bg-white p-6 rounded-2xl shadow-lg border-gray-100">
           <h3 className="font-bold text-gray-800 mb-4">Aktivitas Terakhir</h3>
           <div className="space-y-4">
-            {allSubmissions.slice(0, 3).map(i => (
-              <div key={i.id} className="flex items-center gap-3 border-b border-gray-50 pb-3">
+            {/* 4. UI BARU: DUMMY DULU BIAR SAMA */}
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex items-center gap-3 border-b border-gray-50 pb-3">
                 <div className="w-8 h-8 bg-gray-100 rounded-full" />
                 <div className="flex-1">
-                  <p className="text-xs font-bold text-gray-700">{i.userEmail} submit tugas</p>
-                  <p className="text-[10px] text-gray-400">{new Date(i.timestamp).toLocaleString('id-ID')}</p>
+                  <p className="text-xs font-bold text-gray-700">User #829{i} submit tugas</p>
+                  <p className="text- text-gray-400">2 menit yang lalu</p>
                 </div>
               </div>
             ))}
@@ -283,7 +284,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </select>
             </div>
             <div className="p-4 bg-blue-50 rounded-xl border-blue-100">
-              <p className="text-[10px] text-blue-700 font-medium leading-relaxed italic">
+              <p className="text- text-blue-700 font-medium leading-relaxed italic">
                 * Jika diatur ke hari tertentu, tombol withdraw pada POV user hanya akan aktif pada hari tersebut.
               </p>
             </div>
@@ -390,19 +391,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 flex-shrink-0">
                       <Mail size={16} />
                    </div>
-                   <div>
+                   <div> {/* 5. UI BARU: 2 BARIS EMAIL */}
                      <p className="text-sm font-bold text-gray-700 break-all">{sub.email}</p>
-                     <p className="text-[10px] text-gray-400">{sub.userEmail}</p>
+                     <p className="text- text-gray-400">{sub.userEmail}</p>
                    </div>
                 </div>
               </div>
 
               <div className="bg-gray-50 p-3 rounded-xl space-y-2">
-                <div className="flex justify-between text-[11px]">
+                <div className="flex justify-between text-">
                    <span className="text-gray-400">Password</span>
                    <span className="font-bold text-gray-600">{sub.password}</span>
                 </div>
-                <div className="flex justify-between text-[11px]">
+                <div className="flex justify-between text-">
                    <span className="text-gray-400">Status</span>
                    <span className={`font-bold uppercase ${sub.status === 'paid'? 'text-emerald-600' : sub.status === 'rejected'? 'text-red-600' : 'text-orange-600'}`}>{sub.status}</span>
                 </div>
@@ -454,28 +455,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
 
               <div className="bg-gray-50 p-4 rounded-xl mb-4 space-y-2">
-                 <div className="flex justify-between text-[11px]">
+                 {/* 6. UI BARU: EMAIL USER DITAMBAH PALING ATAS */}
+                 <div className="flex justify-between text-">
                     <span className="text-gray-400">Email User</span>
                     <span className="font-bold text-gray-800 break-all">{req.userEmail}</span>
                  </div>
                  {req.method === 'Qris' && req.qrisUrl? (
                   <div className="pt-2">
-                    <span className="text-[11px] text-gray-400 block mb-1">QRIS User:</span>
+                    <span className="text- text-gray-400 block mb-1">QRIS User:</span>
                     <img src={req.qrisUrl} className="w-32 h-32 rounded-lg border-gray-200 object-contain bg-white" />
                   </div>
                  ) : (
                   <>
-                    <div className="flex justify-between text-[11px]">
+                    <div className="flex justify-between text-">
                       <span className="text-gray-400">Nomor/Account</span>
                       <span className="font-bold text-gray-800">{req.walletNumber}</span>
                     </div>
-                    <div className="flex justify-between text-[11px]">
+                    <div className="flex justify-between text-">
                       <span className="text-gray-400">Nama Pengguna</span>
                       <span className="font-bold text-gray-800">{req.userName}</span>
                     </div>
                   </>
                  )}
-                 <div className="flex justify-between text-[11px]">
+                 <div className="flex justify-between text-">
                     <span className="text-gray-400">Tanggal</span>
                     <span className="font-bold text-gray-800">{req.date}</span>
                  </div>
@@ -484,14 +486,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               {req.status === 'process'? (
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleUpdateWithdrawStatus(req.id, 'paid')} // <-- FIX: GANTI FUNGSI + VARIABEL
+                    onClick={() => handleUpdateWithdrawStatus(req.id, 'paid')}
                     className="flex-[2] py-3 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 active:scale-95"
                   >
                     <CheckCircle size={18} />
                     Bayar
                   </button>
                   <button
-                    onClick={() => handleUpdateWithdrawStatus(req.id, 'rejected')} // <-- FIX: GANTI FUNGSI + VARIABEL
+                    onClick={() => handleUpdateWithdrawStatus(req.id, 'rejected')}
                     className="flex-1 py-3 bg-red-100 text-red-600 rounded-xl font-bold shadow-sm"
                   >
                     Tolak

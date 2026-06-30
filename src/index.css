@@ -7,7 +7,18 @@
     overflow-x: hidden;
     width: 100%;
     position: relative;
+    user-select: none;
+    -webkit-user-select: none;
   }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-33.33%); }
+}
+
+.animate-marquee {
+  animation: marquee 15s linear infinite;
 }
 
 .clip-triangle {
@@ -17,6 +28,145 @@
 .swiper-pagination-bullet-active {
   background: #2563eb !important;
 }
+
+/* From Uiverse.io by byllzz - Wallet Animation */
+.wallet-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0 40px 0;
+  scale: 0.8; /* Fit better in mobile */
+}
+.wallet {
+  position: relative;
+  width: 280px;
+  height: 230px;
+  cursor: pointer;
+  perspective: 1000px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  transition: transform 0.4s ease;
+}
+.wallet::after {
+  content: "Hover to see Balance";
+  position: absolute;
+  bottom: -30px;
+  font-style: italic;
+  color: #003087;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+}
+@keyframes slideIntoPocket {
+  0% { transform: translateY(-100px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.wallet-back {
+  position: absolute;
+  bottom: 0;
+  width: 280px;
+  height: 200px;
+  background: #1e341e;
+  border-radius: 22px 22px 60px 60px;
+  z-index: 5;
+  box-shadow: inset 0 25px 35px rgba(0, 0, 0, 0.4), inset 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+.wallet-card {
+  position: absolute;
+  width: 260px;
+  height: 140px;
+  left: 10px;
+  border-radius: 16px;
+  padding: 18px;
+  color: white;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 -4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0s;
+  animation: slideIntoPocket 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.wallet-card-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+.wallet-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.wallet-chip {
+  width: 32px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.wallet-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.wallet-label {
+  font-size: 8px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  display: block;
+}
+.wallet-value {
+  font-size: 10px;
+  font-weight: 500;
+}
+.wallet-card-number-wrapper { text-align: right; }
+.wallet-hidden-stars { font-size: 16px; letter-spacing: 2px; }
+.wallet-card-number { display: none; font-size: 14px; letter-spacing: 1px; font-family: monospace; }
+.wallet-stripe { background: #635bff; bottom: 90px; z-index: 10; animation-delay: 0.1s; }
+.wallet-wise { background: #9bd86a; bottom: 65px; z-index: 20; animation-delay: 0.2s; }
+.wallet-paypal { background: #ffffff; color: #003087; bottom: 40px; z-index: 30; animation-delay: 0.3s; }
+.wallet-paypal .wallet-chip { background: rgba(0, 0, 0, 0.05); }
+.wallet-paypal .wallet-label { color: #8c979d; }
+.wallet-pocket {
+  position: absolute;
+  bottom: 0;
+  width: 280px;
+  height: 160px;
+  z-index: 40;
+  filter: drop-shadow(0 15px 25px rgba(20, 40, 20, 0.4));
+}
+.wallet-pocket-content {
+  position: absolute;
+  top: 45px;
+  width: 100%;
+  text-align: center;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.wallet-balance-stars { color: #839e7b; font-size: 24px; letter-spacing: 4px; transition: 0.3s; }
+.wallet-balance-real { color: #a7c59e; font-size: 22px; font-weight: 600; opacity: 0; position: absolute; top: 0; left: 50%; transform: translate(-50%, 10px); transition: 0.3s; }
+.wallet-eye-icon-wrapper { margin-top: 8px; height: 20px; width: 20px; position: relative; opacity: 0.3; transition: 0.3s; }
+.wallet-eye-icon { position: absolute; top: 0; left: 0; stroke: #3be60b; transition: 0.3s; }
+.wallet:hover { transform: translateY(-5px); }
+.wallet:hover .wallet-eye-icon-wrapper { opacity: 1; }
+.wallet:hover .wallet-stripe { transform: translateY(-75px) rotate(-3deg); }
+.wallet:hover .wallet-wise { transform: translateY(-45px) rotate(2deg); }
+.wallet:hover .wallet-paypal { transform: translateY(-10px); }
+.wallet-card:hover { z-index: 100 !important; transition-delay: 0s !important; }
+.wallet:hover .wallet-stripe:hover { transform: translateY(-60px) scale(1.05) rotate(0); }
+.wallet:hover .wallet-wise:hover { transform: translateY(-70px) scale(1.05) rotate(0); }
+.wallet:hover .wallet-paypal:hover { transform: translateY(-60px) scale(1.05) rotate(0); }
+.wallet-card:hover .wallet-hidden-stars { display: none; }
+.wallet-card:hover .wallet-card-number { display: block; }
+.wallet:hover .wallet-balance-stars { opacity: 0; }
+.wallet:hover .wallet-balance-real { opacity: 1; transform: translate(-50%, 0); }
+.wallet:hover .wallet-eye-slash { opacity: 0; transform: scale(0.5); }
+.wallet:hover .wallet-eye-open { opacity: 1; transform: scale(1.1); }
 
 /* From Uiverse.io by akshat-patel28 */
 .alert-card {

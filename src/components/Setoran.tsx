@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronRight, Send, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../supabase';
-import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../supabase'; // <-- 1. TAMBAH INI
+import { v4 as uuidv4 } from 'uuid'; // <-- 1. TAMBAH INI
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 interface SetoranProps {
-  onTaskSubmit: (data: { email: string, pass: string }) => void; // tetap dipanggil biar parent update state
+  onTaskSubmit: (data: { email: string, pass: string }) => void;
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
   settings: {
     taskReward: number;
@@ -19,11 +20,12 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // <-- 2. TAMBAH LOADING
 
+  // === 3. handleSubmit DISAMAIN PLEK KAYAK FILE LAMA ===
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreed || loading) return;
+    if (!agreed || loading) return; // <-- TAMBAH LOADING
     
     if (!email.endsWith('@gmail.com')) {
       showAlert('Gagal!', 'Alamat email tidak valid! Harus menggunakan @gmail.com', 'error');
@@ -46,7 +48,6 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
       const { data: { user }} = await supabase.auth.getUser();
       if (!user) throw new Error('User belum login');
 
-      // 1. Ambil history lama dari kolom pengguna.history
       const { data: userData, error: fetchError } = await supabase
         .from('pengguna')
         .select('history')
@@ -57,11 +58,10 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
 
       let historyArr = userData?.history || [];
 
-      // 2. Tambah data baru di paling depan
       const newTask = {
         id: uuidv4(),
         email: email,
-        password: password, // ⚠️ production sebaiknya di-hash
+        password: password,
         status: 'process',
         reason: null,
         timestamp: new Date().toISOString()
@@ -69,12 +69,10 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
 
       historyArr = [newTask, ...historyArr];
 
-      // 3. Max 10 data, buang yg paling lama
       if (historyArr.length > 10) {
         historyArr = historyArr.slice(0, 10);
       }
 
-      // 4. Update ke Supabase
       const { error: updateError } = await supabase
         .from('pengguna')
         .update({ history: historyArr })
@@ -82,7 +80,6 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
 
       if (updateError) throw updateError;
 
-      // 5. Panggil onTaskSubmit biar parent langsung update state UI
       onTaskSubmit({ email, pass: password });
 
       showAlert('Sukses!', 'Tugas dikirim, menunggu verifikasi admin', 'success');
@@ -102,22 +99,34 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
       <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100">
         <h2 className="text-xl font-bold mb-2 text-gray-800">Setoran Akun Gmail</h2>
         
-        {/* Description card */}
-        <div className="bg-blue-50/50 rounded-xl p-4 mb-5 border-blue-100 space-y-3">
-          <p className="text-sm text-gray-600 leading-relaxed font-medium">
+        {/* Description card - UI TETAP SAMA */}
+        <div className="bg-blue-50/50 rounded-xl p-4 mb-5 border-blue-100 space-y-3 relative">
+          {/* Lottie Bubble Trigger - UI TETAP SAMA */}
+          <div 
+            onClick={() => window.location.href = '/#warning'}
+            className="absolute top-2 right-2 w-12 h-12 bg-white rounded-full shadow-md border-blue-100 cursor-pointer overflow-hidden flex items-center justify-center p-1 active:scale-95 transition-transform"
+          >
+            <DotLottieReact
+              src="https://lottie.host/06c4fcf8-4876-486d-a063-3f8682025985/r1cCpDZmkU.lottie"
+              loop
+              autoplay
+            />
+          </div>
+
+          <p className="text-sm text-gray-600 leading-relaxed font-medium pr-10">
             {settings.taskDescription}
           </p>
           <div className="bg-white/80 p-3 rounded-lg border-blue-100">
-            <p className="text-[11px] font-bold text-blue-700 uppercase mb-2">Instruksi Tugas:</p>
-            <ol className="text-[11px] text-gray-600 space-y-1 ml-4 list-decimal">
-              <li>Gunakan nama dari database di bawah ini untuk mendapatkan reward: <span className="font-bold text-emerald-600">Rp. {settings.taskReward.toLocaleString('id-ID')}</span></li>
+            <p className="text- font-bold text-blue-700 uppercase mb-2">Instruksi Tugas:</p>
+            <ol className="text- text-gray-600 space-y-1 ml-4 list-decimal">
+              <li>Buat dengan nama dari database di bawah ini untuk mendapatkan reward: <span className="font-bold text-emerald-600">Rp. {settings.taskReward.toLocaleString('id-ID')}</span></li>
               <li>Gunakan Password: <span className="font-bold text-blue-600">{settings.taskPassword}</span></li>
             </ol>
           </div>
         </div>
 
         <a 
-          href="https://www.fakenamegenerator.com/gen-male-us.php" 
+          href="https://www.fakenamegenerator.com/gen-male-us.php" // <-- UI TETAP SAMA
           target="_blank" 
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-blue-600 text-sm font-bold hover:underline mb-6"
@@ -141,7 +150,7 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Password</label>
             <div className="relative">
               <input 
-                type={showPassword ? "text" : "password"} 
+                type={showPassword? "text" : "password"} 
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -153,7 +162,7 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
@@ -173,13 +182,13 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
 
           <button 
             type="submit"
-            disabled={!agreed || loading}
+            disabled={!agreed || loading} // <-- 4. TAMBAH LOADING
             className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg ${
-              agreed && !loading ? 'bg-blue-600 text-white active:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              agreed && !loading? 'bg-blue-600 text-white active:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
             <Send size={18} />
-            {loading ? 'Mengirim...' : 'Kirim Setoran'}
+            {loading? 'Mengirim...' : 'Kirim Setoran'} // <-- 4. TEXT LOADING
           </button>
         </form>
       </div>

@@ -11,8 +11,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle();
-      // jangan panggil onLogin di sini, biarin App.tsx yg handle
-    } catch (error) {
+      // jangan panggil onLogin di sini, biarin App.tsx yg handle dari onAuthStateChange
+    } catch (error: any) {
       console.error('Login error:', error);
       alert('Gagal login: ' + error.message);
     }

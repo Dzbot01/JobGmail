@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { RefreshCw, Copy, CheckCircle2, ChevronDown, Bell, CreditCard, Mail } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { RefreshCw, Copy, CheckCircle2, ChevronDown, Bell, CreditCard, Mail, AlertTriangle } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import ElectricBorder from './ElectricBorder';
 import { Autoplay, Pagination } from 'swiper/modules';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 import 'swiper/css';
 import 'swiper/css/pagination';
@@ -10,22 +11,32 @@ import 'swiper/css/pagination';
 interface DashboardProps {
   balance: number;
   onWithdraw: () => void;
+  isMusicPlaying: boolean;
   settings: {
     taskReward: number;
     withdrawSchedule: string;
   };
-  userName: string;
-  userEmail: string;
+  userName: string; // <-- 1. TAMBAH INI
+  userEmail: string; // <-- 1. TAMBAH INI
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, userName, userEmail }) => {
+const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, isMusicPlaying, userName, userEmail }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [fakeLogs, setFakeLogs] = useState<any[]>([]);
-  const [names, setNames] = useState<string[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const warningRef = useRef<HTMLDivElement>(null);
 
-  // Fake logs generation
+  useEffect(() => {
+    const handleHash = () => {
+      if (window.location.hash === '#warning' && warningRef.current) {
+        warningRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  // Fake logs generation - LOGIKA SAMA PERSIS
   useEffect(() => {
     const names = ["Andi", "Budi", "Citra", "Dewi", "Eko", "Fani", "Gita", "Hadi", "Indra", "Joko", "Karin", "Lutfi", "Maya", "Nita", "Oki", "Putra", "Rina", "Santi", "Taufik", "Umar", "Vina", "Wawan", "Yanto", "Zaki", "Ani", "Bambang", "Chandra", "Dini", "Endah", "Farhan", "Galih", "Hana", "Iwan", "Julia", "Kurnia", "Lia", "Maman", "Novi", "Oscar", "Pratiwi", "Rian", "Siska", "Tono", "Utami", "Veri", "Wati", "Yulia", "Zul"];
 
@@ -83,6 +94,9 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
       a: "Withdraw ditolak karena tidak memenuhi syarat dan ketentuan yang berlaku yaitu terdapat biaya admin/fee pada alamat penarikan nya."
     }
   ];
+  const [names, setNames] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const generateNames = () => {
     setIsGenerating(true);
@@ -109,7 +123,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
 
   return (
     <div className="space-y-6">
-      {/* GREETING */}
+      {/* 2. GREETING DITAMBAH DARI FILE LAMA */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-4 text-white shadow-lg">
         <p className="text-sm font-medium opacity-90">Selamat datang</p>
         <h2 className="text-lg font-bold truncate">
@@ -117,11 +131,11 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
         </h2>
       </div>
 
-      {/* Balance Card */}
+      {/* Balance Card - UI TETAP SAMA */}
       <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 opacity-50" />
         <p className="text-gray-500 text-sm font-medium">Saldo Utama</p>
-        <h2 className="text-3xl font-bold mt-1 text-gray-900">Rp. {(balance ?? 0).toLocaleString('id-ID')}</h2>
+        <h2 className="text-3xl font-bold mt-1 text-gray-900">Rp. {(balance?? 0).toLocaleString('id-ID')}</h2>
 
         <div className="mt-6 flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border-blue-100">
           <div className="flex items-center gap-2">
@@ -136,23 +150,51 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
         </div>
       </div>
 
-      {/* Flat Rate Info - ELECTRIC BORDER */}
+      {/* Marquee Welcome Line - UI TETAP SAMA */}
+      <div className="bg-white -mx-4 px-4 py-3 shadow-sm border-y border-gray-100">
+        <div className="overflow-hidden">
+          <div className="whitespace-nowrap animate-marquee flex items-center gap-4">
+             <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight">
+               Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu. &bull;
+               Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu. &bull;
+               Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu.
+             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Flat Rate Info - ELECTRIC BORDER - UI TETAP SAMA */}
       <ElectricBorder
         color="#10b981"
         speed={1}
         chaos={0.15}
         borderRadius={16}
       >
-        <div className="bg-white rounded-2xl p-6 shadow-lg text-emerald-600">
-          <h4 className="font-black text-lg leading-tight uppercase tracking-tight">Pembayaran Flat Rate</h4>
-          <p className="text-2xl font-black mt-1">Rp. {settings.taskReward.toLocaleString('id-ID')} <span className="text-xs font-bold text-emerald-400">/ akun</span></p>
+        <div className="bg-white rounded-2xl p-6 shadow-lg text-emerald-600 relative overflow-hidden">
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="font-black text-lg leading-tight uppercase tracking-tight">Pembayaran Flat Rate</h4>
+              <p className="text-2xl font-black mt-1">Rp. {settings.taskReward.toLocaleString('id-ID')} <span className="text-xs font-bold text-emerald-400">/ akun</span></p>
+            </div>
+            {isMusicPlaying && (
+              <div className="w-16 h-16 -mt-2 -mr-2 flex items-center justify-center">
+                {/* @ts-ignore */}
+                <dotlottie-wc
+                  src="https://lottie.host/3eececda-841f-4894-8c0a-46376e8701ce/4vtOMazaWa.lottie"
+                  autoplay
+                  loop
+                  style={{ width: '100%', height: '100%' }}
+                ></dotlottie-wc>
+              </div>
+            )}
+          </div>
           <p className="text-[11px] mt-3 leading-relaxed font-bold">
             Kamu bisa buat dan setorkan sebanyak-banyaknya tanpa batasan pembayaran (max pay out). Sistem pembayaran cepat!
           </p>
         </div>
       </ElectricBorder>
 
-      {/* Slider */}
+      {/* Slider - UI TETAP SAMA */}
       <div className="rounded-2xl overflow-hidden shadow-lg border-gray-100">
         <Swiper
           modules={[Autoplay, Pagination]}
@@ -169,8 +211,38 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
         </Swiper>
       </div>
 
-      {/* Generate Name Card */}
-      <div className="bg-white rounded-2xl p-6 shadow-xl border-gray-100">
+      {/* Log Fake User Activity - UI TETAP SAMA */}
+      <div className="bg-white rounded-2xl p-5 shadow-lg border-gray-100 overflow-hidden">
+        <div className="flex items-center gap-2 mb-4">
+          <Bell className="text-blue-600" size={18} />
+          <h3 className="font-black text-xs text-gray-800 uppercase tracking-widest">Aktivitas Terbaru</h3>
+        </div>
+        <div className="space-y-3">
+          {fakeLogs.map((log) => (
+            <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.type === 'wd'? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                  {log.type === 'wd'? <CreditCard size={14} /> : <Mail size={14} />}
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">{log.title}</p>
+                  <p className="text-xs font-bold text-gray-700">
+                    {log.user} {log.type === 'wd'? '' : `- ${log.email}`}
+                  </p>
+                </div>
+              </div>
+              {log.type === 'wd' && (
+                <span className="text-[11px] font-black text-emerald-600">
+                  Rp {log.amount.toLocaleString('id-ID')}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Generate Name Card - UI TETAP SAMA */}
+      <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
         <h3 className="font-bold text-lg mb-4 text-gray-800">Generate Nama Amerika</h3>
 
         <div className="bg-gray-50 rounded-xl p-4 mb-5 border-gray-100">
@@ -221,37 +293,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
         )}
       </div>
 
-      {/* Log Fake User Activity - MOVED TO CENTER */}
-      <div className="bg-white rounded-2xl p-5 shadow-lg border-gray-100 overflow-hidden">
-        <div className="flex items-center gap-2 mb-4">
-          <Bell className="text-blue-600" size={18} />
-          <h3 className="font-black text-xs text-gray-800 uppercase tracking-widest">Aktivitas Terbaru</h3>
-        </div>
-        <div className="space-y-3">
-          {fakeLogs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.type === 'wd'? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                  {log.type === 'wd'? <CreditCard size={14} /> : <Mail size={14} />}
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">{log.title}</p>
-                  <p className="text-xs font-bold text-gray-700">
-                    {log.user} {log.type === 'wd'? '' : `- ${log.email}`}
-                  </p>
-                </div>
-              </div>
-              {log.type === 'wd' && (
-                <span className="text-[11px] font-black text-emerald-600">
-                  Rp {log.amount.toLocaleString('id-ID')}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Real-time Activity Card */}
+      {/* Real-time Activity Card - UI TETAP SAMA */}
       <div className="bg-white rounded-2xl shadow-xl border-gray-100 overflow-hidden">
         <div className="press">
           <div className="sheet"></div>
@@ -274,7 +316,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
         </div>
       </div>
 
-      {/* Web View Section */}
+      {/* Web View Section - UI TETAP SAMA */}
       <div className="bg-white rounded-2xl p-6 shadow-xl border-gray-100">
         <h3 className="font-bold text-lg mb-2 text-gray-800">Cek Ketersediaan Email</h3>
         <p className="text-xs text-gray-500 mb-4">Kamu bisa cek ketersediaan alamat email dari nama random disini.</p>
@@ -290,7 +332,29 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, us
         </div>
       </div>
 
-      {/* FAQ Section */}
+      {/* Warning Animation Card - UI TETAP SAMA */}
+      <div ref={warningRef} id="warning" className="bg-white rounded-2xl p-6 shadow-xl border-gray-100 overflow-hidden">
+        <div className="flex justify-center mb-4">
+          <div className="w-48 h-48">
+            <DotLottieReact
+              src="https://lottie.host/06c4fcf8-4876-486d-a063-3f8682025985/r1cCpDZmkU.lottie"
+              loop
+              autoplay
+            />
+          </div>
+        </div>
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="text-yellow-600" size={16} />
+            <span className="text-xs font-black text-yellow-700 uppercase tracking-widest">Warning</span>
+          </div>
+          <p className="text-[10px] text-yellow-800 font-bold leading-relaxed text-justify">
+            Hindari penggunaan Alamat email yang terlalu panjang seperti terlalu banyak angka di belakang dan nama yang tidak terdeteksi sebagai nama manusia, Syarat dan ketentuan utama dalam Campaign ini adalah menggunakan nama Manusia (LK/PR) yang lebih merujuk kepada nama orang Amerika. Jika Alamat email yang di setorkan memiliki angka terlalu banyak di belakang nama (max 4) dan Nama yang tidak terdeteksi sebagai manusia (Amerika) maka akan terdeteksi sebagai Alamat email Robot dan Tugas akan ditolak.
+          </p>
+        </div>
+      </div>
+
+      {/* FAQ Section - UI TETAP SAMA */}
       <div className="bg-white rounded-2xl p-6 shadow-xl border-gray-100">
         <h3 className="font-bold text-lg mb-4 text-gray-800">FAQ</h3>
         <div className="space-y-3">
