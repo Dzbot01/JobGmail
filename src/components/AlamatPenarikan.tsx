@@ -312,7 +312,7 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Nama Lengkap"
-                  disabled={isSaved} // <-- 8. DISABLE KALO UDAH SAVED
+                  disabled={isSaved}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 border-gray-100 focus:border-blue-400 focus:bg-white outline-none disabled:opacity-60"
                 />
               </div>
@@ -323,11 +323,11 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
                 <Upload size={24} />
               </div>
               <div className="text-center">
-                <p className="text-sm font-bold text-gray-700">{file? file.name : qrisUrl? 'QRIS sudah diupload' : 'Upload QRIS Anda'}</p> // <-- 9. TAMPILIN QRIS URL
+                <p className="text-sm font-bold text-gray-700">{file? file.name : qrisUrl? 'QRIS sudah diupload' : 'Upload QRIS Anda'}</p>
                 <p className="text-[10px] text-gray-400 mt-1">Maksimal ukuran file: 1MB</p>
-                {qrisUrl && <img src={qrisUrl} className="w-32 h-32 mt-3 rounded-lg object-contain" />} // <-- 9. PREVIEW GAMBAR
+                {qrisUrl && <img src={qrisUrl} className="w-32 h-32 mt-3 rounded-lg object-contain" />}
               </div>
-              {!isSaved && ( // <-- 10. SEMBUNYIKAN INPUT KALO UDAH SAVED
+              {!isSaved && (
                 <>
                   <input
                     type="file"
@@ -349,15 +349,15 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
 
           <div className="flex flex-col gap-3 mt-4">
             <button
-              onClick={handleSave} // <-- 11. PAKE handleSave BUKAN onConfirm LANGSUNG
-              disabled={isSaved || loading} // <-- 11. TAMBAH LOADING
+              onClick={handleSave} 
+              disabled={isSaved || loading}
               className={`w-full py-4 rounded-2xl font-bold shadow-lg transition-all ${
                 isSaved
                ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                 : 'bg-blue-600 text-white shadow-blue-100 active:scale-95 disabled:opacity-60'
               }`}
             >
-              {loading? 'Menyimpan...' : isSaved? 'Tersimpan' : 'Konfirmasi'} // <-- 11. TEXT LOADING
+              {loading? 'Menyimpan...' : isSaved? 'Tersimpan' : 'Konfirmasi'}
             </button>
 
             {!!savedData?.method &&!isEditing && (
