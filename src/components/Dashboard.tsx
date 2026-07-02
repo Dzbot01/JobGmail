@@ -34,7 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  // Fake logs generation
+  // Fake logs generation (Logic murni dari file lama)
   useEffect(() => {
     const names = ["Andi", "Budi", "Citra", "Dewi", "Eko", "Fani", "Gita", "Hadi", "Indra", "Joko", "Karin", "Lutfi", "Maya", "Nita", "Oki", "Putra", "Rina", "Santi", "Taufik", "Umar", "Vina", "Wawan", "Yanto", "Zaki", "Ani", "Bambang", "Chandra", "Dini", "Endah", "Farhan", "Galih", "Hana", "Iwan", "Julia", "Kurnia", "Lia", "Maman", "Novi", "Oscar", "Pratiwi", "Rian", "Siska", "Tono", "Utami", "Veri", "Wati", "Yulia", "Zul"];
 
@@ -92,6 +92,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
       a: "Withdraw ditolak karena tidak memenuhi syarat dan ketentuan yang berlaku yaitu terdapat biaya admin/fee pada alamat penarikan nya."
     }
   ];
+  
   const [names, setNames] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -121,19 +122,17 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
 
   return (
     <div className="space-y-6">
-      {/* 1. CARD GREETING DIHAPUS TOTAL. LANGSUNG BALANCE CARD */}
-
-      {/* Balance Card */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100 relative overflow-hidden">
+      {/* Balance Card - (UI dari file baru, dengan penyesuaian logic (balance ?? 0) dari file lama) */}
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 opacity-50" />
         <p className="text-gray-500 text-sm font-medium">Saldo Utama</p>
-        <h2 className="text-3xl font-bold mt-1 text-gray-900">Rp. {(balance?? 0).toLocaleString('id-ID')}</h2>
-
-        <div className="mt-6 flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border-blue-100">
+        <h2 className="text-3xl font-bold mt-1 text-gray-900">Rp. {(balance ?? 0).toLocaleString('id-ID')}</h2>
+        
+        <div className="mt-6 flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100">
           <div className="flex items-center gap-2">
             <p className="text-xs text-blue-700 font-medium">Minimal penarikan: <span className="font-bold">Rp. 1.000</span></p>
           </div>
-          <button
+          <button 
             onClick={onWithdraw}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md active:scale-95"
           >
@@ -147,8 +146,8 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         <div className="overflow-hidden">
           <div className="whitespace-nowrap animate-marquee flex items-center gap-4">
              <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight">
-               Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu. &bull;
-               Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu. &bull;
+               Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu. &bull; 
+               Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu. &bull; 
                Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu.
              </span>
           </div>
@@ -171,9 +170,9 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
             {isMusicPlaying && (
               <div className="w-16 h-16 -mt-2 -mr-2 flex items-center justify-center">
                 {/* @ts-ignore */}
-                <dotlottie-wc
-                  src="https://lottie.host/3eececda-841f-4894-8c0a-46376e8701ce/4vtOMazaWa.lottie"
-                  autoplay
+                <dotlottie-wc 
+                  src="https://lottie.host/3eececda-841f-4894-8c0a-46376e8701ce/4vtOMazaWa.lottie" 
+                  autoplay 
                   loop
                   style={{ width: '100%', height: '100%' }}
                 ></dotlottie-wc>
@@ -187,7 +186,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
       </ElectricBorder>
 
       {/* Slider */}
-      <div className="rounded-2xl overflow-hidden shadow-lg border-gray-100">
+      <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-100">
         <Swiper
           modules={[Autoplay, Pagination]}
           autoplay={{ delay: 3000 }}
@@ -204,22 +203,22 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
       </div>
 
       {/* Log Fake User Activity */}
-      <div className="bg-white rounded-2xl p-5 shadow-lg border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 overflow-hidden">
         <div className="flex items-center gap-2 mb-4">
           <Bell className="text-blue-600" size={18} />
           <h3 className="font-black text-xs text-gray-800 uppercase tracking-widest">Aktivitas Terbaru</h3>
         </div>
         <div className="space-y-3">
           {fakeLogs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border-gray-100">
+            <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.type === 'wd'? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                  {log.type === 'wd'? <CreditCard size={14} /> : <Mail size={14} />}
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${log.type === 'wd' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+                  {log.type === 'wd' ? <CreditCard size={14} /> : <Mail size={14} />}
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">{log.title}</p>
                   <p className="text-xs font-bold text-gray-700">
-                    {log.user} {log.type === 'wd'? '' : `- ${log.email}`}
+                    {log.user} {log.type === 'wd' ? '' : `- ${log.email}`}
                   </p>
                 </div>
               </div>
@@ -236,8 +235,8 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
       {/* Generate Name Card */}
       <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
         <h3 className="font-bold text-lg mb-4 text-gray-800">Generate Nama Amerika</h3>
-
-        <div className="bg-gray-50 rounded-xl p-4 mb-5 border-gray-100">
+        
+        <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
           <p className="text-xs text-gray-500 leading-relaxed font-medium">
             Fitur ini adalah cara cepat kamu mendapatkan nama random yang sudah ter-filter sistem untuk di daftarkan pada aplikasi Gmail lalu di setorkan kesini.
           </p>
@@ -245,7 +244,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
             * Alamat email ini bersifat random dan mungkin saja sudah terdaftar, ini hanya sebagai referensi cepat.
           </p>
         </div>
-
+        
         <div className="space-y-3 mb-6">
           <div className="flex justify-between items-center text-sm">
             <span className="text-gray-600 font-medium">Buat nama dari Amerika (ini)</span>
@@ -258,26 +257,26 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
 
         <div className="flex justify-end mb-4">
-          <button
+          <button 
             onClick={generateNames}
             disabled={isGenerating}
             className="flex items-center gap-2 bg-blue-50 text-blue-600 px-5 py-2.5 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors"
           >
-            <RefreshCw size={14} className={isGenerating? 'animate-spin' : ''} />
-            {names.length > 0? 'Re generate' : 'Generate'}
+            <RefreshCw size={14} className={isGenerating ? 'animate-spin' : ''} />
+            {names.length > 0 ? 'Re generate' : 'Generate'}
           </button>
         </div>
 
         {names.length > 0 && (
           <div className="space-y-2">
             {names.map((name, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl border-gray-100 shadow-sm">
+              <div key={idx} className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100 shadow-sm">
                 <span className="text-sm font-semibold text-gray-700">{name}</span>
-                <button
+                <button 
                   onClick={() => copyToClipboard(name, idx)}
                   className="p-2 text-gray-400 hover:text-blue-500 transition-colors relative"
                 >
-                  {copiedIndex === idx? <CheckCircle2 size={18} className="text-green-500" /> : <Copy size={18} />}
+                  {copiedIndex === idx ? <CheckCircle2 size={18} className="text-green-500" /> : <Copy size={18} />}
                 </button>
               </div>
             ))}
@@ -286,7 +285,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
       </div>
 
       {/* Real-time Activity Card */}
-      <div className="bg-white rounded-2xl shadow-xl border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
         <div className="press">
           <div className="sheet"></div>
           <div className="roll"></div>
@@ -309,13 +308,13 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
       </div>
 
       {/* Web View Section */}
-      <div className="bg-white rounded-2xl p-6 shadow-xl border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
         <h3 className="font-bold text-lg mb-2 text-gray-800">Cek Ketersediaan Email</h3>
         <p className="text-xs text-gray-500 mb-4">Kamu bisa cek ketersediaan alamat email dari nama random disini.</p>
         <div className="flex justify-start">
-          <a
-            href="https://www.gmailchecklive.com/"
-            target="_blank"
+          <a 
+            href="https://www.gmailchecklive.com/" 
+            target="_blank" 
             rel="noopener noreferrer"
             className="bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-bold shadow-sm hover:bg-blue-700 transition-colors inline-block"
           >
@@ -325,7 +324,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
       </div>
 
       {/* Warning Animation Card */}
-      <div ref={warningRef} id="warning" className="bg-white rounded-2xl p-6 shadow-xl border-gray-100 overflow-hidden">
+      <div ref={warningRef} id="warning" className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100 overflow-hidden">
         <div className="flex justify-center mb-4">
           <div className="w-48 h-48">
             <DotLottieReact
@@ -352,12 +351,12 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         <div className="space-y-3">
           {faqs.map((faq, i) => (
             <div key={i} className="border border-gray-100 rounded-xl overflow-hidden">
-              <button
-                onClick={() => setOpenFaq(openFaq === i? null : i)}
+              <button 
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
                 className="w-full flex items-center justify-between p-4 bg-gray-50/50 hover:bg-gray-50 transition-colors text-left"
               >
                 <span className="text-sm font-bold text-gray-700">{faq.q}</span>
-                <ChevronDown size={18} className={`text-gray-400 transition-transform ${openFaq === i? 'rotate-180' : ''}`} />
+                <ChevronDown size={18} className={`text-gray-400 transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
               </button>
               {openFaq === i && (
                 <div className="p-4 bg-white border-t border-gray-100 animate-in fade-in slide-in-from-top-1 duration-200">
