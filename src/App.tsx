@@ -247,9 +247,9 @@ const App: React.FC = () => {
     return <AuthPage onLogin={(role) => setUserRole(role)} />;
   }
 
-  return (
+    return (
     <div 
-      className="min-h-screen bg-gray-50 text-gray-800 pb-24 font-sans select-none"
+      className="min-h-screen bg-gray-50 text-gray-800 pb-24 font-sans select-none overflow-x-hidden"
       onContextMenu={(e) => e.preventDefault()}
     >
       <CustomAlert
@@ -270,7 +270,7 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-5 py-3 flex items-center justify-start border-b border-gray-100">
         <img
-          src="https://cdn.photourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
+          src="https://cdn.phototourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
           alt="Job Gmail Logo"
           className="h-10 w-auto object-contain"
         />
