@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight, Send, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../supabase'; // <-- 1. TAMBAH INI
-import { v4 as uuidv4 } from 'uuid'; // <-- 1. TAMBAH INI
+import { supabase } from '../supabase';
+import { v4 as uuidv4 } from 'uuid';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 interface SetoranProps {
@@ -20,12 +20,12 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const [loading, setLoading] = useState(false); // <-- 2. TAMBAH LOADING
+  const [loading, setLoading] = useState(false);
 
   // === 3. handleSubmit DISAMAIN PLEK KAYAK FILE LAMA ===
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreed || loading) return; // <-- TAMBAH LOADING
+    if (!agreed || loading) return;
     
     if (!email.endsWith('@gmail.com')) {
       showAlert('Gagal!', 'Alamat email tidak valid! Harus menggunakan @gmail.com', 'error');
@@ -126,7 +126,7 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
         </div>
 
         <a 
-          href="https://www.fakenamegenerator.com/gen-male-us.php" // <-- UI TETAP SAMA
+          href="https://www.fakenamegenerator.com/gen-male-us.php"
           target="_blank" 
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-blue-600 text-sm font-bold hover:underline mb-6"
@@ -182,13 +182,13 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
 
           <button 
             type="submit"
-            disabled={!agreed || loading} // <-- 4. TAMBAH LOADING
+            disabled={!agreed || loading}
             className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg ${
               agreed && !loading? 'bg-blue-600 text-white active:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
             <Send size={18} />
-            {loading? 'Mengirim...' : 'Kirim Setoran'} // <-- 4. TEXT LOADING
+            {loading? 'Mengirim...' : 'Kirim Setoran'}
           </button>
         </form>
       </div>
