@@ -16,11 +16,9 @@ interface DashboardProps {
     taskReward: number;
     withdrawSchedule: string;
   };
-  userName: string; // <-- 1. TAMBAH INI
-  userEmail: string; // <-- 1. TAMBAH INI
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, isMusicPlaying, userName, userEmail }) => {
+const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, isMusicPlaying }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [fakeLogs, setFakeLogs] = useState<any[]>([]);
   const warningRef = useRef<HTMLDivElement>(null);
@@ -36,7 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  // Fake logs generation - LOGIKA SAMA PERSIS
+  // Fake logs generation
   useEffect(() => {
     const names = ["Andi", "Budi", "Citra", "Dewi", "Eko", "Fani", "Gita", "Hadi", "Indra", "Joko", "Karin", "Lutfi", "Maya", "Nita", "Oki", "Putra", "Rina", "Santi", "Taufik", "Umar", "Vina", "Wawan", "Yanto", "Zaki", "Ani", "Bambang", "Chandra", "Dini", "Endah", "Farhan", "Galih", "Hana", "Iwan", "Julia", "Kurnia", "Lia", "Maman", "Novi", "Oscar", "Pratiwi", "Rian", "Siska", "Tono", "Utami", "Veri", "Wati", "Yulia", "Zul"];
 
@@ -123,15 +121,9 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
 
   return (
     <div className="space-y-6">
-      {/* 2. GREETING DITAMBAH DARI FILE LAMA */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-4 text-white shadow-lg">
-        <p className="text-sm font-medium opacity-90">Selamat datang</p>
-        <h2 className="text-lg font-bold truncate">
-          {userName || userEmail.split('@')[0] || 'User'}
-        </h2>
-      </div>
+      {/* 1. CARD GREETING DIHAPUS TOTAL. LANGSUNG BALANCE CARD */}
 
-      {/* Balance Card - UI TETAP SAMA */}
+      {/* Balance Card */}
       <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 opacity-50" />
         <p className="text-gray-500 text-sm font-medium">Saldo Utama</p>
@@ -150,7 +142,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
       </div>
 
-      {/* Marquee Welcome Line - UI TETAP SAMA */}
+      {/* Marquee Welcome Line - WHITE, FULL WIDTH ON MOBILE */}
       <div className="bg-white -mx-4 px-4 py-3 shadow-sm border-y border-gray-100">
         <div className="overflow-hidden">
           <div className="whitespace-nowrap animate-marquee flex items-center gap-4">
@@ -163,7 +155,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
       </div>
 
-      {/* Flat Rate Info - ELECTRIC BORDER - UI TETAP SAMA */}
+      {/* Flat Rate Info - ELECTRIC BORDER */}
       <ElectricBorder
         color="#10b981"
         speed={1}
@@ -194,7 +186,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
       </ElectricBorder>
 
-      {/* Slider - UI TETAP SAMA */}
+      {/* Slider */}
       <div className="rounded-2xl overflow-hidden shadow-lg border-gray-100">
         <Swiper
           modules={[Autoplay, Pagination]}
@@ -211,7 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </Swiper>
       </div>
 
-      {/* Log Fake User Activity - UI TETAP SAMA */}
+      {/* Log Fake User Activity */}
       <div className="bg-white rounded-2xl p-5 shadow-lg border-gray-100 overflow-hidden">
         <div className="flex items-center gap-2 mb-4">
           <Bell className="text-blue-600" size={18} />
@@ -241,7 +233,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
       </div>
 
-      {/* Generate Name Card - UI TETAP SAMA */}
+      {/* Generate Name Card */}
       <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
         <h3 className="font-bold text-lg mb-4 text-gray-800">Generate Nama Amerika</h3>
 
@@ -293,7 +285,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         )}
       </div>
 
-      {/* Real-time Activity Card - UI TETAP SAMA */}
+      {/* Real-time Activity Card */}
       <div className="bg-white rounded-2xl shadow-xl border-gray-100 overflow-hidden">
         <div className="press">
           <div className="sheet"></div>
@@ -316,7 +308,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
       </div>
 
-      {/* Web View Section - UI TETAP SAMA */}
+      {/* Web View Section */}
       <div className="bg-white rounded-2xl p-6 shadow-xl border-gray-100">
         <h3 className="font-bold text-lg mb-2 text-gray-800">Cek Ketersediaan Email</h3>
         <p className="text-xs text-gray-500 mb-4">Kamu bisa cek ketersediaan alamat email dari nama random disini.</p>
@@ -332,7 +324,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
       </div>
 
-      {/* Warning Animation Card - UI TETAP SAMA */}
+      {/* Warning Animation Card */}
       <div ref={warningRef} id="warning" className="bg-white rounded-2xl p-6 shadow-xl border-gray-100 overflow-hidden">
         <div className="flex justify-center mb-4">
           <div className="w-48 h-48">
@@ -354,8 +346,8 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
       </div>
 
-      {/* FAQ Section - UI TETAP SAMA */}
-      <div className="bg-white rounded-2xl p-6 shadow-xl border-gray-100">
+      {/* FAQ Section */}
+      <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
         <h3 className="font-bold text-lg mb-4 text-gray-800">FAQ</h3>
         <div className="space-y-3">
           {faqs.map((faq, i) => (
