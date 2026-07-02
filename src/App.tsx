@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from './supabase';
+import { supabase } from './supabase'; // IMPORT SUPABASE
 
 // Components
 import Dashboard from './components/Dashboard';
@@ -96,6 +96,7 @@ const App: React.FC = () => {
           setUserEmail(email);
         }
 
+        // Fetch data profil user dari Supabase
         const { data: profile, error: profileError } = await supabase
           .from('pengguna')
           .select('peran, saldo, history, payment, withdraw_history')
@@ -266,10 +267,10 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Header Baru */}
+      {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-5 py-3 flex items-center justify-start border-b border-gray-100">
         <img
-          src="https://cdn.phototourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
+          src="https://cdn.photourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
           alt="Job Gmail Logo"
           className="h-10 w-auto object-contain"
         />
@@ -286,12 +287,15 @@ const App: React.FC = () => {
               onWithdraw={() => navigate('/withdraw')}
               settings={systemSettings}
               isMusicPlaying={isMusicPlaying}
-              // Data lama jika diperlukan di dalam Dashboard (opsional, tergantung dari versi Dashboard prop lamanya)
+              userName={userName} // <-- SYNC PROPS LAMA
+              userEmail={userEmail} // <-- SYNC PROPS LAMA
             />
           } />
+          
           <Route path="/gacha" element={
             <Gacha spins={spins} setSpins={setSpins} setBalance={setBalance} setTotalIncome={setTotalIncome} />
           } />
+          
           <Route path="/setoran" element={
             <Setoran
               onTaskSubmit={handleTaskSubmit}
@@ -299,6 +303,7 @@ const App: React.FC = () => {
               settings={{...systemSettings, withdrawDetailsSet: !!withdrawDetails.method}}
             />
           } />
+          
           <Route path="/profil" element={
             <Profil
               tasksDone={tasksDone}
@@ -306,14 +311,17 @@ const App: React.FC = () => {
               isVerified={isVerified}
               onNavigateToWithdraw={() => navigate('/penarikan')}
               onNavigateToAbout={() => navigate('/about-us')}
+              onLogout={handleLogout} // <-- SYNC PROPS LAMA 
             />
           } />
+          
           <Route path="/about-us" element={
             <AboutUs onBack={() => navigate('/profil')} />
           } />
+          
           <Route path="/penarikan" element={
             <AlamatPenarikan
-              userId={userId}
+              userId={userId} // <-- SYNC PROPS LAMA
               savedData={withdrawDetails.method ? withdrawDetails : undefined}
               showAlert={showAlert}
               onConfirm={(data) => {
@@ -336,7 +344,7 @@ const App: React.FC = () => {
                   const { data: { user }} = await supabase.auth.getUser();
                   if (!user) return;
 
-                  // Ambil data terbaru setelah request ke database berhasil
+                  // Sinkron database setelah withdraw sukses
                   const { data, error } = await supabase
                     .from('pengguna')
                     .select('saldo, withdraw_history')
@@ -367,7 +375,7 @@ const App: React.FC = () => {
               onUpdateWithdrawStatus={updateWithdrawStatus}
               activeTab={adminActiveTab}
               setTab={setAdminActiveTab}
-              onLogout={handleLogout}
+              onLogout={handleLogout} // <-- SYNC PROPS LAMA
               settings={systemSettings}
               updateSettings={setSystemSettings}
               showAlert={showAlert}
@@ -445,6 +453,7 @@ const App: React.FC = () => {
         </Routes>
       </main>
 
+      {/* Bottom Navbar */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-8 py-4 flex justify-between items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
         {userRole === 'admin' ? (
           <>

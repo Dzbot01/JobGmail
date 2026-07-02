@@ -7,9 +7,10 @@ interface ProfilProps {
   isVerified: boolean;
   onNavigateToWithdraw: () => void;
   onNavigateToAbout: () => void;
+  onLogout?: () => void;
 }
 
-const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, onNavigateToWithdraw, onNavigateToAbout }) => {
+const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, onNavigateToWithdraw, onNavigateToAbout, onLogout }) => {
   return (
     <div className="space-y-3 pb-6"> {/* space-y diperkecil dari 4 ke 3 */}
       
@@ -118,7 +119,7 @@ const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, onN
       </div>
 
       <button 
-        onClick={() => window.location.reload()}
+        onClick={onLogout}
         className="w-full mt-2 py-3 rounded-xl bg-white border border-red-100 text-red-500 text-sm font-bold shadow-sm active:bg-red-50"
       >
         Logout
