@@ -11,22 +11,22 @@ export interface HistoryItem {
   userName?: string;
   method?: string;
   reason?: string;
-  userEmail?: string; // <-- 2. TAMBAH INI Biar sama
-  qrisUrl?: string; // <-- 2. TAMBAH INI Biar sama
+  userEmail?: string;
+  qrisUrl?: string;
 }
 
 interface WithdrawPageProps {
   balance: number;
   history: HistoryItem[];
   onBack: () => void;
-  onWithdrawSuccess: () => void; // <-- 3. GANTI: GA USAH KIRIM AMOUNT LAGI
+  onWithdrawSuccess: () => void;
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
 }
 
 const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, onWithdrawSuccess, showAlert }) => {
   const [activeSubTab, setActiveSubTab] = useState<'withdraw' | 'history'>('withdraw');
   const [amount, setAmount] = useState<string>('');
-  const [loading, setLoading] = useState(false); // <-- 4. TAMBAH LOADING
+  const [loading, setLoading] = useState(false);
   
   const quickAmounts = [1000, 3000, 5000, 10000, 50000, 100000];
 
@@ -45,7 +45,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
     setLoading(true);
     const container = document.querySelector('.u-container');
     if (container) {
-      container.classList.add('animating'); // <-- 6. JAGA ANIMASI UI LU
+      container.classList.add('animating');
     }
 
     try {
@@ -89,7 +89,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
       
       // Tunggu animasi 1.5s baru fetch ulang
       setTimeout(() => {
-        onWithdrawSuccess(); // <-- Suruh parent fetch ulang
+        onWithdrawSuccess();
         setAmount('');
         setActiveSubTab('history');
       }, 1500);
@@ -141,7 +141,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
                 <button 
                   key={val}
                   onClick={() => setAmount(val.toString())}
-                  disabled={loading} // <-- 7. DISABLE PAS LOADING
+                  disabled={loading}
                   className="py-3 px-1 rounded-xl border-gray-100 bg-gray-50 text-xs font-bold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition-colors active:scale-95 disabled:opacity-60"
                 >
                   Rp {val.toLocaleString('id-ID')}
@@ -161,7 +161,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
                     onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
                     placeholder="Masukkan nominal"
                     className="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border-gray-100 focus:border-blue-400 focus:bg-white outline-none font-bold text-lg"
-                    disabled={loading} // <-- 7. DISABLE PAS LOADING
+                    disabled={loading}
                   />
                 </div>
                 <p className="text- text-gray-400 mt-2 italic">Minimal penarikan Rp. 1.000</p>
@@ -191,8 +191,8 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
 
             <div className="flex justify-center mt-8">
               <div 
-                className={`u-container ${loading? 'pointer-events-none opacity-70' : ''}`} // <-- 8. DISABLE PAS LOADING
-                onClick={!loading? handleWithdraw : undefined} // <-- 8. DISABLE PAS LOADING
+                className={`u-container ${loading? 'pointer-events-none opacity-70' : ''}`}
+                onClick={!loading? handleWithdraw : undefined}
               >
                 <div className="left-side">
                   <div className="u-card">
@@ -209,7 +209,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
                   </div>
                 </div>
                 <div className="right-side">
-                  <div className="new">{loading? 'Memproses...' : 'Konfirmasi Withdraw'}</div> // <-- 8. TEXT LOADING
+                  <div className="new">{loading? 'Memproses...' : 'Konfirmasi Withdraw'}</div>
                   <svg viewBox="0 0 451.846 451.847" height="512" width="512" xmlns="http://www.w3.org/2000/svg" className="arrow"><path fill="#cf" data-old_color="#000" className="active-path" data-original="#000" d="M345.441 248.292L151.154 442.573c-12.359 12.365-32.397 12.365-44.75 0-12.354-12.354-12.354-32.391 0-44.744L278.318 225.92 106.409 54.017c-12.354-12.359-12.354-32.394 0-44.748 12.354-12.359 32.391-12.359 44.75 0l194.287 194.284c6.177 6.18 9.262 14.271 9.262 22.366 0 8.099-3.091 16.196-9.267 22.373z"></path></svg>
                 </div>
               </div>
@@ -239,7 +239,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
                   <div>
                     <p className="text-sm font-bold text-gray-800">Rp {item.amount.toLocaleString('id-ID')}</p>
                     <p className="text- text-gray-400">{item.date}</p>
-                    {item.reason && <p className="text- text-red-500">Alasan: {item.reason}</p>} // <-- 9. TAMBAH REASON
+                    {item.reason && <p className="text- text-red-500">Alasan: {item.reason}</p>}
                   </div>
                 </div>
                 <span className={`px-3 py-1 rounded-full text- font-bold uppercase ${
