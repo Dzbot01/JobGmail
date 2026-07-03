@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronRight, Send, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../supabase';
-import { v4 as uuidv4 } from 'uuid';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+
+interface SetoranProps {
+  onTaskSubmit: (data: { email: string, pass: string }) => void;
+  showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
+}
 
 interface SetoranProps {
   onTaskSubmit: (data: { email: string, pass: string }) => void;
@@ -20,12 +23,10 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  // === 3. handleSubmit DISAMAIN PLEK KAYAK FILE LAMA ===
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreed || loading) return;
+    if (!agreed) return;
     
     if (!email.endsWith('@gmail.com')) {
       showAlert('Gagal!', 'Alamat email tidak valid! Harus menggunakan @gmail.com', 'error');
@@ -42,69 +43,23 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const { data: { user }} = await supabase.auth.getUser();
-      if (!user) throw new Error('User belum login');
-
-      const { data: userData, error: fetchError } = await supabase
-        .from('pengguna')
-        .select('history')
-        .eq('id', user.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      let historyArr = userData?.history || [];
-
-      const newTask = {
-        id: uuidv4(),
-        email: email,
-        password: password,
-        status: 'process',
-        reason: null,
-        timestamp: new Date().toISOString()
-      };
-
-      historyArr = [newTask, ...historyArr];
-
-      if (historyArr.length > 10) {
-        historyArr = historyArr.slice(0, 10);
-      }
-
-      const { error: updateError } = await supabase
-        .from('pengguna')
-        .update({ history: historyArr })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      onTaskSubmit({ email, pass: password });
-
-      showAlert('Sukses!', 'Tugas dikirim, menunggu verifikasi admin', 'success');
-      setEmail('');
-      setPassword('');
-      setAgreed(false);
-
-    } catch (err: any) {
-      showAlert('Gagal!', err.message || 'Terjadi kesalahan', 'error');
-    } finally {
-      setLoading(false);
-    }
+    onTaskSubmit({ email, pass: password });
+    setEmail('');
+    setPassword('');
+    setAgreed(false);
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100">
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
         <h2 className="text-xl font-bold mb-2 text-gray-800">Setoran Akun Gmail</h2>
         
-        {/* Description card - UI TETAP SAMA */}
-        <div className="bg-blue-50/50 rounded-xl p-4 mb-5 border-blue-100 space-y-3 relative">
-          {/* Lottie Bubble Trigger - UI TETAP SAMA */}
+        {/* Description card */}
+        <div className="bg-blue-50/50 rounded-xl p-4 mb-5 border border-blue-100 space-y-3 relative">
+          {/* Lottie Bubble Trigger */}
           <div 
             onClick={() => window.location.href = '/#warning'}
-            className="absolute top-2 right-2 w-12 h-12 bg-white rounded-full shadow-md border-blue-100 cursor-pointer overflow-hidden flex items-center justify-center p-1 active:scale-95 transition-transform"
+            className="absolute top-2 right-2 w-12 h-12 bg-white rounded-full shadow-md border border-blue-100 cursor-pointer overflow-hidden flex items-center justify-center p-1 active:scale-95 transition-transform"
           >
             <DotLottieReact
               src="https://lottie.host/06c4fcf8-4876-486d-a063-3f8682025985/r1cCpDZmkU.lottie"
@@ -116,9 +71,9 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
           <p className="text-sm text-gray-600 leading-relaxed font-medium pr-10">
             {settings.taskDescription}
           </p>
-          <div className="bg-white/80 p-3 rounded-lg border-blue-100">
-            <p className="text- font-bold text-blue-700 uppercase mb-2">Instruksi Tugas:</p>
-            <ol className="text- text-gray-600 space-y-1 ml-4 list-decimal">
+          <div className="bg-white/80 p-3 rounded-lg border border-blue-100">
+            <p className="text-sm font-bold text-blue-700 uppercase mb-2">Instruksi Tugas:</p>
+            <ol className="text-[10px] text-gray-600 space-y-1 ml-4 list-decimal">
               <li>Buat dengan nama dari database di bawah ini untuk mendapatkan reward: <span className="font-bold text-emerald-600">Rp. {settings.taskReward.toLocaleString('id-ID')}</span></li>
               <li>Gunakan Password: <span className="font-bold text-blue-600">{settings.taskPassword}</span></li>
             </ol>
@@ -126,7 +81,7 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
         </div>
 
         <a 
-          href="https://www.fakenamegenerator.com/gen-male-us.php"
+          href="https://www.fakenamegenerator.com/gen-random-us-us.php" 
           target="_blank" 
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-blue-600 text-sm font-bold hover:underline mb-6"
@@ -143,31 +98,31 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="contoh@gmail.com"
-              className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border-gray-100 focus:border-blue-400 focus:bg-white outline-none"
+              className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-100 focus:border-blue-400 focus:bg-white outline-none"
             />
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Password</label>
             <div className="relative">
               <input 
-                type={showPassword? "text" : "password"} 
+                type={showPassword ? "text" : "password"} 
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••"
-                className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border-gray-100 focus:border-blue-400 focus:bg-white outline-none"
+                placeholder="••••••••"
+                className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-100 focus:border-blue-400 focus:bg-white outline-none"
               />
               <button 
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
               >
-                {showPassword? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 py-2 bg-gray-50/50 p-3 rounded-xl border-gray-100">
+          <div className="flex items-start gap-3 py-2 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
             <input 
               type="checkbox" 
               id="terms" 
@@ -182,13 +137,13 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
 
           <button 
             type="submit"
-            disabled={!agreed || loading}
+            disabled={!agreed}
             className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg ${
-              agreed && !loading? 'bg-blue-600 text-white active:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              agreed ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
             <Send size={18} />
-            {loading? 'Mengirim...' : 'Kirim Setoran'}
+            Kirim Setoran
           </button>
         </form>
       </div>
