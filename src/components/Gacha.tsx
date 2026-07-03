@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient'; // Sesuain path lu
+import { supabase } from '../supabase'; // Sesuain path lu
 
 interface GachaProps {
   userId: string; // WAJIB dari parent: const { data: { user } = await supabase.auth.getUser()
