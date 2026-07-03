@@ -240,7 +240,7 @@ const App: React.FC = () => {
 
   // === 5. RETURN ===
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+    return <div className="min-h-screen flex items-center justify-center">Sebentar ya...</div>
   }
 
   if (userRole === 'guest') {
@@ -292,9 +292,23 @@ const App: React.FC = () => {
             />
           } />
           
-          <Route path="/gacha" element={
-            <Gacha spins={spins} setSpins={setSpins} setBalance={setBalance} setTotalIncome={setTotalIncome} />
-          } />
+{/* 3. KIRIM userId KE GACHA. KUNCI DI SINI */}
+<Route 
+  path="/gacha" 
+  element={
+    userId ? (
+      <Gacha 
+        userId={userId} // <-- INI YANG TADI KURANG
+        spins={spins} 
+        setSpins={setSpins} 
+        setBalance={setBalance} 
+        setTotalIncome={setTotalIncome} 
+      />
+    ) : (
+      <Navigate to="/" /> // Kalo belum login, tendang ke login
+    )
+  } 
+/>
           
           <Route path="/setoran" element={
             <Setoran

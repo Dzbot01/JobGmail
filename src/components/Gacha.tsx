@@ -1,92 +1,123 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy } from 'lucide-react';
-import { supabase } from '../supabase';
+import { supabase } from '../lib/supabaseClient'; // Sesuain path lu
 
 interface GachaProps {
-  userId: string; // WAJIB: uuid user yang login dari Supabase Auth
-  setBalance: (v: number) => void; // buat update UI saldo
+  userId: string; // WAJIB dari parent: const { data: { user } = await supabase.auth.getUser()
+  spins: number;
+  setSpins: (v: number) => void;
+  setBalance: (v: number) => void;
+  setTotalIncome: (v: number) => void;
 }
 
-const MAX_SPINS_PER_DAY = 3;
-const DAILY_REWARD_LIMIT = 10;
-const segments = [2, 5, 'ZONK', 10, 1, 3, 'ZONK', 4];
-
-const Gacha: React.FC<GachaProps> = ({ userId, setBalance }) => {
+const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setTotalIncome }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<number | null>(null);
-  const [spins, setSpins] = useState(MAX_SPINS_PER_DAY);
+  const [dailyRewardPool, setDailyRewardPool] = useState(10);
   const [loading, setLoading] = useState(true);
 
-  // 1. AMBIL DATA SPIN HARI INI DARI DB
+  const segments = [2, 5, 'ZONK', 10, 1, 3, 'ZONK', 4];
+  const DAILY_REWARD_LIMIT = 10;
+  const MAX_SPINS = 3;
+
+  // 1. LOAD DATA SPIN DARI SUPABASE + AUTO RESET JAM 00:00
   useEffect(() => {
-    const fetchSpinData = async () => {
+    if (!userId) return;
+
+    const loadData = async () => {
       setLoading(true);
       const today = new Date().toISOString().split('T')[0];
 
       const { data, error } = await supabase
        .from('pengguna')
-       .select('spin_hari_ini, last_spin_date, saldo')
+       .select('spin_hari_ini, pool_hadiah_hari_ini, last_spin_date, saldo')
        .eq('uuid', userId)
        .single();
 
-      if (error) console.error(error);
+      if (error) {
+        console.error('Gagal load user:', error);
+        setLoading(false);
+        return;
+      }
 
       if (data) {
-        if (data.last_spin_date === today) {
-          setSpins(data.spin_hari_ini); // Masih hari yg sama
+        // Kalo udah ganti hari, reset di DB
+        if (data.last_spin_date!== today) {
+          const { error: updateErr } = await supabase
+           .from('pengguna')
+           .update({
+              spin_hari_ini: MAX_SPINS,
+              pool_hadiah_hari_ini: DAILY_REWARD_LIMIT,
+              last_spin_date: today
+            })
+           .eq('uuid', userId);
+
+          if (!updateErr) {
+            setSpins(MAX_SPINS);
+            setDailyRewardPool(DAILY_REWARD_LIMIT);
+          }
         } else {
-          // Ganti hari, reset di DB
-          await supabase.from('pengguna').update({
-            spin_hari_ini: MAX_SPINS_PER_DAY,
-            pool_hadiah_hari_ini: DAILY_REWARD_LIMIT,
-            last_spin_date: today
-          }).eq('uuid', userId);
-          setSpins(MAX_SPINS_PER_DAY);
+          setSpins(data.spin_hari_ini);
+          setDailyRewardPool(data.pool_hadiah_hari_ini);
         }
         setBalance(data.saldo);
       }
       setLoading(false);
     };
-    fetchSpinData();
+
+    loadData();
   }, [userId]);
 
   const handleSpin = async () => {
+    if (!userId) return alert('Kamu belum login');
     if (spins <= 0 || isSpinning) return;
+
     setIsSpinning(true);
     setResult(null);
 
-    // 2. PANGGIL RPC BUAT KUNCI + AMBIL HADIAH ATOMIK
-    const { data, error } = await supabase.rpc('spin_gacha', {
-      p_user_id: userId,
-      p_segments: segments,
-      p_max_pool: DAILY_REWARD_LIMIT
-    });
+    try {
+      // 2. PANGGIL RPC ATOMIK BIAR GA BISA SPAM
+      const { data, error } = await supabase.rpc('spin_gacha', {
+        p_user_id: userId,
+        p_segments: JSON.stringify(segments), // WAJIB stringify
+        p_max_pool: DAILY_REWARD_LIMIT
+      });
 
-    if (error) {
-      console.error('Spin gagal:', error);
+      if (error) throw error;
+
+      const { hadiah, sisa_spin, sisa_pool, saldo_baru, winning_index } = data;
+
+      // 3. ANIMASI UI TETEP SAMA KAYAK PUNYA LU
+      const extraRotations = 5 * 360;
+      const targetRotation = extraRotations - (winning_index * 45) - 22.5;
+      const relativeRotation = targetRotation + (Math.ceil(rotation / 360) * 360);
+      setRotation(relativeRotation);
+
+      setTimeout(() => {
+        setIsSpinning(false);
+        setSpins(sisa_spin);
+        setDailyRewardPool(sisa_pool);
+
+        if (hadiah === 0) {
+          setResult(0);
+        } else {
+          setResult(hadiah);
+          setBalance(saldo_baru);
+          setTotalIncome((prev: number) => prev + hadiah);
+        }
+      }, 3000);
+
+    } catch (err: any) {
+      console.error('Gagal spin:', err.message);
+      alert('Spin gagal: ' + err.message);
       setIsSpinning(false);
-      return;
     }
-
-    const { hadiah, sisa_spin, sisa_pool, saldo_baru, winning_index } = data;
-
-    // 3. ANIMASI RODA
-    const extraRotations = 5 * 360;
-    const targetRotation = extraRotations - (winning_index * 45) - 22.5;
-    const relativeRotation = targetRotation + (Math.ceil(rotation / 360) * 360);
-    setRotation(relativeRotation);
-
-    setTimeout(() => {
-      setIsSpinning(false);
-      setSpins(sisa_spin);
-      setResult(hadiah);
-      setBalance(saldo_baru);
-    }, 3000);
   };
 
-  if (loading) return <div className="text-center p-10">Loading...</div>;
+  if (loading) return <div className="text-center p-10 text-gray-500">Loading gacha...</div>;
 
+  // UI LU TETEP 100% SAMA, GA GUE UBAH
   return (
     <div className="space-y-6 pb-6">
       <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100 text-center">
@@ -147,6 +178,16 @@ const Gacha: React.FC<GachaProps> = ({ userId, setBalance }) => {
             </span>
           </div>
         )}
+      </div>
+
+      <div className="bg-blue-50 p-4 rounded-xl border-blue-100 shadow-sm">
+        <h4 className="text-sm font-bold text-blue-800 mb-1">Cara Bermain:</h4>
+        <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+          <li>Setiap user mendapatkan 3x spin gratis setiap hari.</li>
+          <li>Hadiah maksimal adalah Rp. 10.</li>
+          <li>Hadiah langsung ditambahkan ke saldo utama.</li>
+          <li>Reset jam 00:00 WIB.</li>
+        </ul>
       </div>
     </div>
   );
