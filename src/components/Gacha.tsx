@@ -109,13 +109,13 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
           setResult(hadiah);
           setBalance(saldo_baru);
           setTotalIncome((prev: number) => prev + hadiah);
-          showAlert('Selamat!', `Kamu menang Rp ${hadiah.toLocaleString('id-ID')}`, 'success'); // <- GANTI ALERT
+          showAlert('Selamat!', `Kamu menang Rp ${hadiah.toLocaleString('id-ID')}`, 'success');
         }
       }, 3000);
 
     } catch (err: any) {
       console.error('Gagal spin:', err.message);
-      showAlert('Spin Gagal', err.message, 'error'); // <- GANTI ALERT
+      showAlert('Spin Gagal', err.message, 'error');
       setIsSpinning(false);
     }
   };
@@ -179,7 +179,7 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
           <div className="mt-4 p-3 bg-yellow-50 border-yellow-100 rounded-xl flex items-center justify-center gap-2">
             <Trophy className="text-yellow-600" size={20} />
             <span className="text-yellow-800 font-bold">
-              {result === 0? 'Zonk! Coba lagi' : `Selamat! Kamu mendapatkan Rp. ${result}`} // <- 5. UBAH TEKS INI JUGA BIAR NYAMBUNG
+              {result === 0? 'Zonk! Coba lagi' : `Selamat! Kamu mendapatkan Rp. ${result}`}
             </span>
           </div>
         )}

@@ -86,7 +86,7 @@ const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, onN
           Ayo undang teman mu untuk bergabung dan dapatkan komisi registrasi sebanyak <span className="text-emerald-600 font-black">Rp. 500</span>
         </p>
         <div className="bg-gray-50 p-2 rounded-xl border border-dashed border-gray-200 flex items-center justify-between">
-           <span className="text-[9px] text-gray-400 font-mono truncate mr-2">https://pusatgmail.com/ref/9923841</span>
+           <span className="text-[9px] text-gray-400 font-mono truncate mr-2">Coming Soon..</span>
            <button className="bg-blue-600 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm active:scale-95 whitespace-nowrap">Copy</button>
         </div>
       </div>
