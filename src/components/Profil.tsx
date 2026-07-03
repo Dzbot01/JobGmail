@@ -77,12 +77,12 @@ const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, use
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Tugas Diterima</p>
           <p className="text-base font-black text-gray-800">{tasksDone}</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
           <XIcon size={16} className="text-red-500 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Tugas Ditolak</p>
           <p className="text-base font-black text-gray-800">0</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
           <Users size={16} className="text-blue-500 mb-1.5" />
           <div className="flex flex-col items-center">
              <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Referrals</p>
@@ -95,12 +95,12 @@ const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, use
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Income Referral</p>
           <p className="text-base font-black text-gray-800">Rp. 0</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
           <ShieldCheck size={16} className="text-blue-600 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Honor Score</p>
           <p className="text-base font-black text-gray-800">100%</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
           <Wallet size={16} className="text-emerald-600 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total Pendapatan</p>
           <p className="text-base font-black text-emerald-600">Rp. {totalIncome.toLocaleString('id-ID')}</p>
