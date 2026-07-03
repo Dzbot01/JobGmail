@@ -303,6 +303,7 @@ const App: React.FC = () => {
         setSpins={setSpins} 
         setBalance={setBalance} 
         setTotalIncome={setTotalIncome} 
+        showAlert={showAlert}
       />
     ) : (
       <Navigate to="/" /> // Kalo belum login, tendang ke login

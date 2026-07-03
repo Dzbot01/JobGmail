@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy } from 'lucide-react';
-import { supabase } from '../supabase'; // Sesuain path lu
+import { supabase } from '../supabase';
 
 interface GachaProps {
-  userId: string; // WAJIB dari parent: const { data: { user } = await supabase.auth.getUser()
+  userId: string;
   spins: number;
   setSpins: (v: number) => void;
   setBalance: (v: number) => void;
   setTotalIncome: (v: number) => void;
+  showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
 }
 
-const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setTotalIncome }) => {
+const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setTotalIncome, showAlert }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<number | null>(null);
@@ -30,13 +31,14 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
       const today = new Date().toISOString().split('T')[0];
 
       const { data, error } = await supabase
-       .from('pengguna')
-       .select('spin_hari_ini, pool_hadiah_hari_ini, last_spin_date, saldo')
-       .eq('uuid', userId)
-       .single();
+      .from('pengguna')
+      .select('spin_hari_ini, pool_hadiah_hari_ini, last_spin_date, saldo')
+      .eq('id', userId)
+      .single();
 
       if (error) {
         console.error('Gagal load user:', error);
+        showAlert('Gagal', 'Gagal memuat data user', 'error');
         setLoading(false);
         return;
       }
@@ -45,13 +47,13 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
         // Kalo udah ganti hari, reset di DB
         if (data.last_spin_date!== today) {
           const { error: updateErr } = await supabase
-           .from('pengguna')
-           .update({
+          .from('pengguna')
+          .update({
               spin_hari_ini: MAX_SPINS,
               pool_hadiah_hari_ini: DAILY_REWARD_LIMIT,
               last_spin_date: today
             })
-           .eq('uuid', userId);
+          .eq('id', userId);
 
           if (!updateErr) {
             setSpins(MAX_SPINS);
@@ -67,10 +69,10 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
     };
 
     loadData();
-  }, [userId]);
+  }, [userId, setSpins, setBalance, showAlert]);
 
   const handleSpin = async () => {
-    if (!userId) return alert('Kamu belum login');
+    if (!userId) return showAlert('Gagal!', 'Kamu belum login', 'error');
     if (spins <= 0 || isSpinning) return;
 
     setIsSpinning(true);
@@ -80,7 +82,7 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
       // 2. PANGGIL RPC ATOMIK BIAR GA BISA SPAM
       const { data, error } = await supabase.rpc('spin_gacha', {
         p_user_id: userId,
-        p_segments: segments, // WAJIB stringify
+        p_segments: segments,
         p_max_pool: DAILY_REWARD_LIMIT
       });
 
@@ -101,16 +103,19 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
 
         if (hadiah === 0) {
           setResult(0);
+          // <- 3. TEKS ZONK SESUAI MINTA
+          showAlert('Yah Zonk!', 'Coba lagi lain kali!', 'error');
         } else {
           setResult(hadiah);
           setBalance(saldo_baru);
           setTotalIncome((prev: number) => prev + hadiah);
+          showAlert('Selamat!', `Kamu menang Rp ${hadiah.toLocaleString('id-ID')}`, 'success'); // <- GANTI ALERT
         }
       }, 3000);
 
     } catch (err: any) {
       console.error('Gagal spin:', err.message);
-      alert('Spin gagal: ' + err.message);
+      showAlert('Spin Gagal', err.message, 'error'); // <- GANTI ALERT
       setIsSpinning(false);
     }
   };
@@ -174,7 +179,7 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
           <div className="mt-4 p-3 bg-yellow-50 border-yellow-100 rounded-xl flex items-center justify-center gap-2">
             <Trophy className="text-yellow-600" size={20} />
             <span className="text-yellow-800 font-bold">
-              Selamat! Kamu mendapatkan Rp. {result}
+              {result === 0? 'Zonk! Coba lagi' : `Selamat! Kamu mendapatkan Rp. ${result}`} // <- 5. UBAH TEKS INI JUGA BIAR NYAMBUNG
             </span>
           </div>
         )}
