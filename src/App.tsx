@@ -322,6 +322,7 @@ const App: React.FC = () => {
           <Route path="/profil" element={
             <Profil
               tasksDone={tasksDone}
+              userId={userId}
               totalIncome={totalIncome}
               isVerified={isVerified}
               onNavigateToWithdraw={() => navigate('/penarikan')}
