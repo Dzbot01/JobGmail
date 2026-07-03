@@ -80,7 +80,7 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
       // 2. PANGGIL RPC ATOMIK BIAR GA BISA SPAM
       const { data, error } = await supabase.rpc('spin_gacha', {
         p_user_id: userId,
-        p_segments: JSON.stringify(segments), // WAJIB stringify
+        p_segments: segments, // WAJIB stringify
         p_max_pool: DAILY_REWARD_LIMIT
       });
 
