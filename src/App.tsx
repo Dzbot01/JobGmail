@@ -248,37 +248,74 @@ const upsertUser = async (user: any) => {
     navigate('/', { replace: true });
   }
 
-  const handleTaskSubmit = (data: { email: string, pass: string }) => {
-    const newSub = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: userId,
-      email: data.email,
-      password: data.pass,
-      status: 'process',
-      withdrawMethod: withdrawDetails.method,
-      timestamp: new Date().toLocaleString()
-    };
-    setAllSubmissions([newSub,...allSubmissions]);
-    showAlert('Sukses!', 'Tugas sedang di proses.');
-    navigate('/history');
+const handleTaskSubmit = async (data: { email: string, pass: string }) => {
+  const newSub = {
+    id: crypto.randomUUID(), // lebih aman
+    userId: userId, // biar bisa filter kalo admin liat semua
+    email: data.email,
+    password: data.pass,
+    status: 'process',
+    withdrawMethod: withdrawDetails.method,
+    timestamp: new Date().toISOString() // <- GANTI JADI ISO biar sama dgn DB
   };
 
-  const updateSubmissionStatus = (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
-    setAllSubmissions(prev => prev.map(s => {
-      if (s.id === id) {
-        if (newStatus === 'paid' && s.status!== 'paid') {
-          setBalance(b => b + systemSettings.taskReward);
-          setTotalIncome(i => i + systemSettings.taskReward);
-          setTasksDone(t => t + 1);
-          showAlert('Sukses!', 'Tugas disetujui, saldo ditambahkan.');
-        } else if (newStatus === 'rejected') {
-          showAlert('Tugas Ditolak!', 'Tugas tidak memenuhi kriteria sistem.', 'error');
-        }
-        return {...s, status: newStatus, reason };
-      }
-      return s;
-    }));
-  };
+  // 1. GABUNG DENGAN DATA LAMA
+  const updatedHistory = [newSub, ...allSubmissions];
+  setAllSubmissions(updatedHistory); // update UI langsung biar ga loading
+
+  // 2. SAVE KE SUPABASE. INI YANG PALING PENTING
+  const { error } = await supabase
+.from('pengguna')
+.update({ history: updatedHistory })
+.eq('id', userId);
+
+  if (error) {
+    console.error('Gagal simpan tugas:', error);
+    showAlert('Gagal!', 'Gagal menyimpan tugas: ' + error.message, 'error');
+    setAllSubmissions(allSubmissions); // rollback kalo gagal
+    return;
+  }
+
+  showAlert('Sukses!', 'Tugas sedang di proses.');
+  navigate('/history');
+};
+
+ const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
+  // 1. UPDATE STATE DULU BIAR UI LANGSUNG BERUBAH
+  const updatedSubmissions = allSubmissions.map(s => {
+    if (s.id === id) {
+      return {...s, status: newStatus, reason }; // tambahin reason
+    }
+    return s;
+  });
+  setAllSubmissions(updatedSubmissions);
+
+  // 2. CARI TUGASNYA BUAT DAPET userId nya. PENTING BUAT ADMIN
+  const taskYangDiubah = updatedSubmissions.find(s => s.id === id);
+  if (!taskYangDiubah) return;
+
+  // 3. SAVE KE DB MILIK USER YANG NGERJAIN TUGAS
+  const { error } = await supabase
+.from('pengguna')
+.update({ history: updatedSubmissions })
+.eq('id', taskYangDiubah.userId); // <- JANGAN userId admin. Harus userId si pekerja
+
+  if (error) {
+    console.error('Gagal update status tugas:', error);
+    showAlert('Gagal!', 'Gagal update ke server: ' + error.message, 'error');
+    return;
+  }
+
+  // 4. BARU UPDATE SALDO & HITUNG ULANG
+  if (newStatus === 'paid') {
+    setBalance(b => b + systemSettings.taskReward);
+    setTotalIncome(i => i + systemSettings.taskReward);
+    setTasksDone(t => t + 1);
+    showAlert('Sukses!', 'Tugas disetujui, saldo ditambahkan.');
+  } else if (newStatus === 'rejected') {
+    showAlert('Tugas Ditolak!', 'Tugas tidak memenuhi kriteria sistem.', 'error');
+  }
+};
 
   const updateWithdrawStatus = (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
     setWithdrawHistory(prev => prev.map(w => {
