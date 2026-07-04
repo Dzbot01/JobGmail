@@ -58,32 +58,33 @@ const App: React.FC = () => {
   });
 
   // === 2. FUNGSI UPSERT BARU. INI DOANG TAMBAHANNYA ===
+// === 2. FUNGSI UPSERT BARU ===
   const upsertUser = async (user: any) => {
     const { id, email, user_metadata } = user;
     const nama = user_metadata?.full_name || user_metadata?.name || email.split('@')[0];
 
-    // Upsert = Insert kalo belum ada, Update kalo udah ada
+    console.log('UPSERT JALAN UNTUK:', id);
+
     const { error } = await supabase
-   .from('pengguna')
-   .upsert({
+  .from('pengguna')
+  .upsert({
         id: id, // PK
         email: email,
         nama: nama,
         peran: 'user', // Default user baru
-        saldo: 0, // Default saldo 0
+        // HAPUS last_login
         spin_hari_ini: MAX_SPINS, // Kasih jatah spin awal
         pool_hadiah_hari_ini: DAILY_REWARD_LIMIT, // Kasih pool awal
         last_spin_date: new Date().toISOString().split('T')[0],
-        last_login: new Date().toISOString(),
-        history: [], // Default kosong
-        withdraw_history: [], // Default kosong
-        payment: {} // Default kosong
       }, {
-        onConflict: 'id', // Kalo id bentrok, update aja barisnya
-        ignoreDuplicates: false // Biar last_login ke-update
+        onConflict: 'id',
+        ignoreDuplicates: false // Ini tetep aman, buat update email/nama
       });
 
-    if (error) console.error('Gagal upsert user:', error);
+    if (error) {
+      console.error('Gagal upsert user:', error.message);
+      showAlert('Gagal!', 'Gagal menyimpan data user: ' + error.message, 'error');
+    }
   };
 
   // === 3. useEffect AUTH & DB SUPABASE (Logic Lama + Upsert) ===
@@ -121,8 +122,11 @@ const App: React.FC = () => {
           return;
         }
 
-        // 4. PANGGIL UPSERT DI SINI PAS BUKA APP ADA SESI
+// 4. PANGGIL UPSERT DI SINI PAS BUKA APP ADA SESI
         await upsertUser(session.user);
+
+        // TUNGGU 300ms BIAR DB KEUPDATE DULU, ANTI RACE CONDITION
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const name = session.user_metadata?.full_name || session.user_metadata?.name || '';
         const email = session.user.email || '';
@@ -135,7 +139,7 @@ const App: React.FC = () => {
         // Fetch data profil user dari Supabase
         const { data: profile, error: profileError } = await supabase
          .from('pengguna')
-         .select('peran, saldo, history, payment, withdraw_history, spin_hari_ini, pool_hadiah_hari_ini') // <- TAMBAH 2 INI BIAR GACHA GA NULL
+         .select('peran, saldo, history, payment, withdraw_history, spin_hari_ini, pool_hadiah_hari_ini')
          .eq('id', session.user.id)
          .single();
 
@@ -145,7 +149,7 @@ const App: React.FC = () => {
           setBalance(profile?.saldo?? 0);
           setAllSubmissions(profile?.history?? []);
           setWithdrawHistory(profile?.withdraw_history?? []);
-          setSpins(profile?.spin_hari_ini?? MAX_SPINS); // <- SYNC SPIN KE STATE
+          setSpins(profile?.spin_hari_ini?? MAX_SPINS);
 
           if (profile?.payment?.method) {
             setWithdrawDetails({
