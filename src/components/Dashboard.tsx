@@ -234,11 +234,11 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
 
       {/* Generate Name Card */}
       <div className="bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
-        <h3 className="font-bold text-lg mb-4 text-gray-800">Generate Nama Amerika</h3>
+        <h3 className="font-bold text-lg mb-4 text-gray-800">Generate Alamat Email Random</h3>
         
         <div className="bg-gray-50 rounded-xl p-4 mb-5 border border-gray-100">
           <p className="text-xs text-gray-500 leading-relaxed font-medium">
-            Fitur ini adalah cara cepat kamu mendapatkan nama random yang sudah ter-filter sistem untuk di daftarkan pada aplikasi Gmail lalu di setorkan kesini.
+            Fitur ini adalah cara cepat kamu mendapatkan Alamat Email Random yang sudah ter-filter sistem untuk di daftarkan pada aplikasi Gmail lalu di setorkan kesini.
           </p>
           <p className="text-[10px] text-orange-500 font-bold mt-2 italic">
             * Alamat email ini bersifat random dan mungkin saja sudah terdaftar, ini hanya sebagai referensi cepat.
@@ -247,11 +247,11 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         
         <div className="space-y-3 mb-6">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600 font-medium">Buat nama dari Amerika (ini)</span>
+            <span className="text-gray-600 font-medium">Gunakan nama Random (ini)</span>
             <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold">Rp. 1.000</span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600 font-medium">Buat nama dari database</span>
+            <span className="text-gray-600 font-medium">Gunakan nama dari database</span>
             <span className="bg-emerald-600 text-white px-3 py-1 rounded-full text-[10px] font-bold">Rp. 1.600</span>
           </div>
         </div>

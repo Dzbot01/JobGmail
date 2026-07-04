@@ -317,20 +317,37 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
   }
 };
 
-  const updateWithdrawStatus = (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
-    setWithdrawHistory(prev => prev.map(w => {
-      if (w.id === id) {
-        if (newStatus === 'rejected' && w.status!== 'rejected') {
-          setBalance(b => b + w.amount);
-          showAlert('Withdraw Ditolak!', 'Saldo telah dikembalikan.', 'error');
-        } else if (newStatus === 'paid') {
-          showAlert('Withdraw Sukses!', 'Dana telah dikirim ke rekening Anda.');
-        }
-        return {...w, status: newStatus, reason };
-      }
-      return w;
-    }));
-  };
+ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
+  const updatedHistory = withdrawHistory.map(w => 
+    w.id === id? {...w, status: newStatus, reason } : w
+  );
+  setWithdrawHistory(updatedHistory);
+
+  // CARI SIAPA PEMILIK WITHDRAW INI
+  const withdrawItem = updatedHistory.find(w => w.id === id);
+  if (!withdrawItem) return;
+
+  // KALO DITOLAK, KEMBALIKAN SALDO
+  let newBalance = balance;
+  if (newStatus === 'rejected' && withdrawItem.status !== 'rejected') {
+    newBalance = balance + withdrawItem.amount;
+    setBalance(newBalance);
+    showAlert('Withdraw Ditolak!', 'Saldo telah dikembalikan.', 'error');
+  } else if (newStatus === 'paid') {
+    showAlert('Withdraw Sukses!', 'Dana telah dikirim ke rekening Anda.');
+  }
+
+  // SAVE KE DB USER YANG BERSANGKUTAN
+  const { error } = await supabase
+.from('pengguna')
+.update({ 
+  withdraw_history: updatedHistory,
+  saldo: newBalance
+})
+.eq('id', withdrawItem.userId || userId); // fallback ke userId login
+
+  if(error) console.error(error);
+};
 
   // === 6. RETURN ===
   if (isLoading) {
@@ -442,35 +459,55 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
             />
           } />
 
-          <Route path="/withdraw" element={
-            <WithdrawPage
-              balance={balance}
-              history={withdrawHistory}
-              onBack={() => navigate('/dashboard')}
-              showAlert={showAlert}
-              onWithdrawSuccess={async () => {
-                try {
-                  const { data: { user }} = await supabase.auth.getUser();
-                  if (!user) return;
+<Route path="/withdraw" element={
+  <WithdrawPage
+    balance={balance}
+    history={withdrawHistory}
+    onBack={() => navigate('/dashboard')}
+    showAlert={showAlert}
+    onWithdrawSuccess={async (amount: number) => { // <- TAMBAH PARAMETER AMOUNT
+      try {
+        // 1. BIKIN DATA BARU
+        const newWithdraw: HistoryItem = {
+          id: crypto.randomUUID(),
+          amount: amount,
+          status: 'process',
+          date: new Date().toISOString(), // pake ISO biar rapi
+          method: withdrawDetails.method,
+          walletNumber: withdrawDetails.number,
+          userName: userName
+        };
 
-                  const { data, error } = await supabase
-                   .from('pengguna')
-                   .select('saldo, withdraw_history')
-                   .eq('id', user.id)
-                   .single();
+        const newBalance = balance - amount;
+        const updatedWithdrawHistory = [newWithdraw, ...withdrawHistory];
 
-                  if (error) throw error;
+        // 2. UPDATE UI DULU BIAR CEPET
+        setBalance(newBalance);
+        setWithdrawHistory(updatedWithdrawHistory);
 
-                  setBalance(data?.saldo?? 0);
-                  setWithdrawHistory(data?.withdraw_history?? []);
+        // 3. SAVE KE SUPABASE
+        const { error } = await supabase
+  .from('pengguna')
+  .update({ 
+    saldo: newBalance,
+    withdraw_history: updatedWithdrawHistory 
+  })
+  .eq('id', userId);
 
-                } catch (err: any) {
-                  console.error('Gagal refresh withdraw:', err);
-                  showAlert('Gagal!', 'Gagal sinkron data setelah withdraw', 'error');
-                }
-              }}
-            />
-          } />
+        if (error) throw error;
+
+        showAlert('Sukses!', 'Permintaan withdraw sedang diproses.', 'success');
+        
+      } catch (err: any) {
+        console.error('Gagal withdraw:', err);
+        showAlert('Gagal!', 'Gagal memproses withdraw: ' + err.message, 'error');
+        // rollback kalo gagal
+        setBalance(balance); 
+        setWithdrawHistory(withdrawHistory);
+      }
+    }}
+  />
+} />
 
           <Route path="/history" element={<UserHistory submissions={allSubmissions} />} />
 
