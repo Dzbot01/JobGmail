@@ -19,6 +19,10 @@ import CustomAlert from './components/CustomAlert';
 
 type AdminTab = 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
 
+// 1. KONSTANTA DEFAULT USER BARU
+const DAILY_REWARD_LIMIT = 10;
+const MAX_SPINS = 3;
+
 const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,7 +57,36 @@ const App: React.FC = () => {
     show: false, message: '', subtext: '', type: 'success'
   });
 
-  // === 2. useEffect AUTH & DB SUPABASE (Logic Lama) ===
+  // === 2. FUNGSI UPSERT BARU. INI DOANG TAMBAHANNYA ===
+  const upsertUser = async (user: any) => {
+    const { id, email, user_metadata } = user;
+    const nama = user_metadata?.full_name || user_metadata?.name || email.split('@')[0];
+
+    // Upsert = Insert kalo belum ada, Update kalo udah ada
+    const { error } = await supabase
+   .from('pengguna')
+   .upsert({
+        id: id, // PK
+        email: email,
+        nama: nama,
+        peran: 'user', // Default user baru
+        saldo: 0, // Default saldo 0
+        spin_hari_ini: MAX_SPINS, // Kasih jatah spin awal
+        pool_hadiah_hari_ini: DAILY_REWARD_LIMIT, // Kasih pool awal
+        last_spin_date: new Date().toISOString().split('T')[0],
+        last_login: new Date().toISOString(),
+        history: [], // Default kosong
+        withdraw_history: [], // Default kosong
+        payment: {} // Default kosong
+      }, {
+        onConflict: 'id', // Kalo id bentrok, update aja barisnya
+        ignoreDuplicates: false // Biar last_login ke-update
+      });
+
+    if (error) console.error('Gagal upsert user:', error);
+  };
+
+  // === 3. useEffect AUTH & DB SUPABASE (Logic Lama + Upsert) ===
   useEffect(() => {
     let mounted = true;
     let handledCode = false;
@@ -88,6 +121,9 @@ const App: React.FC = () => {
           return;
         }
 
+        // 4. PANGGIL UPSERT DI SINI PAS BUKA APP ADA SESI
+        await upsertUser(session.user);
+
         const name = session.user_metadata?.full_name || session.user_metadata?.name || '';
         const email = session.user.email || '';
         if (mounted) {
@@ -98,18 +134,19 @@ const App: React.FC = () => {
 
         // Fetch data profil user dari Supabase
         const { data: profile, error: profileError } = await supabase
-          .from('pengguna')
-          .select('peran, saldo, history, payment, withdraw_history')
-          .eq('id', session.user.id)
-          .single();
+         .from('pengguna')
+         .select('peran, saldo, history, payment, withdraw_history, spin_hari_ini, pool_hadiah_hari_ini') // <- TAMBAH 2 INI BIAR GACHA GA NULL
+         .eq('id', session.user.id)
+         .single();
 
         if (profileError) {
           console.error('Gagal fetch profile:', profileError);
         } else {
-          setBalance(profile?.saldo ?? 0);
-          setAllSubmissions(profile?.history ?? []);
-          setWithdrawHistory(profile?.withdraw_history ?? []);
-          
+          setBalance(profile?.saldo?? 0);
+          setAllSubmissions(profile?.history?? []);
+          setWithdrawHistory(profile?.withdraw_history?? []);
+          setSpins(profile?.spin_hari_ini?? MAX_SPINS); // <- SYNC SPIN KE STATE
+
           if (profile?.payment?.method) {
             setWithdrawDetails({
               method: profile.payment.method,
@@ -142,8 +179,11 @@ const App: React.FC = () => {
 
     handleAuth();
 
-    const { data: { subscription }} = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription }} = supabase.auth.onAuthStateChange(async (event, session) => { // <- TAMBAH async
       if (event === 'SIGNED_IN' && session?.user) {
+        // 5. PANGGIL UPSERT DI SINI PAS LOGIN BARU
+        await upsertUser(session.user);
+
         setUserId(session.user.id);
         setUserName(session.user_metadata?.full_name || session.user_metadata?.name || '');
         setUserEmail(session.user.email || '');
@@ -164,7 +204,7 @@ const App: React.FC = () => {
     };
   }, [navigate]);
 
-  // === 3. useEffect GUARD WITHDRAW ===
+  // === 4. useEffect GUARD WITHDRAW ===
   useEffect(() => {
     if (userRole === 'user' && location.pathname === '/withdraw') {
       if (!withdrawDetails.method) {
@@ -179,7 +219,7 @@ const App: React.FC = () => {
     }
   }, [location.pathname, withdrawDetails.method, systemSettings.withdrawSchedule, userRole, navigate]);
 
-  // === 4. FUNCTIONS ===
+  // === 5. FUNCTIONS ===
   const showAlert = (message: string, subtext: string, type: 'success' | 'error' = 'success') => {
     setAlertState({ show: true, message, subtext, type });
   };
@@ -201,7 +241,7 @@ const App: React.FC = () => {
       withdrawMethod: withdrawDetails.method,
       timestamp: new Date().toLocaleString()
     };
-    setAllSubmissions([newSub, ...allSubmissions]);
+    setAllSubmissions([newSub,...allSubmissions]);
     showAlert('Sukses!', 'Tugas sedang di proses.');
     navigate('/history');
   };
@@ -209,7 +249,7 @@ const App: React.FC = () => {
   const updateSubmissionStatus = (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
     setAllSubmissions(prev => prev.map(s => {
       if (s.id === id) {
-        if (newStatus === 'paid' && s.status !== 'paid') {
+        if (newStatus === 'paid' && s.status!== 'paid') {
           setBalance(b => b + systemSettings.taskReward);
           setTotalIncome(i => i + systemSettings.taskReward);
           setTasksDone(t => t + 1);
@@ -217,7 +257,7 @@ const App: React.FC = () => {
         } else if (newStatus === 'rejected') {
           showAlert('Tugas Ditolak!', 'Tugas tidak memenuhi kriteria sistem.', 'error');
         }
-        return { ...s, status: newStatus, reason };
+        return {...s, status: newStatus, reason };
       }
       return s;
     }));
@@ -226,19 +266,19 @@ const App: React.FC = () => {
   const updateWithdrawStatus = (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
     setWithdrawHistory(prev => prev.map(w => {
       if (w.id === id) {
-        if (newStatus === 'rejected' && w.status !== 'rejected') {
+        if (newStatus === 'rejected' && w.status!== 'rejected') {
           setBalance(b => b + w.amount);
           showAlert('Withdraw Ditolak!', 'Saldo telah dikembalikan.', 'error');
         } else if (newStatus === 'paid') {
           showAlert('Withdraw Sukses!', 'Dana telah dikirim ke rekening Anda.');
         }
-        return { ...w, status: newStatus, reason };
+        return {...w, status: newStatus, reason };
       }
       return w;
     }));
   };
 
-  // === 5. RETURN ===
+  // === 6. RETURN ===
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Sebentar ya...</div>
   }
@@ -248,7 +288,7 @@ const App: React.FC = () => {
   }
 
     return (
-    <div 
+    <div
       className="min-h-screen bg-gray-50 text-gray-800 pb-24 font-sans select-none overflow-x-hidden"
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -257,20 +297,20 @@ const App: React.FC = () => {
         message={alertState.message}
         subtext={alertState.subtext}
         type={alertState.type}
-        onClose={() => setAlertState({ ...alertState, show: false })}
+        onClose={() => setAlertState({...alertState, show: false })}
       />
-      
+
       {userRole === 'user' && (
-        <SupportBubble 
-          isMusicPlaying={isMusicPlaying} 
-          setIsMusicPlaying={setIsMusicPlaying} 
+        <SupportBubble
+          isMusicPlaying={isMusicPlaying}
+          setIsMusicPlaying={setIsMusicPlaying}
         />
       )}
 
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-5 py-3 flex items-center justify-start border-b border-gray-100">
         <img
-          src="https://cdn.phototourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
+          src="https://cdn.photourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
           alt="Job Gmail Logo"
           className="h-10 w-auto object-contain"
         />
@@ -287,38 +327,37 @@ const App: React.FC = () => {
               onWithdraw={() => navigate('/withdraw')}
               settings={systemSettings}
               isMusicPlaying={isMusicPlaying}
-              userName={userName} // <-- SYNC PROPS LAMA
-              userEmail={userEmail} // <-- SYNC PROPS LAMA
+              userName={userName}
+              userEmail={userEmail}
             />
           } />
-          
-{/* 3. KIRIM userId KE GACHA. KUNCI DI SINI */}
-<Route 
-  path="/gacha" 
-  element={
-    userId ? (
-      <Gacha 
-        userId={userId} // <-- INI YANG TADI KURANG
-        spins={spins} 
-        setSpins={setSpins} 
-        setBalance={setBalance} 
-        setTotalIncome={setTotalIncome} 
-        showAlert={showAlert}
-      />
-    ) : (
-      <Navigate to="/" /> // Kalo belum login, tendang ke login
-    )
-  } 
-/>
-          
+
+          <Route
+            path="/gacha"
+            element={
+              userId? (
+                <Gacha
+                  userId={userId}
+                  spins={spins}
+                  setSpins={setSpins}
+                  setBalance={setBalance}
+                  setTotalIncome={setTotalIncome}
+                  showAlert={showAlert}
+                />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+
           <Route path="/setoran" element={
             <Setoran
               onTaskSubmit={handleTaskSubmit}
               showAlert={showAlert}
-              settings={{...systemSettings, withdrawDetailsSet: !!withdrawDetails.method}}
+              settings={{...systemSettings, withdrawDetailsSet:!!withdrawDetails.method}}
             />
           } />
-          
+
           <Route path="/profil" element={
             <Profil
               tasksDone={tasksDone}
@@ -327,18 +366,18 @@ const App: React.FC = () => {
               isVerified={isVerified}
               onNavigateToWithdraw={() => navigate('/penarikan')}
               onNavigateToAbout={() => navigate('/about-us')}
-              onLogout={handleLogout} // <-- SYNC PROPS LAMA 
+              onLogout={handleLogout}
             />
           } />
-          
+
           <Route path="/about-us" element={
             <AboutUs onBack={() => navigate('/profil')} />
           } />
-          
+
           <Route path="/penarikan" element={
             <AlamatPenarikan
-              userId={userId} // <-- SYNC PROPS LAMA
-              savedData={withdrawDetails.method ? withdrawDetails : undefined}
+              userId={userId}
+              savedData={withdrawDetails.method? withdrawDetails : undefined}
               showAlert={showAlert}
               onConfirm={(data) => {
                 setIsVerified(true);
@@ -360,17 +399,16 @@ const App: React.FC = () => {
                   const { data: { user }} = await supabase.auth.getUser();
                   if (!user) return;
 
-                  // Sinkron database setelah withdraw sukses
                   const { data, error } = await supabase
-                    .from('pengguna')
-                    .select('saldo, withdraw_history')
-                    .eq('id', user.id)
-                    .single();
+                   .from('pengguna')
+                   .select('saldo, withdraw_history')
+                   .eq('id', user.id)
+                   .single();
 
                   if (error) throw error;
 
-                  setBalance(data?.saldo ?? 0);
-                  setWithdrawHistory(data?.withdraw_history ?? []);
+                  setBalance(data?.saldo?? 0);
+                  setWithdrawHistory(data?.withdraw_history?? []);
 
                 } catch (err: any) {
                   console.error('Gagal refresh withdraw:', err);
@@ -391,7 +429,7 @@ const App: React.FC = () => {
               onUpdateWithdrawStatus={updateWithdrawStatus}
               activeTab={adminActiveTab}
               setTab={setAdminActiveTab}
-              onLogout={handleLogout} // <-- SYNC PROPS LAMA
+              onLogout={handleLogout}
               settings={systemSettings}
               updateSettings={setSystemSettings}
               showAlert={showAlert}
@@ -471,7 +509,7 @@ const App: React.FC = () => {
 
       {/* Bottom Navbar */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-8 py-4 flex justify-between items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
-        {userRole === 'admin' ? (
+        {userRole === 'admin'? (
           <>
             <NavButton active={location.pathname === '/admin'} onClick={() => {setAdminActiveTab('dashboard'); navigate('/admin')}} icon={<LayoutDashboard size={22} />} label="Dash" />
             <NavButton active={location.pathname === '/admin/setoran'} onClick={() => {setAdminActiveTab('setoran'); navigate('/admin/setoran')}} icon={<Send size={22} />} label="Setor" />
@@ -495,10 +533,10 @@ const App: React.FC = () => {
 const NavButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
   <button
     onClick={onClick}
-    className={`flex flex-col items-center gap-1.5 transition-colors ${active ? 'text-blue-600' : 'text-gray-400'}`}
+    className={`flex flex-col items-center gap-1.5 transition-colors ${active? 'text-blue-600' : 'text-gray-400'}`}
   >
     {icon}
-    <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'opacity-100' : 'opacity-70'}`}>{label}</span>
+    <span className={`text-[10px] font-bold uppercase tracking-wider ${active? 'opacity-100' : 'opacity-70'}`}>{label}</span>
   </button>
 );
 
