@@ -59,33 +59,46 @@ const App: React.FC = () => {
 
   // === 2. FUNGSI UPSERT BARU. INI DOANG TAMBAHANNYA ===
 // === 2. FUNGSI UPSERT BARU ===
-  const upsertUser = async (user: any) => {
-    const { id, email, user_metadata } = user;
-    const nama = user_metadata?.full_name || user_metadata?.name || email.split('@')[0];
+const upsertUser = async (user: any) => {
+  const { id, email, user_metadata } = user;
+  const nama = user_metadata?.full_name || user_metadata?.name || email.split('@')[0];
+  const today = new Date().toISOString().split('T')[0];
 
-    console.log('UPSERT JALAN UNTUK:', id);
+  console.log('UPSERT JALAN UNTUK:', id);
 
-    const { error } = await supabase
-  .from('pengguna')
-  .upsert({
-        id: id, // PK
-        email: email,
-        nama: nama,
-        peran: 'user', // Default user baru
-        // HAPUS last_login
-        spin_hari_ini: MAX_SPINS, // Kasih jatah spin awal
-        pool_hadiah_hari_ini: DAILY_REWARD_LIMIT, // Kasih pool awal
-        last_spin_date: new Date().toISOString().split('T')[0],
-      }, {
-        onConflict: 'id',
-        ignoreDuplicates: false // Ini tetep aman, buat update email/nama
-      });
+  // 1. CEK DULU USER UDAH ADA APA BELUM
+  const { data: existing } = await supabase
+.from('pengguna')
+.select('id')
+.eq('id', id)
+.single();
 
-    if (error) {
-      console.error('Gagal upsert user:', error.message);
-      showAlert('Gagal!', 'Gagal menyimpan data user: ' + error.message, 'error');
-    }
-  };
+  if (existing) {
+    // KALO UDAH ADA: CUMA UPDATE EMAIL/NAMA DOANG. JANGAN SENTUH SPIN
+    await supabase
+.from('pengguna')
+.update({ email, nama })
+.eq('id', id);
+
+  } else {
+    // KALO BARU: BARU KASIH DEFAULT SPIN + POOL
+    await supabase
+.from('pengguna')
+.insert({
+      id: id,
+      email: email,
+      nama: nama,
+      peran: 'user',
+      saldo: 0,
+      spin_hari_ini: MAX_SPINS, // <- CUMA DI SINI
+      pool_hadiah_hari_ini: DAILY_REWARD_LIMIT, // <- CUMA DI SINI
+      last_spin_date: today,
+      history: [],
+      withdraw_history: [],
+      payment: {}
+    });
+  }
+};
 
   // === 3. useEffect AUTH & DB SUPABASE (Logic Lama + Upsert) ===
   useEffect(() => {
@@ -314,7 +327,7 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-5 py-3 flex items-center justify-start border-b border-gray-100">
         <img
-          src="https://cdn.photourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
+          src="https://cdn.phototourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
           alt="Job Gmail Logo"
           className="h-10 w-auto object-contain"
         />
