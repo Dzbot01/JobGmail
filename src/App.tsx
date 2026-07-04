@@ -176,10 +176,31 @@ const upsertUser = async (user: any) => {
         }
 
         const role = profile?.peran || 'user';
-        if (!mounted) return;
+if (!mounted) return;
 
-        setUserRole(role as 'user' | 'admin');
-        if (role === 'admin') setAdminActiveTab('dashboard');
+setUserRole(role as 'user' | 'admin');
+
+if (role === 'admin') {
+  setAdminActiveTab('dashboard');
+  
+  // 1. AMBIL SEMUA DATA USER BUAT ADMIN PANEL
+  const { data: allUsers, error } = await supabase
+.from('pengguna')
+.select('id, email, history, withdraw_history');
+
+  if (!error && allUsers) {
+    // 2. GABUNGIN SEMUA HISTORY + KASIH TAU INI MILIK SIAPA
+    const allTasks = allUsers.flatMap(u => 
+      (u.history || []).map((task: any) => ({ ...task, userId: u.id, userEmail: u.email }))
+    );
+    const allWithdraws = allUsers.flatMap(u => 
+      (u.withdraw_history || []).map((wd: any) => ({ ...wd, userId: u.id, userEmail: u.email }))
+    );
+
+    setAllSubmissions(allTasks);
+    setWithdrawHistory(allWithdraws);
+  }
+}
 
       } catch (err) {
         console.error('GAGAL LOAD USER:', err);
@@ -540,19 +561,20 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
               showAlert={showAlert}
             />
           } />
-          <Route path="/admin/payout" element={
-            <AdminPanel
-              submissions={allSubmissions}
-              onUpdateStatus={updateSubmissionStatus}
-              onUpdateWithdrawStatus={updateWithdrawStatus}
-              activeTab="payout"
-              setTab={setAdminActiveTab}
-              onLogout={handleLogout}
-              settings={systemSettings}
-              updateSettings={setSystemSettings}
-              showAlert={showAlert}
-            />
-          } />
+<Route path="/admin/payout" element={
+  <AdminPanel
+    submissions={allSubmissions}
+    withdrawRequests={withdrawHistory} // <- TAMBAH INI
+    onUpdateStatus={updateSubmissionStatus}
+    onUpdateWithdrawStatus={updateWithdrawStatus}
+    activeTab="payout"
+    setTab={setAdminActiveTab}
+    onLogout={handleLogout}
+    settings={systemSettings}
+    updateSettings={setSystemSettings}
+    showAlert={showAlert}
+  />
+} />
           <Route path="/admin/profil" element={
             <AdminPanel
               submissions={allSubmissions}
