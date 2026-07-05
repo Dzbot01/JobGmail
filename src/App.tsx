@@ -301,41 +301,43 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
   navigate('/history');
 };
 
- const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
-  // 1. UPDATE STATE DULU BIAR UI LANGSUNG BERUBAH
-  const updatedSubmissions = allSubmissions.map(s => {
-    if (s.id === id) {
-      return {...s, status: newStatus, reason }; // tambahin reason
-    }
-    return s;
-  });
+const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
+  const updatedSubmissions = allSubmissions.map(s => 
+    s.id === id? {...s, status: newStatus, reason } : s
+  );
   setAllSubmissions(updatedSubmissions);
 
-  // 2. CARI TUGASNYA BUAT DAPET userId nya. PENTING BUAT ADMIN
   const taskYangDiubah = updatedSubmissions.find(s => s.id === id);
   if (!taskYangDiubah) return;
 
-  // 3. SAVE KE DB MILIK USER YANG NGERJAIN TUGAS
-  const { error } = await supabase
+  // 1. AMBIL DATA USER TARGET
+  const { data: userTarget } = await supabase
 .from('pengguna')
-.update({ history: updatedSubmissions })
-.eq('id', taskYangDiubah.userId); // <- JANGAN userId admin. Harus userId si pekerja
+.select('saldo, history')
+.eq('id', taskYangDiubah.userId)
+.single();
 
-  if (error) {
-    console.error('Gagal update status tugas:', error);
-    showAlert('Gagal!', 'Gagal update ke server: ' + error.message, 'error');
-    return;
-  }
+  if (!userTarget) return;
 
-  // 4. BARU UPDATE SALDO & HITUNG ULANG
-  if (newStatus === 'paid') {
-    setBalance(b => b + systemSettings.taskReward);
-    setTotalIncome(i => i + systemSettings.taskReward);
-    setTasksDone(t => t + 1);
-    showAlert('Sukses!', 'Tugas disetujui, saldo ditambahkan.');
+  let newSaldo = userTarget.saldo;
+
+  if (newStatus === 'paid' && taskYangDiubah.status !== 'paid') {
+    newSaldo = userTarget.saldo + systemSettings.taskReward;
+    showAlert('Sukses!', `Tugas disetujui. Saldo ${taskYangDiubah.userEmail} +${systemSettings.taskReward}`);
   } else if (newStatus === 'rejected') {
     showAlert('Tugas Ditolak!', 'Tugas tidak memenuhi kriteria sistem.', 'error');
   }
+
+  // 2. UPDATE CUMA HISTORY MILIK DIA AJA
+  const userHistoryOnly = updatedSubmissions.filter(s => s.userId === taskYangDiubah.userId);
+
+  await supabase
+.from('pengguna')
+.update({ 
+  history: userHistoryOnly,
+  saldo: newSaldo
+})
+.eq('id', taskYangDiubah.userId);
 };
 
  const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
@@ -344,30 +346,37 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
   );
   setWithdrawHistory(updatedHistory);
 
-  // CARI SIAPA PEMILIK WITHDRAW INI
   const withdrawItem = updatedHistory.find(w => w.id === id);
   if (!withdrawItem) return;
 
-  // KALO DITOLAK, KEMBALIKAN SALDO
-  let newBalance = balance;
+  const { data: userTarget } = await supabase
+.from('pengguna')
+.select('saldo, withdraw_history')
+.eq('id', withdrawItem.userId)
+.single();
+
+  if (!userTarget) return;
+
+  let newSaldo = userTarget.saldo;
+
+  // CUMA KEMBALIKAN SALDO KALO DITOLAK
   if (newStatus === 'rejected' && withdrawItem.status !== 'rejected') {
-    newBalance = balance + withdrawItem.amount;
-    setBalance(newBalance);
-    showAlert('Withdraw Ditolak!', 'Saldo telah dikembalikan.', 'error');
+    newSaldo = userTarget.saldo + withdrawItem.amount;
+    showAlert('Withdraw Ditolak!', `Saldo ${withdrawItem.userEmail} dikembalikan.`, 'error');
   } else if (newStatus === 'paid') {
-    showAlert('Withdraw Sukses!', 'Dana telah dikirim ke rekening Anda.');
+    showAlert('Withdraw Sukses!', `Dana ${withdrawItem.amount} dikirim ke ${withdrawItem.userEmail}`);
   }
 
-  // SAVE KE DB USER YANG BERSANGKUTAN
-  const { error } = await supabase
+  // KIRIM CUMA HISTORY DIA AJA
+  const userWithdrawOnly = updatedHistory.filter(w => w.userId === withdrawItem.userId);
+
+  await supabase
 .from('pengguna')
 .update({ 
-  withdraw_history: updatedHistory,
-  saldo: newBalance
+  withdraw_history: userWithdrawOnly,
+  saldo: newSaldo
 })
-.eq('id', withdrawItem.userId || userId); // fallback ke userId login
-
-  if(error) console.error(error);
+.eq('id', withdrawItem.userId);
 };
 
   // === 6. RETURN ===
