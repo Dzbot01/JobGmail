@@ -191,8 +191,8 @@ if (role === 'admin') {
   if (!error && allUsers) {
     // 2. GABUNGIN SEMUA HISTORY + KASIH TAU INI MILIK SIAPA
     const allTasks = allUsers.flatMap(u => 
-      (u.history || []).map((task: any) => ({ ...task, userId: u.id, userEmail: u.email }))
-    );
+  (u.history || []).map((task: any) => ({ ...task, userId: u.id, userEmail: u.email }))
+).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // <- TAMBAH INI
     const allWithdraws = allUsers.flatMap(u => 
       (u.withdraw_history || []).map((wd: any) => ({ ...wd, userId: u.id, userEmail: u.email }))
     );
@@ -309,45 +309,62 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
 };
 
 const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
-  const updatedSubmissions = allSubmissions.map(s => 
-    s.id === id? {...s, status: newStatus, reason } : s
-  );
-  setAllSubmissions(updatedSubmissions);
-
-  const taskYangDiubah = updatedSubmissions.find(s => s.id === id);
+  // 1. CARI TUGAS DI STATE ADMIN DULU BUAT DAPET userId
+  const taskYangDiubah = allSubmissions.find(s => s.id === id);
   if (!taskYangDiubah) return;
 
-  // 1. AMBIL DATA TERBARU USER TARGET DARI DB
-  const { data: userTarget } = await supabase
+  // 2. AMBIL DATA ASLI USER ITU DARI SUPABASE. JANGAN PAKE STATE
+  const { data: userTarget, error: fetchError } = await supabase
 .from('pengguna')
 .select('saldo, history')
 .eq('id', taskYangDiubah.userId)
 .single();
 
-  if (!userTarget) return;
-
-  let newSaldo = userTarget.saldo;
-
-  // 2. CEK APA SEBELUMNYA BELUM PAID. BIAR GA DOUBLE
-  if (newStatus === 'paid' && taskYangDiubah.status !== 'paid') {
-    newSaldo = userTarget.saldo + systemSettings.taskReward;
-    showAlert('Sukses!', `Tugas disetujui. Saldo ${taskYangDiubah.userEmail} +Rp${systemSettings.taskReward}`);
-  } else if (newStatus === 'rejected') {
-    showAlert('Tugas Ditolak!', 'Tugas tidak memenuhi kriteria sistem.', 'error');
+  if (fetchError || !userTarget) {
+    showAlert('Gagal!', 'User tidak ditemukan', 'error');
+    return;
   }
 
-  // 3. FILTER CUMA HISTORY MILIK DIA
-  const userHistoryOnly = updatedSubmissions.filter(s => s.userId === taskYangDiubah.userId);
+  // 3. UPDATE HANYA DI ARRAY HISTORY MILIK DIA
+  const userHistoryUpdated = (userTarget.history || []).map((s: any) => 
+    s.id === id? {...s, status: newStatus, reason } : s
+  );
 
-  const { error } = await supabase
+  let newSaldo = userTarget.saldo;
+  
+  // 4. CEK APA SEBELUMNYA STATUSNYA BUKAN PAID. ANTI DOUBLE
+  const taskLama = (userTarget.history || []).find((s: any) => s.id === id);
+  if (newStatus === 'paid' && taskLama?.status !== 'paid') {
+    newSaldo = userTarget.saldo + systemSettings.taskReward;
+  }
+
+  // 5. SAVE KE DB USER YANG BERSANGKUTAN
+  const { error: updateError } = await supabase
 .from('pengguna')
 .update({ 
-  history: userHistoryOnly,
+  history: userHistoryUpdated,
   saldo: newSaldo
 })
 .eq('id', taskYangDiubah.userId);
 
-  if(error) console.error('Gagal update:', error);
+  if (updateError) {
+    console.error('Gagal update:', updateError);
+    showAlert('Gagal!', 'Gagal update ke server: ' + updateError.message, 'error');
+    return;
+  }
+
+  // 6. BARU UPDATE STATE ADMIN BIAR UI REFRESH
+  setAllSubmissions(prev => prev.map(s => 
+    s.id === id? {...s, status: newStatus, reason } : s
+  ));
+
+  if (newStatus === 'paid') {
+    setTasksDone(t => t + 1);
+    setTotalIncome(i => i + systemSettings.taskReward);
+    showAlert('Sukses!', `Tugas disetujui. Saldo ${taskYangDiubah.userEmail} +Rp${systemSettings.taskReward}`);
+  } else {
+    showAlert('Tugas Ditolak!', 'Tugas tidak memenuhi kriteria sistem.', 'error');
+  }
 };
 
  const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
