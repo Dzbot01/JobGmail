@@ -194,8 +194,8 @@ if (role === 'admin') {
   (u.history || []).map((task: any) => ({ ...task, userId: u.id, userEmail: u.email }))
 ).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // <- TAMBAH INI
     const allWithdraws = allUsers.flatMap(u => 
-      (u.withdraw_history || []).map((wd: any) => ({ ...wd, userId: u.id, userEmail: u.email }))
-    );
+  (u.withdraw_history || []).map((wd: any) => ({ ...wd, userId: u.id, userEmail: u.email }))
+).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     setAllSubmissions(allTasks);
     setWithdrawHistory(allWithdraws);
@@ -367,43 +367,61 @@ const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected'
   }
 };
 
- const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
-  const updatedHistory = withdrawHistory.map(w => 
-    w.id === id? {...w, status: newStatus, reason } : w
-  );
-  setWithdrawHistory(updatedHistory);
-
-  const withdrawItem = updatedHistory.find(w => w.id === id);
+const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
+  // 1. CARI WD DI STATE ADMIN DULU BUAT DAPET userId
+  const withdrawItem = withdrawHistory.find(w => w.id === id);
   if (!withdrawItem) return;
 
-  const { data: userTarget } = await supabase
+  // 2. AMBIL DATA ASLI USER ITU DARI SUPABASE. JANGAN PAKE STATE
+  const { data: userTarget, error: fetchError } = await supabase
 .from('pengguna')
 .select('saldo, withdraw_history')
 .eq('id', withdrawItem.userId)
 .single();
 
-  if (!userTarget) return;
-
-  let newSaldo = userTarget.saldo;
-
-  // CUMA KEMBALIKAN SALDO KALO DITOLAK
-  if (newStatus === 'rejected' && withdrawItem.status !== 'rejected') {
-    newSaldo = userTarget.saldo + withdrawItem.amount;
-    showAlert('Withdraw Ditolak!', `Saldo ${withdrawItem.userEmail} dikembalikan.`, 'error');
-  } else if (newStatus === 'paid') {
-    showAlert('Withdraw Sukses!', `Dana ${withdrawItem.amount} dikirim ke ${withdrawItem.userEmail}`);
+  if (fetchError || !userTarget) {
+    showAlert('Gagal!', 'User tidak ditemukan', 'error');
+    return;
   }
 
-  // KIRIM CUMA HISTORY DIA AJA
-  const userWithdrawOnly = updatedHistory.filter(w => w.userId === withdrawItem.userId);
+  // 3. UPDATE HANYA DI ARRAY WITHDRAW MILIK DIA
+  const userWithdrawUpdated = (userTarget.withdraw_history || []).map((w: any) => 
+    w.id === id? {...w, status: newStatus, reason } : w
+  );
 
-  await supabase
+  let newSaldo = userTarget.saldo;
+  
+  // 4. LOGIKA SALDO: CUMA BALIKIN KALO DARI 'process' KE 'rejected'
+  const wdLama = (userTarget.withdraw_history || []).find((w: any) => w.id === id);
+  if (newStatus === 'rejected' && wdLama?.status === 'process') {
+    newSaldo = userTarget.saldo + withdrawItem.amount; // BALIKIN DUIT
+  }
+
+  // 5. SAVE KE DB USER YANG BERSANGKUTAN
+  const { error: updateError } = await supabase
 .from('pengguna')
 .update({ 
-  withdraw_history: userWithdrawOnly,
+  withdraw_history: userWithdrawUpdated,
   saldo: newSaldo
 })
 .eq('id', withdrawItem.userId);
+
+  if (updateError) {
+    console.error('Gagal update:', updateError);
+    showAlert('Gagal!', 'Gagal update ke server: ' + updateError.message, 'error');
+    return;
+  }
+
+  // 6. BARU UPDATE STATE ADMIN BIAR UI REFRESH
+  setWithdrawHistory(prev => prev.map(w => 
+    w.id === id? {...w, status: newStatus, reason } : w
+  ));
+
+  if (newStatus === 'paid') {
+    showAlert('Withdraw Sukses!', `Dana Rp${withdrawItem.amount} dikirim ke ${withdrawItem.userEmail}`);
+  } else {
+    showAlert('Withdraw Ditolak!', `Saldo Rp${withdrawItem.amount} dikembalikan ke ${withdrawItem.userEmail}`, 'error');
+  }
 };
 
   // === 6. RETURN ===
