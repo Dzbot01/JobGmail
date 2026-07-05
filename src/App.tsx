@@ -271,29 +271,36 @@ if (role === 'admin') {
 
 const handleTaskSubmit = async (data: { email: string, pass: string }) => {
   const newSub = {
-    id: crypto.randomUUID(), // lebih aman
-    userId: userId, // biar bisa filter kalo admin liat semua
+    id: crypto.randomUUID(),
+    userId: userId, // WAJIB ADA
     email: data.email,
     password: data.pass,
     status: 'process',
-    withdrawMethod: withdrawDetails.method,
-    timestamp: new Date().toISOString() // <- GANTI JADI ISO biar sama dgn DB
+    timestamp: new Date().toISOString()
   };
 
-  // 1. GABUNG DENGAN DATA LAMA
   const updatedHistory = [newSub, ...allSubmissions];
-  setAllSubmissions(updatedHistory); // update UI langsung biar ga loading
+  setAllSubmissions(updatedHistory);
 
-  // 2. SAVE KE SUPABASE. INI YANG PALING PENTING
+  // AMBIL DULU HISTORY LAMA USER INI DARI DB
+  const { data: userData } = await supabase
+.from('pengguna')
+.select('history')
+.eq('id', userId)
+.single();
+
+  const userHistoryOnly = [newSub, ...(userData?.history || [])];
+
+  // SAVE CUMA HISTORY DIA
   const { error } = await supabase
 .from('pengguna')
-.update({ history: updatedHistory })
+.update({ history: userHistoryOnly })
 .eq('id', userId);
 
   if (error) {
     console.error('Gagal simpan tugas:', error);
     showAlert('Gagal!', 'Gagal menyimpan tugas: ' + error.message, 'error');
-    setAllSubmissions(allSubmissions); // rollback kalo gagal
+    setAllSubmissions(allSubmissions);
     return;
   }
 
@@ -310,7 +317,7 @@ const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected'
   const taskYangDiubah = updatedSubmissions.find(s => s.id === id);
   if (!taskYangDiubah) return;
 
-  // 1. AMBIL DATA USER TARGET
+  // 1. AMBIL DATA TERBARU USER TARGET DARI DB
   const { data: userTarget } = await supabase
 .from('pengguna')
 .select('saldo, history')
@@ -321,23 +328,26 @@ const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected'
 
   let newSaldo = userTarget.saldo;
 
+  // 2. CEK APA SEBELUMNYA BELUM PAID. BIAR GA DOUBLE
   if (newStatus === 'paid' && taskYangDiubah.status !== 'paid') {
     newSaldo = userTarget.saldo + systemSettings.taskReward;
-    showAlert('Sukses!', `Tugas disetujui. Saldo ${taskYangDiubah.userEmail} +${systemSettings.taskReward}`);
+    showAlert('Sukses!', `Tugas disetujui. Saldo ${taskYangDiubah.userEmail} +Rp${systemSettings.taskReward}`);
   } else if (newStatus === 'rejected') {
     showAlert('Tugas Ditolak!', 'Tugas tidak memenuhi kriteria sistem.', 'error');
   }
 
-  // 2. UPDATE CUMA HISTORY MILIK DIA AJA
+  // 3. FILTER CUMA HISTORY MILIK DIA
   const userHistoryOnly = updatedSubmissions.filter(s => s.userId === taskYangDiubah.userId);
 
-  await supabase
+  const { error } = await supabase
 .from('pengguna')
 .update({ 
   history: userHistoryOnly,
   saldo: newSaldo
 })
 .eq('id', taskYangDiubah.userId);
+
+  if(error) console.error('Gagal update:', error);
 };
 
  const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
