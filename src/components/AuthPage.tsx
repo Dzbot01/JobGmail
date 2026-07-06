@@ -24,7 +24,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         <div className="p-8">
           <div className="flex justify-center mb-8">
             <img
-              src="https://cdn.photourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
+              src="https://cdn.phototourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
               alt="Logo"
               className="h-16 w-auto object-contain"
             />
