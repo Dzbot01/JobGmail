@@ -506,9 +506,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
           <Route path="/profil" element={
             <Profil
-              tasksDone={tasksDone}
               userId={userId}
-              totalIncome={totalIncome}
               isVerified={isVerified}
               onNavigateToWithdraw={() => navigate('/penarikan')}
               onNavigateToAbout={() => navigate('/about-us')}

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'; // <- 1. Tambah useState, useEffect
+import React, { useState, useEffect } from 'react';
 import { BadgeCheck, XCircle, Wallet, Info, ChevronRight, CheckCircle2, XCircle as XIcon, Users, CreditCard, ShieldCheck } from 'lucide-react';
 import { supabase } from '../supabase';
 
 interface ProfilProps {
-  tasksDone: number;
-  totalIncome: number;
+  tasksDone: number; // <- ini udah ga kepake tapi biarin aja biar ga error di App
+  totalIncome: number; // <- ini juga
   isVerified: boolean;
   userId: string;
   onNavigateToWithdraw: () => void;
@@ -12,40 +12,52 @@ interface ProfilProps {
   onLogout?: () => void;
 }
 
-const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, userId, onNavigateToWithdraw, onNavigateToAbout, onLogout }) => { // <- 3. Tambah userId di destruct
-  // <- 4. STATE BARU UNTUK NAMA & EMAIL
-  const [nama, setNama] = useState('User Member'); // Default biar ga ngeblink
-  const [email, setEmail] = useState('Kesalahan: Harap Login ulang'); // Default biar ga ngeblink
+const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdraw, onNavigateToAbout, onLogout }) => {
+  const [nama, setNama] = useState('User Member');
+  const [email, setEmail] = useState('Kesalahan: Harap Login ulang');
 
-  // <- 5. AMBIL DATA DARI DB PAS KOMPONEN MUNCUL
+  // STATE BARU BUAT HITUNG DARI DB. UI TETEP SAMA
+  const [tasksDone, setTasksDone] = useState(0);
+  const [tasksRejected, setTasksRejected] = useState(0);
+  const [totalIncome, setTotalIncome] = useState(0);
+
   useEffect(() => {
     if (!userId) return;
 
     const fetchProfile = async () => {
       const { data, error } = await supabase
-      .from('pengguna')
-      .select('nama, email') // Ambil 2 kolom aja biar ringan
-      .eq('id', userId) // Pake 'id'. Ganti ke 'uuid' kalo PK lu uuid
-      .single();
+     .from('pengguna')
+     .select('nama, email, history') // <- TAMBAH history
+     .eq('id', userId)
+     .single();
+
+      if (error) console.error('Gagal load profil:', error);
 
       if (data) {
         setNama(data.nama || 'User');
         setEmail(data.email || '-');
+
+        // HITUNG DARI HISTORY. GA NGARUH KE UI
+        const history = data.history || [];
+        const paidTasks = history.filter((t: any) => t.status === 'paid');
+        const rejectedTasks = history.filter((t: any) => t.status === 'rejected');
+
+        setTasksDone(paidTasks.length);
+        setTasksRejected(rejectedTasks.length);
+        setTotalIncome(paidTasks.length * 1600); // 1600 = reward per tugas
       }
-      if (error) console.error('Gagal load profil:', error);
     };
 
     fetchProfile();
   }, [userId]);
 
   return (
-    <div className="space-y-3 pb-6"> {/* space-y diperkecil dari 4 ke 3 */}
+    <div className="space-y-3 pb-6">
 
       {/* Header Profile Card */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 text-center relative overflow-hidden">
-        {/* Ukuran Avatar diperkecil dari w-24 h-24 menjadi w-20 h-20 */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm border-gray-100 text-center relative overflow-hidden">
         <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center border-4 border-white shadow-sm relative">
-          <div className="text-blue-500 text-3xl font-black italic">U</div>
+          <div className="text-blue-500 text-3xl font-black italic">{nama.charAt(0).toUpperCase()}</div>
           <div className="absolute -bottom-1 -right-1">
             {isVerified? (
               <div className="bg-blue-600 text-white p-0.5 rounded-full border-2 border-white flex items-center gap-1 px-1.5 shadow-sm">
@@ -61,28 +73,27 @@ const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, use
           </div>
         </div>
         <h2 className="text-lg font-bold flex items-center justify-center gap-1.5 text-gray-800">
-          {nama} {/* <- 6. GANTI User Member -> {nama} */}
+          {nama}
           {isVerified && <BadgeCheck size={18} className="text-blue-500" />}
         </h2>
         <p className="text-[9px] font-black text-gray-400 mt-0.5 tracking-[0.2em] uppercase">
-          {email} {/* <- 7. GANTI PGM-9923841 -> {email} */}
+          {email}
         </p>
       </div>
 
       {/* Grid Stats - Separated */}
-      <div className="grid grid-cols-2 gap-2.5"> {/* gap diperkecil dari 3 ke 2.5 */}
-        {/* Card padding diperkecil jadi p-3 (sebelumnya p-4), font value jadi text-base (sebelumnya text-lg) */}
-        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <CheckCircle2 size={16} className="text-emerald-500 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Tugas Diterima</p>
-          <p className="text-base font-black text-gray-800">{tasksDone}</p>
+          <p className="text-base font-black text-gray-800">{tasksDone}</p> {/* UDAH DARI DB */}
         </div>
-        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex-col items-center">
           <XIcon size={16} className="text-red-500 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Tugas Ditolak</p>
-          <p className="text-base font-black text-gray-800">0</p>
+          <p className="text-base font-black text-gray-800">{tasksRejected}</p> {/* UDAH DARI DB */}
         </div>
-        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <Users size={16} className="text-blue-500 mb-1.5" />
           <div className="flex flex-col items-center">
              <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Referrals</p>
@@ -90,20 +101,20 @@ const Profil: React.FC<ProfilProps> = ({ tasksDone, totalIncome, isVerified, use
           </div>
           <p className="text-base font-black text-gray-800">0</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex-col items-center">
           <CreditCard size={16} className="text-purple-500 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Income Referral</p>
           <p className="text-base font-black text-gray-800">Rp. 0</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <ShieldCheck size={16} className="text-blue-600 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Honor Score</p>
           <p className="text-base font-black text-gray-800">100%</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex-col items-center">
           <Wallet size={16} className="text-emerald-600 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total Pendapatan</p>
-          <p className="text-base font-black text-emerald-600">Rp. {totalIncome.toLocaleString('id-ID')}</p>
+          <p className="text-base font-black text-emerald-600">Rp. {totalIncome.toLocaleString('id-ID')}</p> {/* UDAH DARI DB */}
         </div>
       </div>
 
