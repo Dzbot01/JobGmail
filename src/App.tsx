@@ -5,6 +5,7 @@ import { supabase } from './supabase'; // IMPORT SUPABASE
 
 // Components
 import Dashboard from './components/Dashboard';
+import AuthCallback from './components/AuthCallback';
 import Gacha from './components/Gacha';
 import Setoran from './components/Setoran';
 import Profil from './components/Profil';
@@ -531,6 +532,8 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               }}
             />
           } />
+
+<Route path="/auth/callback" element={<AuthCallback />} />
 
 <Route path="/withdraw" element={
   <WithdrawPage
