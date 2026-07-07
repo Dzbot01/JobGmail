@@ -40,7 +40,7 @@ const SupportBubble: React.FC<SupportBubbleProps> = ({ isMusicPlaying, setIsMusi
     <div className="fixed inset-0 pointer-events-none z-[100]">
       <audio 
         ref={audioRef} 
-        src="https://www.image2url.com/r2/default/audio/1782705255460-b20cd2ba-742b-41fa-9d91-4fd41f84843d.mp3" 
+        src="/musik.mp3" 
         loop 
       />
       {/* Overlay */}
