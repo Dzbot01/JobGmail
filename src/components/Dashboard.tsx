@@ -169,6 +169,25 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
           </div>
         </div>
       </div>
+      
+{/* WhatsApp Community Card */}
+        <a 
+          href="https://whatsapp.com/channel/0029VbC8JP277qVbfbHnTH2S"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl p-5 flex items-center gap-4 active:scale-[0.98] transition-all"
+        >
+          <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 flex-shrink-0">
+             <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.353-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.216 1.36.186 1.871.123.57-.07 1.758-.47 2.011-1.24.252-.772.252-1.438.177-1.581-.075-.143-.269-.223-.566-.372zM12.003 21c-1.74 0-3.41-.449-4.91-1.304l-.352-.208-3.65.958 1.006-3.468-.244-.38A8.931 8.931 0 0 1 2.5 12.1c0-4.963 4.04-9 9-9 2.404 0 4.66.936 6.36 2.636a8.956 8.93 0 0 1 2.64 6.364c0 4.963-4.04 9-9 9zM12 2c-5.523 0-10 4.477-10 10 0 1.767 1.47 3.42 1.4 4.94l-1.4 4.8 5.1-1.34c1.55.8 3.23 1.23 4.9 1.23 5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
+             </svg>
+          </div>
+          <div>
+            <p className="text-[11px] text-emerald-800 font-bold leading-relaxed">
+              Ayo gabung saluran whatsapp komunitas Freelance job Gmail kami untuk mendapatkan info updated seputar Maintenance dan Update Fitur lainnya.
+            </p>
+          </div>
+        </a>
 
       {/* Flat Rate Info - ELECTRIC BORDER */}
       <ElectricBorder
@@ -384,6 +403,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
       </div>
     </div>
+ </div>
   );
 };
 
