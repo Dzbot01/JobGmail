@@ -675,28 +675,79 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
         </Routes>
       </main>
 
-      {/* Bottom Navbar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-8 py-4 flex justify-between items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
-        {userRole === 'admin'? (
-          <>
-            <NavButton active={location.pathname === '/admin'} onClick={() => {setAdminActiveTab('dashboard'); navigate('/admin')}} icon={<LayoutDashboard size={22} />} label="Dash" />
-            <NavButton active={location.pathname === '/admin/setoran'} onClick={() => {setAdminActiveTab('setoran'); navigate('/admin/setoran')}} icon={<Send size={22} />} label="Setor" />
-            <NavButton active={location.pathname === '/admin/payout'} onClick={() => {setAdminActiveTab('payout'); navigate('/admin/payout')}} icon={<CreditCard size={22} />} label="Pay" />
-            <NavButton active={location.pathname === '/admin/profil'} onClick={() => {setAdminActiveTab('profil'); navigate('/admin/profil')}} icon={<User size={22} />} label="Profil" />
-          </>
-        ) : (
-          <>
-            <NavButton active={location.pathname === '/dashboard'} onClick={() => navigate('/dashboard')} icon={<Home size={22} />} label="Dashboard" />
-            <NavButton active={location.pathname === '/gacha'} onClick={() => navigate('/gacha')} icon={<Gift size={22} />} label="Gacha" />
-            <NavButton active={location.pathname === '/setoran'} onClick={() => navigate('/setoran')} icon={<Inbox size={22} />} label="Setoran" />
-            <NavButton active={location.pathname === '/history'} onClick={() => navigate('/history')} icon={<HistoryIcon size={22} />} label="Riwayat" />
-            <NavButton active={['/profil', '/penarikan', '/about-us'].includes(location.pathname)} onClick={() => navigate('/profil')} icon={<User size={22} />} label="Profil" />
-          </>
-        )}
-      </nav>
+    {/* Bottom Navbar */}
+{userRole === 'admin' ? (
+  <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-between items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+    <NavButton 
+      active={location.pathname === '/admin'} 
+      onClick={() => {setAdminActiveTab('dashboard'); navigate('/admin')}} // BALIKIN NAVIGATE
+      icon={<LayoutDashboard size={22} />} 
+      label="Dash" 
+    />
+    <NavButton active={location.pathname === '/admin/setoran'} onClick={() => {setAdminActiveTab('setoran'); navigate('/admin/setoran')}} icon={<Send size={22} />} label="Setor" />
+    <NavButton active={location.pathname === '/admin/payout'} onClick={() => {setAdminActiveTab('payout'); navigate('/admin/payout')}} icon={<CreditCard size={22} />} label="Pay" />
+    <NavButton active={location.pathname === '/admin/profil'} onClick={() => {setAdminActiveTab('profil'); navigate('/admin/profil')}} icon={<User size={22} />} label="Profil" />
+  </nav>
+) : (
+  <nav className="premium-nav-container">
+    <NavButtonPremium 
+      active={location.pathname === '/dashboard'} 
+      onClick={() => navigate('/dashboard')}
+      icon={<Home size={22} />}
+      label="Dash"
+    />
+
+    <NavButtonPremium 
+      active={location.pathname === '/gacha'} 
+      onClick={() => navigate('/gacha')}
+      icon={<Gift size={22} />}
+      label="Gacha"
+    />
+
+    {/* Floating Setor Button */}
+    <div className="floating-setor-wrapper">
+       <div className="floating-setor-btn" onClick={() => {
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3');
+          audio.play().catch(e => console.log('Audio play failed:', e));
+          navigate('/setoran'); // <- PENTING PAKE NAVIGATE
+       }}>
+          <div className="setor-middle-ring">
+             <div className="setor-inner-circle">
+                <Inbox size={26} className="text-white" />
+                <span className="setor-label">SETOR</span>
+             </div>
+          </div>
+       </div>
+    </div>
+
+    <NavButtonPremium 
+      active={location.pathname === '/history'} 
+      onClick={() => navigate('/history')}
+      icon={<HistoryIcon size={22} />}
+      label="History"
+    />
+
+    <NavButtonPremium 
+      active={['/profil', '/penarikan', '/about-us'].includes(location.pathname)} 
+      onClick={() => navigate('/profil')}
+      icon={<User size={22} />}
+      label="Profil"
+    />
+  </nav>
+)}
     </div>
   );
 };
+const NavButtonPremium = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
+  <div 
+    className={`premium-nav-item ${active ? 'active' : ''}`}
+    onClick={onClick}
+  >
+    {active && <div className="premium-active-glow" />}
+    {icon}
+    <span className="relative z-10">{label}</span>
+  </div>
+);
 
 const NavButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
   <button

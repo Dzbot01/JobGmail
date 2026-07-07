@@ -21,6 +21,122 @@
   animation: marquee 15s linear infinite;
 }
 
+/* Restored Premium Baseline Bottom Navbar */
+.premium-nav-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: #2E2E2E;
+  border-radius: 24px 24px 0 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 50;
+  padding: 0 10px;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+}
+
+.premium-nav-item {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #A0A0A0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.premium-nav-item:active {
+  transform: scale(0.96);
+}
+
+.premium-nav-item.active {
+  color: white;
+}
+
+.premium-active-glow {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  background: rgba(61, 184, 255, 0.15);
+  border-radius: 50%;
+  z-index: 0;
+}
+
+.premium-nav-item span {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.floating-setor-wrapper {
+  position: relative;
+  width: 74px;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.floating-setor-btn {
+  position: absolute;
+  top: -34px;
+  width: 74px;
+  height: 74px;
+  background: #454545;
+  border-radius: 50%;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.floating-setor-btn:active {
+  transform: scale(0.94);
+}
+
+.setor-middle-ring {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setor-inner-circle {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #3DB8FF 0%, #168BFF 100%);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 3px 5px rgba(255,255,255,0.3), inset 0 -3px 5px rgba(0,0,0,0.2);
+}
+
+.setor-label {
+  font-size: 10px;
+  font-weight: 900;
+  color: white;
+  margin-top: 1px;
+}
+
 .clip-triangle {
   clip-path: polygon(50% 100%, 0 0, 100% 0);
 }
