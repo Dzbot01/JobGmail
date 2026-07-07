@@ -43,6 +43,8 @@ const App: React.FC = () => {
   const [withdrawHistory, setWithdrawHistory] = useState<HistoryItem[]>([]);
   const [withdrawDetails, setWithdrawDetails] = useState<{ method: string, number: string, name: string, qris_url?: string }>({ method: '', number: '', name: '' });
 
+const audioRef = useRef<HTMLAudioElement>(null);
+
   // State dari file UI Baru
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
@@ -447,12 +449,21 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
         onClose={() => setAlertState({...alertState, show: false })}
       />
 
-      {userRole === 'user' && (
-        <SupportBubble
-          isMusicPlaying={isMusicPlaying}
-          setIsMusicPlaying={setIsMusicPlaying}
-        />
-      )}
+<>
+  <audio
+    ref={audioRef}
+    src="/musik.mp3"
+    loop
+  />
+
+  {userRole === 'user' && (
+    <SupportBubble
+      audioRef={audioRef}
+      isMusicPlaying={isMusicPlaying}
+      setIsMusicPlaying={setIsMusicPlaying}
+    />
+  )}
+</>
 
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-5 py-3 flex items-center justify-start border-b border-gray-100">

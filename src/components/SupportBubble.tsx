@@ -1,15 +1,19 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { MessageCircle, Send, Mail, X, ChevronRight, Music, Play, Pause } from 'lucide-react';
 
 interface SupportBubbleProps {
+  audioRef: React.RefObject<HTMLAudioElement>;
   isMusicPlaying: boolean;
   setIsMusicPlaying: (val: boolean) => void;
 }
 
-const SupportBubble: React.FC<SupportBubbleProps> = ({ isMusicPlaying, setIsMusicPlaying }) => {
+const SupportBubble: React.FC<SupportBubbleProps> = ({
+  audioRef,
+  isMusicPlaying,
+  setIsMusicPlaying
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<'none' | 'main' | 'support' | 'music'>('none');
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const toggleVisibility = () => {
     if (!isOpen) {
@@ -38,11 +42,6 @@ const SupportBubble: React.FC<SupportBubbleProps> = ({ isMusicPlaying, setIsMusi
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[100]">
-      <audio 
-        ref={audioRef} 
-        src="/musik.mp3" 
-        loop 
-      />
       {/* Overlay */}
       {isOpen && (
         <div 
