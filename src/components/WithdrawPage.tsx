@@ -13,6 +13,7 @@ export interface HistoryItem {
 }
 
 interface WithdrawPageProps {
+  userEmail={userEmail}
   balance: number;
   history: HistoryItem[];
   onBack: () => void;
@@ -20,23 +21,35 @@ interface WithdrawPageProps {
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
 }
 
-const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, onWithdrawSuccess, showAlert }) => {
+const WithdrawPage: React.FC<WithdrawPageProps> = ({ userEmail, balance, history, onBack, onWithdrawSuccess, showAlert }) => {
   const [activeSubTab, setActiveSubTab] = useState<'withdraw' | 'history'>('withdraw');
   const [amount, setAmount] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
   
   const quickAmounts = [1000, 3000, 5000, 10000, 50000, 100000];
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => { 
     const numAmount = parseInt(amount);
     if (isNaN(numAmount) || numAmount < 1000) {
       showAlert("Gagal!", "Minimal penarikan Rp. 1.000", "error");
       return;
     }
-    if (numAmount > balance) {
-      showAlert("Gagal!", "Saldo tidak mencukupi", "error");
-      return;
-    }
     
+setIsLoading(true);
+    try {
+      // 5. KIRIM EMAIL DULU
+      const { data: { session }} = await supabase.auth.getSession();
+      const { error: emailError } = await supabase.functions.invoke('kirim-email-withdraw', {
+        body: { 
+          email_user: userEmail, // email yg login
+          amount: numAmount
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        }
+      });
+      if(emailError) console.error('Gagal kirim email withdraw:', emailError.message);
+      
     // Add delay for animation
     const container = document.querySelector('.u-container');
     if (container) {
@@ -152,7 +165,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ balance, history, onBack, o
                   </div>
                 </div>
                 <div className="right-side">
-                  <div className="new">Konfirmasi Withdraw</div>
+                  <div className="new">{isLoading ? 'Memproses...' : 'Konfirmasi Withdraw'}</div>
                   <svg viewBox="0 0 451.846 451.847" height="512" width="512" xmlns="http://www.w3.org/2000/svg" className="arrow"><path fill="#cfcfcf" data-old_color="#000000" className="active-path" data-original="#000000" d="M345.441 248.292L151.154 442.573c-12.359 12.365-32.397 12.365-44.75 0-12.354-12.354-12.354-32.391 0-44.744L278.318 225.92 106.409 54.017c-12.354-12.359-12.354-32.394 0-44.748 12.354-12.359 32.391-12.359 44.75 0l194.287 194.284c6.177 6.18 9.262 14.271 9.262 22.366 0 8.099-3.091 16.196-9.267 22.373z"></path></svg>
                 </div>
               </div>

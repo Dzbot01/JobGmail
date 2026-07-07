@@ -579,6 +579,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     history={withdrawHistory}
     onBack={() => navigate('/dashboard')}
     showAlert={showAlert}
+    userEmail={userEmail}
     onWithdrawSuccess={async (amount: number) => { // <- TAMBAH PARAMETER AMOUNT
       try {
         // 1. BIKIN DATA BARU
