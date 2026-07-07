@@ -3,11 +3,13 @@ import { ChevronRight, Send, Eye, EyeOff } from 'lucide-react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 interface SetoranProps {
+  isLoading: boolean;
   onTaskSubmit: (data: { email: string, pass: string }) => void;
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
 }
 
 interface SetoranProps {
+  isLoading: boolean;
   onTaskSubmit: (data: { email: string, pass: string }) => void;
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
   settings: {
@@ -18,7 +20,7 @@ interface SetoranProps {
   };
 }
 
-const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) => {
+const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, settings }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -136,15 +138,15 @@ const Setoran: React.FC<SetoranProps> = ({ onTaskSubmit, showAlert, settings }) 
           </div>
 
           <button 
-            type="submit"
-            disabled={!agreed}
-            className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg ${
-              agreed ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <Send size={18} />
-            Kirim Setoran
-          </button>
+  type="submit"
+  disabled={!agreed || isLoading} // 1. Tambah isLoading ke disabled
+  className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg ${
+    agreed && !isLoading ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed' // 2. Tambah !isLoading
+  }`}
+>
+  {isLoading ? <Loader size={18} className="animate-spin" /> : <Send size={18} />} {/* 3. Ganti icon pas loading */}
+  {isLoading ? 'Mengirim...' : 'Kirim Setoran'} {/* 4. Ganti text pas loading */}
+</button>
         </form>
       </div>
     </div>

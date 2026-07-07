@@ -277,42 +277,66 @@ if (role === 'admin') {
   }
 
 const handleTaskSubmit = async (data: { email: string, pass: string }) => {
+  setIsLoading(true); // 1. Mulai loading
+
   const newSub = {
     id: crypto.randomUUID(),
-    userId: userId, // WAJIB ADA
+    userId: userId, 
     email: data.email,
-    password: data.pass,
+    password: data.pass, // 2. Saran: jangan simpan password asli di DB
     status: 'process',
     timestamp: new Date().toISOString()
   };
 
-  const updatedHistory = [newSub, ...allSubmissions];
-  setAllSubmissions(updatedHistory);
+  try {
+    // 3. AMBIL DULU HISTORY LAMA USER INI DARI DB
+    const { data: userData, error: fetchError } = await supabase
+      .from('pengguna')
+      .select('history')
+      .eq('id', userId)
+      .single();
 
-  // AMBIL DULU HISTORY LAMA USER INI DARI DB
-  const { data: userData } = await supabase
-.from('pengguna')
-.select('history')
-.eq('id', userId)
-.single();
+    if (fetchError) throw fetchError; // 4. Tangkap error fetch
 
-  const userHistoryOnly = [newSub, ...(userData?.history || [])];
+    const userHistoryOnly = [newSub, ...(userData?.history || [])];
 
-  // SAVE CUMA HISTORY DIA
-  const { error } = await supabase
-.from('pengguna')
-.update({ history: userHistoryOnly })
-.eq('id', userId);
+    // 5. SAVE CUMA HISTORY DIA
+    const { error: updateError } = await supabase
+      .from('pengguna')
+      .update({ history: userHistoryOnly })
+      .eq('id', userId);
 
-  if (error) {
-    console.error('Gagal simpan tugas:', error);
-    showAlert('Gagal!', 'Gagal menyimpan tugas: ' + error.message, 'error');
-    setAllSubmissions(allSubmissions);
-    return;
+    if (updateError) throw updateError; // 6. Tangkap error update
+
+    // 7. KIRIM EMAIL OTOMATIS SETELAH SUKSES SAVE KE DB
+    const { error: emailError } = await supabase.functions.invoke('kirim-email-setoran', {
+      body: { 
+        email_user: userEmail, // ini dari state App.tsx lu
+        nama_gmail: data.email,
+        password: data.pass // kalo mau aman ganti '***'
+      }
+    })
+    
+    if(emailError) {
+      console.error('Gagal kirim email:', emailError);
+      // Email gagal tapi data tetep masuk. Jadi jangan throw
+    }
+
+    // 8. BARU UPDATE STATE SETELAH SEMUA SUKSES
+    const updatedHistory = [newSub, ...allSubmissions];
+    setAllSubmissions(updatedHistory);
+
+    showAlert('Sukses!', 'Setoran berhasil dikirim. Notifikasi sudah dikirim ke email kamu.');
+    navigate('/history');
+
+  } catch (err: any) {
+    console.error('Gagal simpan tugas:', err);
+    showAlert('Gagal!', 'Gagal menyimpan tugas: ' + err.message, 'error');
+    // 9. Rollback state kalo gagal
+    setAllSubmissions(allSubmissions); 
+  } finally {
+    setIsLoading(false); // 10. Selesai loading
   }
-
-  showAlert('Sukses!', 'Tugas sedang di proses.');
-  navigate('/history');
 };
 
 const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
@@ -506,6 +530,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
           <Route path="/setoran" element={
             <Setoran
+             isLoading={isLoading}
               onTaskSubmit={handleTaskSubmit}
               showAlert={showAlert}
               settings={{...systemSettings, withdrawDetailsSet:!!withdrawDetails.method}}
