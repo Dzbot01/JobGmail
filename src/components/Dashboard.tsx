@@ -121,25 +121,41 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
   };
 
   return (
-    <div className="space-y-6">
-      {/* Balance Card - (UI dari file baru, dengan penyesuaian logic (balance ?? 0) dari file lama) */}
-      <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 opacity-50" />
-        <p className="text-gray-500 text-sm font-medium">Saldo Utama</p>
-        <h2 className="text-3xl font-bold mt-1 text-gray-900">Rp. {(balance ?? 0).toLocaleString('id-ID')}</h2>
-        
-        <div className="mt-6 flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100">
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-blue-700 font-medium">Minimal penarikan: <span className="font-bold">Rp. 1.000</span></p>
-          </div>
-          <button 
-            onClick={onWithdraw}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md active:scale-95"
-          >
-            Withdraw
-          </button>
-        </div>
+    <div className="-mx-4 -mt-4 bg-gray-50/30">
+      {/* Premium Fintech Header Section (DANA Style) */}
+      <div className="bg-gradient-to-b from-[#118eea] to-[#005cbb] h-44 rounded-b-[48px] relative overflow-hidden">
+         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+         <div className="absolute top-20 -left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+         
+         <div className="px-8 pt-8 text-white">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Dashboard Utama</p>
+            <h1 className="text-lg font-black tracking-tight mt-1 text-white">Hello, Member!</h1>
+         </div>
       </div>
+
+      <div className="px-4 -mt-16 space-y-6">
+        {/* Floating Balance Card (DANA Style) */}
+        <div data-tour="balance" className="bg-white rounded-[32px] p-6 shadow-[0_15px_40px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col relative z-10">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Saldo Utama</p>
+              <h2 className="text-3xl font-black mt-1 text-gray-900 tracking-tighter">Rp. {(balance ?? 0).toLocaleString('id-ID')}</h2>
+            </div>
+            <div className="bg-blue-50 p-2.5 rounded-2xl">
+              <CreditCard className="text-blue-600" size={24} />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-2xl border border-blue-100">
+            <p className="text-[10px] text-blue-700 font-bold italic">Minimal withdraw: <span className="font-black not-italic">Rp. 1.000</span></p>
+            <button 
+              onClick={onWithdraw}
+              className="bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform"
+            >
+              Withdraw
+            </button>
+          </div>
+        </div>
 
       {/* Marquee Welcome Line - WHITE, FULL WIDTH ON MOBILE */}
       <div className="bg-white -mx-4 px-4 py-3 shadow-sm border-y border-gray-100">
