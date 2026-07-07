@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './supabase'; // IMPORT SUPABASE
@@ -43,7 +43,11 @@ const App: React.FC = () => {
   const [withdrawHistory, setWithdrawHistory] = useState<HistoryItem[]>([]);
   const [withdrawDetails, setWithdrawDetails] = useState<{ method: string, number: string, name: string, qris_url?: string }>({ method: '', number: '', name: '' });
 
-const audioRef = useRef<HTMLAudioElement>(null);
+const audioRef = useRef(new Audio('/musik.mp3'));
+
+useEffect(() => {
+  audioRef.current.loop = true;
+}, []);
 
   // State dari file UI Baru
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
@@ -448,13 +452,6 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
         type={alertState.type}
         onClose={() => setAlertState({...alertState, show: false })}
       />
-
-<>
-  <audio
-    ref={audioRef}
-    src="/musik.mp3"
-    loop
-  />
 
   {userRole === 'user' && (
     <SupportBubble

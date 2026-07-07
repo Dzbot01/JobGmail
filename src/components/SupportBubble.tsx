@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MessageCircle, Send, Mail, X, ChevronRight, Music, Play, Pause } from 'lucide-react';
 
 interface SupportBubbleProps {
-  audioRef: React.RefObject<HTMLAudioElement>;
+  audioRef: React.MutableRefObject<HTMLAudioElement>;
   isMusicPlaying: boolean;
   setIsMusicPlaying: (val: boolean) => void;
 }
