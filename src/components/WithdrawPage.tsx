@@ -13,7 +13,7 @@ export interface HistoryItem {
 }
 
 interface WithdrawPageProps {
-  userEmail={userEmail}
+  userEmail: string;
   balance: number;
   history: HistoryItem[];
   onBack: () => void;
