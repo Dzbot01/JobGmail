@@ -460,7 +460,6 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
       setIsMusicPlaying={setIsMusicPlaying}
     />
   )}
-</>
 
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-5 py-3 flex items-center justify-start border-b border-gray-100">
