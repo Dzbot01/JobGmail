@@ -277,65 +277,71 @@ if (role === 'admin') {
   }
 
 const handleTaskSubmit = async (data: { email: string, pass: string }) => {
-  setIsLoading(true); // 1. Mulai loading
+  setIsLoading(true);
 
   const newSub = {
     id: crypto.randomUUID(),
     userId: userId, 
     email: data.email,
-    password: data.pass, // 2. Saran: jangan simpan password asli di DB
+    password: data.pass, // Saran: jangan simpan password asli di DB
     status: 'process',
     timestamp: new Date().toISOString()
   };
 
+  // Simpan state lama buat rollback
+  const oldHistory = [...allSubmissions];
+
   try {
-    // 3. AMBIL DULU HISTORY LAMA USER INI DARI DB
+    // 1. AMBIL DULU HISTORY LAMA USER INI DARI DB
     const { data: userData, error: fetchError } = await supabase
       .from('pengguna')
       .select('history')
       .eq('id', userId)
       .single();
 
-    if (fetchError) throw fetchError; // 4. Tangkap error fetch
+    if (fetchError) throw fetchError;
 
     const userHistoryOnly = [newSub, ...(userData?.history || [])];
 
-    // 5. SAVE CUMA HISTORY DIA
+    // 2. SAVE CUMA HISTORY DIA
     const { error: updateError } = await supabase
       .from('pengguna')
       .update({ history: userHistoryOnly })
       .eq('id', userId);
 
-    if (updateError) throw updateError; // 6. Tangkap error update
+    if (updateError) throw updateError;
 
-    // 7. KIRIM EMAIL OTOMATIS SETELAH SUKSES SAVE KE DB
-    const { error: emailError } = await supabase.functions.invoke('kirim-email-setoran', {
+    // 3. KIRIM EMAIL OTOMATIS SETELAH SUKSES SAVE KE DB
+    const { data: emailData, error: emailError } = await supabase.functions.invoke('kirim-email-setoran', {
       body: { 
-        email_user: userEmail, // ini dari state App.tsx lu
-        nama_gmail: data.email,
-        password: data.pass // kalo mau aman ganti '***'
+        email_user: userEmail, // email yg login buat nerima notif
+        nama_gmail: data.email
+        // password: data.pass // JANGAN KIRIM PASSWORD VIA EMAIL. Bahaya
       }
     })
     
     if(emailError) {
-      console.error('Gagal kirim email:', emailError);
-      // Email gagal tapi data tetep masuk. Jadi jangan throw
+      console.error('Gagal kirim email:', emailError.message);
+      // Email gagal tapi data tetep masuk. Jadi cuma log aja
+    } else {
+      console.log('Email terkirim:', emailData);
     }
 
-    // 8. BARU UPDATE STATE SETELAH SEMUA SUKSES
-    const updatedHistory = [newSub, ...allSubmissions];
+    // 4. BARU UPDATE STATE SETELAH SEMUA SUKSES
+    const updatedHistory = [newSub, ...oldHistory];
     setAllSubmissions(updatedHistory);
 
-    showAlert('Sukses!', 'Setoran berhasil dikirim. Notifikasi sudah dikirim ke email kamu.');
+    showAlert('Sukses!', 'Setoran berhasil dikirim. Notifikasi sudah dikirim ke email kamu.', 'success');
     navigate('/history');
 
   } catch (err: any) {
     console.error('Gagal simpan tugas:', err);
     showAlert('Gagal!', 'Gagal menyimpan tugas: ' + err.message, 'error');
-    // 9. Rollback state kalo gagal
-    setAllSubmissions(allSubmissions); 
+    
+    // 5. Rollback state kalo gagal
+    setAllSubmissions(oldHistory); 
   } finally {
-    setIsLoading(false); // 10. Selesai loading
+    setIsLoading(false);
   }
 };
 
