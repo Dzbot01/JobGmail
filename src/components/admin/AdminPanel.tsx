@@ -12,6 +12,9 @@ interface AdminPanelProps {
   settings: any;
   updateSettings: (s: any) => void;
   showAlert: (message: string, subtext: string, type?: 'success' | 'error') => void;
+  sgEarned: number;
+  sgSpendable: number;
+  isLoadingSg: boolean;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ 
@@ -21,6 +24,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onUpdateWithdrawStatus, 
   activeTab, 
   setTab,
+  sgEarned, 
+  sgSpendable, 
+  isLoadingSg, 
   onLogout,
   settings,
   updateSettings,
