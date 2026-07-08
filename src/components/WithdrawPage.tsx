@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Wallet, History, ArrowLeft, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { supabase } from '../supabase';
 
 export interface HistoryItem {
   id: string;
