@@ -116,24 +116,62 @@ const upsertUser = async (user: any) => {
 
 const fetchSproutGigsBalance = async () => {
   setIsLoadingSg(true);
+
   try {
-    const { data, error } = await supabase.functions.invoke('proxy-sproutgigs');
-    
-    // INI BUAT NAMPILIN DI HP
-    alert("DATA MENTAH: " + JSON.stringify(data) + "\n\nERROR: " + JSON.stringify(error));
+    // Cek apakah user benar-benar login
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (error) throw error;
+    alert(
+      "SESSION: " +
+      (session ? "ADA" : "TIDAK ADA") +
+      "\nUser: " +
+      (session?.user?.email || "-")
+    );
 
-    // Coba 2 versi, yg mana yg ada isinya
-    const actualData = data.data || data; 
+    // Panggil Edge Function
+    const result = await supabase.functions.invoke("proxy-sproutgigs");
 
-    setSgEarned(parseFloat(actualData.earned) || 0);
-    setSgSpendable(parseFloat(actualData.spendable) || 0);
+    // Tampilkan hasil lengkap
+    alert(
+      "HASIL INVOKE:\n\n" +
+      JSON.stringify(result, null, 2)
+    );
+
+    // Kalau ada error, lempar
+    if (result.error) {
+      throw result.error;
+    }
+
+    // Jangan pakai data.data dulu
+    const data = result.data;
+
+    alert(
+      "DATA FUNCTION:\n\n" +
+      JSON.stringify(data, null, 2)
+    );
+
+    // Baru isi state kalau memang ada
+    if (data?.earned !== undefined) {
+      setSgEarned(parseFloat(data.earned));
+    }
+
+    if (data?.spendable !== undefined) {
+      setSgSpendable(parseFloat(data.spendable));
+    }
 
   } catch (err: any) {
-    alert("ERROR CATCH: " + err.message);
+    console.error(err);
+
+    alert(
+      "ERROR:\n\n" +
+      JSON.stringify(err, null, 2)
+    );
+
     setSgEarned(0);
     setSgSpendable(0);
+
   } finally {
     setIsLoadingSg(false);
   }
