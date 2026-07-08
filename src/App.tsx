@@ -35,6 +35,8 @@ const App: React.FC = () => {
   const [userRole, setUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [adminActiveTab, setAdminActiveTab] = useState<AdminTab>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+const [sgEarned, setSgEarned] = useState(0);
+const [sgSpendable, setSgSpendable] = useState(0);
   const [balance, setBalance] = useState(0);
   const [spins, setSpins] = useState(3);
   const [tasksDone, setTasksDone] = useState(0);
@@ -111,6 +113,26 @@ const upsertUser = async (user: any) => {
   useEffect(() => {
     let mounted = true;
     let handledCode = false;
+
+const fetchSproutGigsBalance = async () => {
+  setIsLoadingSg(true);
+  try {
+    // Tinggal invoke doang. Secret udah dihandle di Edge Function
+    const { data, error } = await supabase.functions.invoke('proxy-sproutgigs');
+
+    if (error) throw error;
+
+    // Response dari proxy kita: { earned: "0.4200", spendable: "3.3482" }
+    setSgEarned(parseFloat(data.earned) || 0);
+    setSgSpendable(parseFloat(data.spendable) || 0);
+
+  } catch (err: any) {
+    console.error("Gagal ambil saldo SproutGigs:", err);
+    showAlert("Error", err.message || "Gagal memuat saldo SproutGigs", "error");
+  } finally {
+    setIsLoadingSg(false);
+  }
+};
 
     const handleAuth = async () => {
       if (handledCode) return;
@@ -189,6 +211,7 @@ setUserRole(role as 'user' | 'admin');
 
 if (role === 'admin') {
   setAdminActiveTab('dashboard');
+  fetchSproutGigsBalance();
   
   // 1. AMBIL SEMUA DATA USER BUAT ADMIN PANEL
   const { data: allUsers, error } = await supabase
@@ -640,6 +663,8 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               settings={systemSettings}
               updateSettings={setSystemSettings}
               showAlert={showAlert}
+              sgEarned={sgEarned}
+              sgSpendable={sgSpendable}
             />
           } />
           <Route path="/admin/setoran" element={

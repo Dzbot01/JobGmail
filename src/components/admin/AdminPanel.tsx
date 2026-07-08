@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Database, CreditCard, CheckCircle, Mail, Settings, Wallet, ClipboardList, LogOut, ChevronRight, User as UserIcon } from 'lucide-react';
+import { Users, Database, CreditCard, Loader2, CheckCircle, Mail, Settings, Wallet, ClipboardList, LogOut, ChevronRight, User as UserIcon } from 'lucide-react';
 
 interface AdminPanelProps {
   submissions: any[];
@@ -34,15 +34,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
             <div className="bg-blue-50 w-10 h-10 rounded-xl flex items-center justify-center text-blue-600 mb-3">
               <Users size={20} />
             </div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase">User Terdaftar</p>
-            <p className="text-2xl font-black text-gray-800">1,284</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase">Saldo Utama</p>
+            {isLoadingSg? (
+      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+    ) : (
+      <p className="text-2xl font-black text-gray-800">${sgEarned.toFixed(4)}</p> // earned
+    )}
           </div>
           <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100">
             <div className="bg-emerald-50 w-10 h-10 rounded-xl flex items-center justify-center text-emerald-600 mb-3">
               <Database size={20} />
             </div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase">Total Akun</p>
-            <p className="text-2xl font-black text-gray-800">8,492</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase">Saldo Pending</p>
+{isLoadingSg? (
+      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+    ) : (
+      <p className="text-2xl font-black text-gray-800">${sgSpendable.toFixed(4)}</p> // spendable
+    )}
           </div>
           <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 col-span-2">
             <div className="bg-purple-50 w-10 h-10 rounded-xl flex items-center justify-center text-purple-600 mb-3">
