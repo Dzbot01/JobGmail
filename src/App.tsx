@@ -117,18 +117,23 @@ const upsertUser = async (user: any) => {
 const fetchSproutGigsBalance = async () => {
   setIsLoadingSg(true);
   try {
-    // Tinggal invoke doang. Secret udah dihandle di Edge Function
     const { data, error } = await supabase.functions.invoke('proxy-sproutgigs');
+    
+    // INI BUAT NAMPILIN DI HP
+    alert("DATA MENTAH: " + JSON.stringify(data) + "\n\nERROR: " + JSON.stringify(error));
 
     if (error) throw error;
 
-    // Response dari proxy kita: { earned: "0.4200", spendable: "3.3482" }
-    setSgEarned(parseFloat(data.earned) || 0);
-    setSgSpendable(parseFloat(data.spendable) || 0);
+    // Coba 2 versi, yg mana yg ada isinya
+    const actualData = data.data || data; 
+
+    setSgEarned(parseFloat(actualData.earned) || 0);
+    setSgSpendable(parseFloat(actualData.spendable) || 0);
 
   } catch (err: any) {
-    console.error("Gagal ambil saldo SproutGigs:", err);
-    showAlert("Error", err.message || "Gagal memuat saldo SproutGigs", "error");
+    alert("ERROR CATCH: " + err.message);
+    setSgEarned(0);
+    setSgSpendable(0);
   } finally {
     setIsLoadingSg(false);
   }
