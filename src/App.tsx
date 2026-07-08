@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 const [sgEarned, setSgEarned] = useState(0);
 const [sgSpendable, setSgSpendable] = useState(0);
+const [isLoadingSg, setIsLoadingSg] = useState(false);
   const [balance, setBalance] = useState(0);
   const [spins, setSpins] = useState(3);
   const [tasksDone, setTasksDone] = useState(0);
