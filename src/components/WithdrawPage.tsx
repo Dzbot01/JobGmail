@@ -38,7 +38,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ userEmail, balance, history
     setIsLoading(true);
     try {
       // 1. KIRIM EMAIL DULU
-      const { data: { session } = await supabase.auth.getSession(); // <- kurungnya udah gua benerin
+      const { data: { session }} = await supabase.auth.getSession(); // <- kurungnya udah gua benerin
       const { error: emailError } = await supabase.functions.invoke('kirim-email-withdraw', {
         body: { 
           email_user: userEmail,
