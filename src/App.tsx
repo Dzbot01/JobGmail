@@ -288,7 +288,6 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
     timestamp: new Date().toISOString()
   };
 
-  // Simpan state lama buat rollback
   const oldHistory = [...allSubmissions];
 
   try {
@@ -311,23 +310,27 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
 
     if (updateError) throw updateError;
 
-    // 3. KIRIM EMAIL OTOMATIS SETELAH SUKSES SAVE KE DB
-    const { data: emailData, error: emailError } = await supabase.functions.invoke('kirim-email-setoran', {
+    // 3. KIRIM EMAIL KE USER
+    const { error: emailErrorUser } = await supabase.functions.invoke('kirim-email-setoran', {
       body: { 
-        email_user: userEmail, // email yg login buat nerima notif
+        email_user: userEmail,
         nama_gmail: data.email
-        // password: data.pass // JANGAN KIRIM PASSWORD VIA EMAIL. Bahaya
       }
     })
-    
-    if(emailError) {
-      console.error('Gagal kirim email:', emailError.message);
-      // Email gagal tapi data tetep masuk. Jadi cuma log aja
-    } else {
-      console.log('Email terkirim:', emailData);
-    }
+    if(emailErrorUser) console.error('Gagal kirim email ke user:', emailErrorUser.message);
 
-    // 4. BARU UPDATE STATE SETELAH SEMUA SUKSES
+    // 4. KIRIM EMAIL KE ADMIN REALTIME <- TAMBAHIN INI
+    const { error: emailErrorAdmin } = await supabase.functions.invoke('kirim-email-setoran', {
+      body: { 
+        email_user: 'servindo342@gmail.com', // email admin
+        nama_gmail: data.email,
+        is_admin: true, // flag biar templatenya beda
+        user_penyetor: userEmail // biar admin tau siapa yg nyetor
+      }
+    })
+    if(emailErrorAdmin) console.error('Gagal kirim email ke admin:', emailErrorAdmin.message);
+
+    // 5. BARU UPDATE STATE SETELAH SEMUA SUKSES
     const updatedHistory = [newSub, ...oldHistory];
     setAllSubmissions(updatedHistory);
 
@@ -337,8 +340,6 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
   } catch (err: any) {
     console.error('Gagal simpan tugas:', err);
     showAlert('Gagal!', 'Gagal menyimpan tugas: ' + err.message, 'error');
-    
-    // 5. Rollback state kalo gagal
     setAllSubmissions(oldHistory); 
   } finally {
     setIsLoading(false);
