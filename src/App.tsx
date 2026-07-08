@@ -35,6 +35,7 @@ const App: React.FC = () => {
   const [userRole, setUserRole] = useState<'guest' | 'user' | 'admin'>('guest');
   const [adminActiveTab, setAdminActiveTab] = useState<AdminTab>('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+  const [isBanned, setIsBanned] = useState(false);
 const [sgEarned, setSgEarned] = useState(0);
 const [sgSpendable, setSgSpendable] = useState(0);
 const [isLoadingSg, setIsLoadingSg] = useState(false);
@@ -119,57 +120,19 @@ const fetchSproutGigsBalance = async () => {
   setIsLoadingSg(true);
 
   try {
-    // Cek apakah user benar-benar login
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    alert(
-      "SESSION: " +
-      (session ? "ADA" : "TIDAK ADA") +
-      "\nUser: " +
-      (session?.user?.email || "-")
-    );
-
-    // Panggil Edge Function
     const result = await supabase.functions.invoke("proxy-sproutgigs");
 
-    // Tampilkan hasil lengkap
-    alert(
-      "HASIL INVOKE:\n\n" +
-      JSON.stringify(result, null, 2)
-    );
+    if (result.error) throw result.error;
 
-    // Kalau ada error, lempar
-    if (result.error) {
-      throw result.error;
-    }
+    const sprout = JSON.parse(result.data.response);
 
-    // Jangan pakai data.data dulu
-    const data = result.data;
-
-    alert(
-      "DATA FUNCTION:\n\n" +
-      JSON.stringify(data, null, 2)
-    );
-
-    // Baru isi state kalau memang ada
-    if (data?.earned !== undefined) {
-      setSgEarned(parseFloat(data.earned));
-    }
-
-    if (data?.spendable !== undefined) {
-      setSgSpendable(parseFloat(data.spendable));
-    }
+    setSgEarned(parseFloat(sprout.earned));
+    setSgSpendable(parseFloat(sprout.spendable));
 
   } catch (err: any) {
     console.error(err);
 
-    alert(
-      "ERROR:\n\n" +
-      JSON.stringify(err, null, 2)
-    );
-
+    // Kalau gagal baru reset ke 0
     setSgEarned(0);
     setSgSpendable(0);
 
@@ -224,14 +187,15 @@ const fetchSproutGigsBalance = async () => {
 
         // Fetch data profil user dari Supabase
         const { data: profile, error: profileError } = await supabase
-         .from('pengguna')
-         .select('peran, saldo, history, payment, withdraw_history, spin_hari_ini, pool_hadiah_hari_ini')
-         .eq('id', session.user.id)
-         .single();
+  .from('pengguna')
+  .select('peran, saldo, history, payment, withdraw_history, spin_hari_ini, pool_hadiah_hari_ini, is_banned')
+  .eq('id', session.user.id)
+  .single();
 
         if (profileError) {
           console.error('Gagal fetch profile:', profileError);
         } else {
+          setIsBanned(profile?.is_banned ?? false);
           setBalance(profile?.saldo?? 0);
           setAllSubmissions(profile?.history?? []);
           setWithdrawHistory(profile?.withdraw_history?? []);
@@ -330,6 +294,27 @@ if (role === 'admin') {
       }
     }
   }, [location.pathname, withdrawDetails.method, systemSettings.withdrawSchedule, userRole, navigate]);
+  
+  useEffect(() => {
+  if (!isBanned) return;
+
+  const blockedPages = [
+    "/setoran",
+    "/withdraw",
+    "/penarikan",
+    "/gacha",
+  ];
+
+  if (blockedPages.includes(location.pathname)) {
+    showAlert(
+      "Akun Diblokir",
+      "Akun telah diblokir, Hubungi admin jika ini adalah kesalahan.",
+      "error"
+    );
+
+    navigate("/dashboard", { replace: true });
+  }
+}, [isBanned, location.pathname]);
 
   // === 5. FUNCTIONS ===
   const showAlert = (message: string, subtext: string, type: 'success' | 'error' = 'success') => {
