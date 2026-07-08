@@ -35,13 +35,13 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ userEmail, balance, history
       return;
     }
     
-setIsLoading(true);
+    setIsLoading(true);
     try {
-      // 5. KIRIM EMAIL DULU
-      const { data: { session }} = await supabase.auth.getSession();
+      // 1. KIRIM EMAIL DULU
+      const { data: { session } = await supabase.auth.getSession(); // <- kurungnya udah gua benerin
       const { error: emailError } = await supabase.functions.invoke('kirim-email-withdraw', {
         body: { 
-          email_user: userEmail, // email yg login
+          email_user: userEmail,
           amount: numAmount
         },
         headers: {
@@ -49,23 +49,32 @@ setIsLoading(true);
         }
       });
       if(emailError) console.error('Gagal kirim email withdraw:', emailError.message);
-      
-    // Add delay for animation
-    const container = document.querySelector('.u-container');
-    if (container) {
-      container.classList.add('animating');
-      setTimeout(() => {
+
+      // 2. JALANIN ANIMASI + UPDATE STATE
+      const container = document.querySelector('.u-container');
+      if (container) {
+        container.classList.add('animating');
+        setTimeout(() => {
+          onWithdrawSuccess(numAmount);
+          setAmount('');
+          setActiveSubTab('history');
+          container.classList.remove('animating');
+        }, 1500);
+      } else {
         onWithdrawSuccess(numAmount);
         setAmount('');
         setActiveSubTab('history');
-        container.classList.remove('animating');
-      }, 1500); // Wait for animation
-    } else {
-      onWithdrawSuccess(numAmount);
-      setAmount('');
-      setActiveSubTab('history');
+      }
+      
+      showAlert("Sukses!", "Permintaan withdraw dikirim. Cek email kamu.", "success");
+
+    } catch(err: any) {
+      console.error(err);
+      showAlert("Error", "Gagal memproses withdraw: " + err.message, "error");
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }; 
 
   return (
     <div className="space-y-6">
