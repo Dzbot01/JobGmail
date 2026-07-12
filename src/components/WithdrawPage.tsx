@@ -28,6 +28,17 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ userEmail, balance, history
   const [isLoading, setIsLoading] = useState(false);
   
   const quickAmounts = [1000, 3000, 5000, 10000, 50000, 100000];
+  
+  // WIB (UTC+7) Date Logic
+const getWIBDate = () => {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (3600000 * 7));
+};
+
+const wibNow = getWIBDate();
+const currentDay = wibNow.getDay(); // 0 = Minggu, 6 = Sabtu
+const isWeekend = currentDay === 0 || currentDay === 6;
 
   const handleWithdraw = async () => { 
     const numAmount = parseInt(amount);
@@ -148,7 +159,9 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ userEmail, balance, history
                     "Pastikan alamat penarikan sudah benar dan sesuai",
                     "Proses penarikan memakan waktu 1-24 jam kerja",
                     "Terdapat biaya admin sesuai dengan metode penarikan yang dipilih",
-                    "Penarikan yang sudah diproses tidak dapat dibatalkan"
+                    "Penarikan yang sudah diproses tidak dapat dibatalkan", 
+                    "Withdraw hanya tersedia di hari Sabtu dan Minggu.",
+"Proses withdraw akan dilakukan selama 24 jam kerja. Jika anda withdraw Sabtu maka akan diproses hari Minggu, jika withdraw Minggu maka akan diproses hari Senin."
                   ].map((text, i) => (
                     <li key={i} className="flex gap-2 text-[10px] text-gray-500 leading-relaxed">
                       <span className="font-bold text-blue-600">{i + 1}.</span>
@@ -159,21 +172,58 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ userEmail, balance, history
               </div>
 
             <div className="flex justify-center mt-8">
-              <div className="u-container" onClick={handleWithdraw}>
-                <div className="left-side">
-                  <div className="u-card">
-                    <div className="card-line"></div>
-                    <div className="buttons"></div>
-                  </div>
-                  <div className="post">
-                    <div className="post-line"></div>
-                    <div className="screen">
-                      <div className="dollar">$</div>
-                    </div>
-                    <div className="numbers"></div>
-                    <div className="numbers-line2"></div>
-                  </div>
-                </div>
+  {isWeekend ? (
+    <div className="u-container" onClick={handleWithdraw}>
+      <div className="left-side">
+        <div className="u-card">
+          <div className="card-line"></div>
+          <div className="buttons"></div>
+        </div>
+
+        <div className="post">
+          <div className="post-line"></div>
+          <div className="screen">
+            <div className="dollar">$</div>
+          </div>
+          <div className="numbers"></div>
+          <div className="numbers-line2"></div>
+        </div>
+      </div>
+
+      <div className="right-side">
+        <div className="new">
+          {isLoading ? 'Memproses...' : 'Konfirmasi Withdraw'}
+        </div>
+
+        <svg
+          viewBox="0 0 451.846 451.847"
+          height="512"
+          width="512"
+          xmlns="http://www.w3.org/2000/svg"
+          className="arrow"
+        >
+          <path
+            fill="#cfcfcf"
+            data-old_color="#000000"
+            className="active-path"
+            data-original="#000000"
+            d="M345.441 248.292L151.154 442.573c-12.359 12.365-32.397 12.365-44.75 0-12.354-12.354-12.354-32.391 0-44.744L278.318 225.92 106.409 54.017c-12.354-12.359-12.354-32.394 0-44.748 12.354-12.359 32.391-12.359 44.75 0l194.287 194.284c6.177 6.18 9.262 14.271 9.262 22.366 0 8.099-3.091 16.196-9.267 22.373z"
+          />
+        </svg>
+      </div>
+    </div>
+  ) : (
+    <div className="bg-white rounded-2xl p-6 w-full text-center border border-yellow-100 shadow-sm">
+      <p className="text-xs font-black text-yellow-600 uppercase leading-relaxed tracking-wider">
+        Tombol konfirmasi withdraw sedang ditutup.
+      </p>
+
+      <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
+        Withdraw hanya tersedia pada hari <span className="font-bold">Sabtu</span> dan <span className="font-bold">Minggu</span>.
+      </p>
+    </div>
+  )}
+</div>
                 <div className="right-side">
                   <div className="new">{isLoading ? 'Memproses...' : 'Konfirmasi Withdraw'}</div>
                   <svg viewBox="0 0 451.846 451.847" height="512" width="512" xmlns="http://www.w3.org/2000/svg" className="arrow"><path fill="#cfcfcf" data-old_color="#000000" className="active-path" data-original="#000000" d="M345.441 248.292L151.154 442.573c-12.359 12.365-32.397 12.365-44.75 0-12.354-12.354-12.354-32.391 0-44.744L278.318 225.92 106.409 54.017c-12.354-12.359-12.354-32.394 0-44.748 12.354-12.359 32.391-12.359 44.75 0l194.287 194.284c6.177 6.18 9.262 14.271 9.262 22.366 0 8.099-3.091 16.196-9.267 22.373z"></path></svg>
