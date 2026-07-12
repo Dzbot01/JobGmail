@@ -58,8 +58,8 @@ useEffect(() => {
 
   const [systemSettings, setSystemSettings] = useState({
     withdrawSchedule: 'Selalu Buka',
-    taskReward: 1600,
-    taskPassword: 'Ajax1122*',
+    taskReward: 2000,
+    taskPassword: 'aass1122*',
     taskDescription: 'Silahkan masukkan data akun Gmail yang baru kamu buat. Pastikan akun dalam keadaan aktif dan belum pernah didaftarkan sebelumnya.'
   });
 
