@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronRight, Send, Eye, EyeOff } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronRight, Send, Eye, EyeOff, Loader } from 'lucide-react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 interface SetoranProps {
@@ -154,7 +154,7 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
             Ambil nama untuk alamat email <ChevronRight size={16} />
           </a>
 
-          <form onSubmit={handleSubmitSingle} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Alamat Email</label>
               <input 
