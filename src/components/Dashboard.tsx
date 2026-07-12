@@ -163,10 +163,10 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
                    <Bell size={20} />
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-                   <span className="text-[8px] font-black text-white">2</span>
+                   <span className="text-[8px] font-black text-white">3</span>
                 </div>
              </div>
-             <h3 className="font-black text-xs text-gray-700 uppercase tracking-widest">Papan Informasi</h3>
+             <h3 className="font-black text-xs text-gray-700 uppercase tracking-widest">Kotak Pesan</h3>
           </div>
           <button 
             onClick={() => setShowInfoBoard(true)}
@@ -430,7 +430,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
             <div className="bg-blue-600 p-6 flex justify-between items-center text-white">
                <div className="flex items-center gap-3">
                   <Bell className="animate-bounce" size={20} />
-                  <h3 className="font-black text-sm uppercase tracking-widest">Papan Informasi</h3>
+                  <h3 className="font-black text-sm uppercase tracking-widest">Kotak Pesan</h3>
                </div>
                <button onClick={() => setShowInfoBoard(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                   <X size={20} />
@@ -439,23 +439,23 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
             
             <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
                <div className="space-y-2">
-                  <h4 className="font-black text-blue-600 text-xs uppercase tracking-tighter">Update Sistem Penarikan</h4>
+                  <h4 className="font-black text-blue-600 text-xs uppercase tracking-tighter">Update Sistem Setor Baru</h4>
                   <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                    Penarikan dana kini lebih cepat dengan integrasi otomatis ke jaringan E-Wallet. Proses memakan waktu maksimal 12 jam.
+                    Pada halaman Setor, kini tersedia 2 Opsi Setor yakni satuan dengan hitungan Per 10 Akun dan Setor dengan 1 akun (hitungan per 1 Akun). Opsi per 10 Akun memiliki bayaran Spesial (tinggi) dan terdapat Fitur Simpan dulu, Jadi kamu bisa Simpan data akun dan kumpulkan hingga mininal 10 Akun untuk dapatkan bayaran yang lebih tinggi! 
                   </p>
                </div>
                <div className="h-px bg-gray-100" />
                <div className="space-y-2">
-                  <h4 className="font-black text-blue-600 text-xs uppercase tracking-tighter">Event Gacha Mingguan</h4>
+                  <h4 className="font-black text-blue-600 text-xs uppercase tracking-tighter">Update Sistem Withdraw</h4>
                   <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                    Dapatkan kesempatan memenangkan Rp. 100.000 setiap hari Minggu dengan berpartisipasi aktif dalam pengumpulan akun Gmail.
+                    Sistem Withdraw kini hanya tersedia pada hari Sabtu dan Minggu, Jika melakukan Withdraw di hari Sabtu maka akan di Proses pada hari minggu dan jika Withdraw di hari minggu maka akan di proses pada hari Senin. 
                   </p>
                </div>
                <div className="h-px bg-gray-100" />
                <div className="space-y-2">
-                  <h4 className="font-black text-blue-600 text-xs uppercase tracking-tighter">Keamanan Akun</h4>
+                  <h4 className="font-black text-blue-600 text-xs uppercase tracking-tighter">Join Komunitas</h4>
                   <p className="text-xs text-gray-600 leading-relaxed font-medium">
-                    Pastikan password yang anda gunakan unik dan belum pernah digunakan di platform lain untuk menjaga keamanan aset digital anda.
+                    Setoran tapi Statusnya di Proses terus? Join Saluran Whatsapp Komunitas kami untuk mendapatkan info paling Up To Date tentang Info Maintenance Website dan Update Fitur terbaru!
                   </p>
                </div>
             </div>
@@ -465,7 +465,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
                  onClick={() => setShowInfoBoard(false)}
                  className="w-full py-3 bg-white border border-gray-200 rounded-xl font-black text-[10px] text-gray-400 uppercase tracking-widest hover:bg-gray-100"
                >
-                 Tutup Papan
+                 Tutup
                </button>
             </div>
           </div>
