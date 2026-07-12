@@ -276,7 +276,7 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
                 required
                 value={bulkPassword}
                 onChange={(e) => setBulkPassword(e.target.value)}
-                placeholder="Ajax1122*"
+                placeholder="aass1122"
                 className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-100 focus:border-emerald-400 focus:bg-white outline-none font-bold"
               />
             </div>
