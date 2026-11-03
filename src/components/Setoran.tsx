@@ -111,7 +111,7 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
   };
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-8 pb-10 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
       {/* SECTION 1: SINGLE */}
       <div className="space-y-3">
         <p className="px-2 text-[10px] font-black text-gray-400 uppercase tracking-widest leading-tight">

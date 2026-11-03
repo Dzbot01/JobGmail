@@ -116,7 +116,8 @@ const isWeekend = currentDay === 0 || currentDay === 6;
 
       {activeSubTab === 'withdraw' ? (
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-lg border border-gray-100 lg:grid lg:grid-cols-2 lg:gap-x-10 lg:items-start">
+            <div className="lg:col-start-1">
             <p className="text-xs font-bold text-gray-400 uppercase mb-4">Pilih Nominal Cepat</p>
             <div className="grid grid-cols-3 gap-3">
               {quickAmounts.map((val) => (
@@ -146,9 +147,10 @@ const isWeekend = currentDay === 0 || currentDay === 6;
                 </div>
                 <p className="text-[10px] text-gray-400 mt-2 italic">Minimal penarikan Rp. 1.000</p>
               </div>
+            </div>
 
               {/* T&C Withdraw */}
-              <div className="mt-8 bg-gray-50 rounded-2xl p-5 border border-gray-100 shadow-inner">
+              <div className="mt-8 lg:mt-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 bg-gray-50 rounded-2xl p-5 border border-gray-100 shadow-inner">
                 <h4 className="text-xs font-black text-gray-700 uppercase mb-3 flex items-center gap-2">
                   <span className="w-1 h-4 bg-blue-600 rounded-full" />
                   Syarat & Ketentuan Penarikan
@@ -171,7 +173,7 @@ const isWeekend = currentDay === 0 || currentDay === 6;
                 </ol>
               </div>
 
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center mt-8 lg:col-start-1">
   {isWeekend ? (
     <div className="u-container" onClick={handleWithdraw}>
       <div className="left-side">
@@ -227,9 +229,9 @@ const isWeekend = currentDay === 0 || currentDay === 6;
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-4">
           {history.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center">
+            <div className="bg-white rounded-2xl p-12 shadow-lg border border-gray-100 flex flex-col items-center justify-center text-center md:col-span-2 xl:col-span-3">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
                 <History size={32} />
               </div>

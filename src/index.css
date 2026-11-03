@@ -39,6 +39,21 @@
   box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
 }
 
+/* Desktop memakai sidebar, bottom nav disembunyikan */
+@media (min-width: 1024px) {
+  .premium-nav-container { display: none; }
+}
+
+/* Di tablet bottom nav tetap tampil tapi tidak melebar penuh */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .premium-nav-container {
+    left: 50%;
+    right: auto;
+    width: min(100%, 640px);
+    transform: translateX(-50%);
+  }
+}
+
 .premium-nav-item {
   flex: 1;
   height: 100%;
@@ -152,6 +167,9 @@
   align-items: center;
   padding: 20px 0 40px 0;
   scale: 0.8; /* Fit better in mobile */
+}
+@media (min-width: 1024px) {
+  .wallet-wrapper { scale: 1; padding: 40px 0 60px 0; }
 }
 .wallet {
   position: relative;
@@ -286,8 +304,8 @@
 
 /* From Uiverse.io by akshat-patel28 */
 .alert-card {
-  width: 330px;
-  height: 80px;
+  width: min(360px, calc(100vw - 32px));
+  min-height: 80px;
   border-radius: 8px;
   box-sizing: border-box;
   padding: 10px 15px;
@@ -497,6 +515,8 @@
   justify-content: center;
   align-items: flex-start;
   flex-grow: 1;
+  min-width: 0;
+  padding: 6px 0;
 }
 .alert-message-text,
 .alert-sub-text {
@@ -510,8 +530,10 @@
 .alert-sub-text {
   font-size: 14px;
   color: #555;
+  line-height: 1.35;
 }
 .alert-cross-icon {
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
   color: #555;

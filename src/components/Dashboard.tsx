@@ -119,19 +119,19 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
   };
 
   return (
-    <div className="-mx-4 -mt-4 bg-gray-50/30">
+    <div className="-mx-4 sm:-mx-6 lg:mx-0 -mt-4 lg:mt-0 bg-gray-50/30">
       {/* Premium Fintech Header Section (DANA Style) */}
-      <div className="bg-gradient-to-b from-[#118eea] to-[#005cbb] h-44 rounded-b-[48px] relative overflow-hidden">
+      <div className="bg-gradient-to-b from-[#118eea] to-[#005cbb] h-44 lg:h-48 rounded-b-[48px] lg:rounded-[32px] relative overflow-hidden">
          <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
          <div className="absolute top-20 -left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
          
-         <div className="px-8 pt-8 text-white">
+         <div className="px-8 lg:px-10 pt-8 text-white">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Dashboard Utama</p>
-            <h1 className="text-lg font-black tracking-tight mt-1 text-white">Hello, Member!</h1>
+            <h1 className="text-lg lg:text-2xl font-black tracking-tight mt-1 text-white">Hello, Member!</h1>
          </div>
       </div>
 
-      <div className="px-4 -mt-16 space-y-6">
+      <div className="px-4 sm:px-6 -mt-16 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
         {/* Floating Balance Card (DANA Style) */}
         <div data-tour="balance" className="bg-white rounded-[32px] p-6 shadow-[0_15px_40px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col relative z-10">
           <div className="flex justify-between items-center mb-6">
@@ -155,6 +155,8 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
           </div>
         </div>
 
+        {/* Kolom kanan desktop: Kotak Pesan + Komunitas */}
+        <div className="space-y-6 relative z-10">
         {/* Papan Informasi Card */}
         <div className="bg-white rounded-2xl p-4 shadow-lg border border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -177,7 +179,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
         </div>
 
         {/* Marquee Welcome Line - WHITE, FULL WIDTH */}
-        <div className="bg-white -mx-4 px-4 py-3 shadow-sm border-y border-gray-100">
+        <div className="bg-white -mx-4 sm:-mx-6 lg:mx-0 px-4 py-3 shadow-sm border-y border-gray-100 lg:border lg:rounded-2xl lg:col-span-2">
           <div className="overflow-hidden">
             <div className="whitespace-nowrap animate-marquee flex items-center gap-4">
                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-tight">
@@ -207,6 +209,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
             </p>
           </div>
         </a>
+        </div>
 
         {/* Flat Rate Info - ELECTRIC BORDER */}
         <ElectricBorder
@@ -245,7 +248,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
             modules={[Autoplay, Pagination]}
             autoplay={{ delay: 3000 }}
             pagination={{ clickable: true }}
-            className="h-40"
+            className="h-40 sm:h-56 lg:h-[180px]"
           >
             <SwiperSlide>
               <img src="/slider1.jpg" alt="Promo 1" className="w-full h-full object-cover" />
@@ -425,9 +428,9 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
 
       {/* Info Board Modal Overlay */}
       {showInfoBoard && (
-        <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-sm flex items-end justify-center sm:items-center p-4">
-          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 duration-300 pointer-events-auto">
-            <div className="bg-blue-600 p-6 flex justify-between items-center text-white">
+        <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-sm flex items-end justify-center sm:items-center p-4 sm:p-6 lg:p-10">
+          <div className="bg-white w-full max-w-md sm:max-w-2xl lg:max-w-5xl rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 duration-300 pointer-events-auto">
+            <div className="bg-blue-600 p-6 lg:px-8 flex justify-between items-center text-white">
                <div className="flex items-center gap-3">
                   <Bell className="animate-bounce" size={20} />
                   <h3 className="font-black text-sm uppercase tracking-widest">Kotak Pesan</h3>
@@ -437,33 +440,33 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
                </button>
             </div>
             
-            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-6">
-               <div className="space-y-2">
-                  <h4 className="font-black text-blue-600 text-xs uppercase tracking-tighter">Update Sistem Setor Baru</h4>
-                  <p className="text-xs text-gray-600 leading-relaxed font-medium">
+            <div className="p-6 lg:p-8 max-h-[70vh] overflow-y-auto space-y-6 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-5">
+               <div className="space-y-2 sm:bg-blue-50/40 sm:border sm:border-blue-100 sm:rounded-2xl sm:p-5">
+                  <h4 className="font-black text-blue-600 text-xs lg:text-sm uppercase tracking-tighter">Update Sistem Setor Baru</h4>
+                  <p className="text-xs lg:text-sm text-gray-600 leading-relaxed font-medium">
                     Pada halaman Setor, kini tersedia 2 Opsi Setor yakni satuan dengan hitungan Per 10 Akun dan Setor dengan 1 akun (hitungan per 1 Akun). Opsi per 10 Akun memiliki bayaran Spesial (tinggi) dan terdapat Fitur Simpan dulu, Jadi kamu bisa Simpan data akun dan kumpulkan hingga mininal 10 Akun untuk dapatkan bayaran yang lebih tinggi! 
                   </p>
                </div>
-               <div className="h-px bg-gray-100" />
-               <div className="space-y-2">
-                  <h4 className="font-black text-blue-600 text-xs uppercase tracking-tighter">Update Sistem Withdraw</h4>
-                  <p className="text-xs text-gray-600 leading-relaxed font-medium">
+               <div className="h-px bg-gray-100 sm:hidden" />
+               <div className="space-y-2 sm:bg-blue-50/40 sm:border sm:border-blue-100 sm:rounded-2xl sm:p-5">
+                  <h4 className="font-black text-blue-600 text-xs lg:text-sm uppercase tracking-tighter">Update Sistem Withdraw</h4>
+                  <p className="text-xs lg:text-sm text-gray-600 leading-relaxed font-medium">
                     Sistem Withdraw kini hanya tersedia pada hari Sabtu dan Minggu, Jika melakukan Withdraw di hari Sabtu maka akan di Proses pada hari minggu dan jika Withdraw di hari minggu maka akan di proses pada hari Senin. 
                   </p>
                </div>
-               <div className="h-px bg-gray-100" />
-               <div className="space-y-2">
-                  <h4 className="font-black text-blue-600 text-xs uppercase tracking-tighter">Join Komunitas</h4>
-                  <p className="text-xs text-gray-600 leading-relaxed font-medium">
+               <div className="h-px bg-gray-100 sm:hidden" />
+               <div className="space-y-2 sm:bg-blue-50/40 sm:border sm:border-blue-100 sm:rounded-2xl sm:p-5">
+                  <h4 className="font-black text-blue-600 text-xs lg:text-sm uppercase tracking-tighter">Join Komunitas</h4>
+                  <p className="text-xs lg:text-sm text-gray-600 leading-relaxed font-medium">
                     Setoran tapi Statusnya di Proses terus? Join Saluran Whatsapp Komunitas kami untuk mendapatkan info paling Up To Date tentang Info Maintenance Website dan Update Fitur terbaru!
                   </p>
                </div>
             </div>
             
-            <div className="p-4 bg-gray-50 text-center">
+            <div className="p-4 lg:px-8 bg-gray-50 text-center sm:text-right">
                <button 
                  onClick={() => setShowInfoBoard(false)}
-                 className="w-full py-3 bg-white border border-gray-200 rounded-xl font-black text-[10px] text-gray-400 uppercase tracking-widest hover:bg-gray-100"
+                 className="w-full sm:w-auto sm:px-10 py-3 bg-white border border-gray-200 rounded-xl font-black text-[10px] text-gray-400 uppercase tracking-widest hover:bg-gray-100"
                >
                  Tutup
                </button>

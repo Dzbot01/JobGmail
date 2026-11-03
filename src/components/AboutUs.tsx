@@ -15,7 +15,7 @@ const AboutUs: React.FC<AboutUsProps> = ({ onBack }) => {
         <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight">Tentang Kami</h2>
       </div>
 
-      <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 overflow-hidden relative">
+      <div className="bg-white rounded-3xl p-6 lg:p-10 shadow-xl border border-gray-100 overflow-hidden relative">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 opacity-50 z-0" />
         
         <div className="relative z-10 space-y-6">
@@ -33,7 +33,7 @@ const AboutUs: React.FC<AboutUsProps> = ({ onBack }) => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-start gap-3">
               <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
                 <Globe size={20} />
