@@ -21,7 +21,7 @@ const CustomAlert: React.FC<CustomAlertProps> = ({ show, message, subtext, type 
   if (!show) return null;
 
   return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] animate-in fade-in slide-in-from-top-4 duration-300">
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 lg:top-6 lg:left-auto lg:right-6 lg:translate-x-0 z-[200] animate-in fade-in slide-in-from-top-4 duration-300">
       <div className={`alert-card ${type}`}>
         <svg className="alert-wave" viewBox="0 0 1440 320" xmlns="http://www.w3.org/2000/svg">
           <path

@@ -25,11 +25,12 @@ const UserHistory: React.FC<UserHistoryProps> = ({ submissions }) => {
           <p className="text-xs font-bold text-gray-400">Belum ada riwayat</p>
         </div>
       ) : (
-        submissions.map((item) => (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {submissions.map((item) => (
           <div key={item.id} className="bg-white rounded-xl shadow-md border border-gray-50 overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+            <div className="p-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-9 h-9 flex-shrink-0 rounded-lg flex items-center justify-center ${
                   item.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 
                   item.status === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'
                 }`}>
@@ -37,7 +38,7 @@ const UserHistory: React.FC<UserHistoryProps> = ({ submissions }) => {
                    item.status === 'rejected' ? <X size={18} /> : <Clock size={18} />}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-black text-gray-800 truncate max-w-[140px] uppercase">{item.email}</p>
+                  <p className="text-xs font-black text-gray-800 truncate uppercase">{item.email}</p>
                   <p className="text-[9px] text-gray-400 font-bold">{item.timestamp}</p>
                 </div>
               </div>
@@ -59,7 +60,8 @@ const UserHistory: React.FC<UserHistoryProps> = ({ submissions }) => {
               </div>
             )}
           </div>
-        ))
+        ))}
+        </div>
       )}
     </div>
   );

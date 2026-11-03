@@ -52,10 +52,10 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
   }, [userId]);
 
   return (
-    <div className="space-y-3 pb-6">
+    <div className="space-y-3 pb-6 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-start">
 
       {/* Header Profile Card */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border-gray-100 text-center relative overflow-hidden">
+      <div className="bg-white rounded-2xl p-5 lg:p-8 shadow-sm border-gray-100 text-center relative overflow-hidden lg:row-span-2">
         <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center border-4 border-white shadow-sm relative">
           <div className="text-blue-500 text-3xl font-black italic">{nama.charAt(0).toUpperCase()}</div>
           <div className="absolute -bottom-1 -right-1">
@@ -82,13 +82,13 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
       </div>
 
       {/* Grid Stats - Separated */}
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 lg:gap-4 lg:col-span-2">
         <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <CheckCircle2 size={16} className="text-emerald-500 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Tugas Diterima</p>
           <p className="text-base font-black text-gray-800">{tasksDone}</p> {/* UDAH DARI DB */}
         </div>
-        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <XIcon size={16} className="text-red-500 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Tugas Ditolak</p>
           <p className="text-base font-black text-gray-800">{tasksRejected}</p> {/* UDAH DARI DB */}
@@ -101,7 +101,7 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
           </div>
           <p className="text-base font-black text-gray-800">0</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <CreditCard size={16} className="text-purple-500 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Income Referral</p>
           <p className="text-base font-black text-gray-800">Rp. 0</p>
@@ -111,7 +111,7 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Honor Score</p>
           <p className="text-base font-black text-gray-800">100%</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex-col items-center">
+        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <Wallet size={16} className="text-emerald-600 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total Pendapatan</p>
           <p className="text-base font-black text-emerald-600">Rp. {totalIncome.toLocaleString('id-ID')}</p> {/* UDAH DARI DB */}
@@ -160,7 +160,7 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
 
       <button
         onClick={onLogout}
-        className="w-full mt-2 py-3 rounded-xl bg-white border-red-100 text-red-500 text-sm font-bold shadow-sm active:bg-red-50"
+        className="w-full mt-2 lg:mt-0 py-3 rounded-xl bg-white border-red-100 text-red-500 text-sm font-bold shadow-sm active:bg-red-50 lg:col-start-1"
       >
         Logout
       </button>

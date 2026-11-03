@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon } from 'lucide-react';
+import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './supabase'; // IMPORT SUPABASE
 
@@ -19,6 +19,8 @@ import SupportBubble from './components/SupportBubble';
 import CustomAlert from './components/CustomAlert';
 
 type AdminTab = 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
+
+const LOGO_URL = 'https://cdn.phototourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png';
 
 // 1. KONSTANTA DEFAULT USER BARU
 const DAILY_REWARD_LIMIT = 10;
@@ -514,9 +516,15 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
   }
 };
 
+  const goToSetoran = () => {
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3');
+    audio.play().catch(e => console.log('Audio play failed:', e));
+    navigate('/setoran'); // <- PENTING PAKE NAVIGATE
+  };
+
   // === 6. RETURN ===
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Sebentar ya...</div>
+    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Sebentar ya...</div>
   }
 
   if (userRole === 'guest') {
@@ -525,7 +533,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
     return (
     <div
-      className="min-h-screen bg-gray-50 text-gray-800 pb-24 font-sans select-none overflow-x-hidden"
+      className="min-h-screen bg-gray-50 text-gray-800 pb-28 lg:pb-10 font-sans select-none overflow-x-hidden"
       onContextMenu={(e) => e.preventDefault()}
     >
       <CustomAlert
@@ -544,16 +552,56 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     />
   )}
 
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-5 py-3 flex items-center justify-start border-b border-gray-100">
+      {/* Header (mobile & tablet) */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-5 py-3 flex items-center justify-start border-b border-gray-100">
         <img
-          src="https://cdn.phototourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png"
+          src={LOGO_URL}
           alt="Job Gmail Logo"
           className="h-10 w-auto object-contain"
         />
       </header>
 
-      <main className="pt-24 px-4 max-w-md mx-auto">
+      {/* Sidebar (desktop) */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-100 z-50 flex-col">
+        <div className="px-6 py-5 border-b border-gray-100">
+          <img src={LOGO_URL} alt="Job Gmail Logo" className="h-10 w-auto object-contain" />
+        </div>
+        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
+          {userRole === 'admin' ? (
+            <>
+              <SideNavItem active={location.pathname === '/admin'} onClick={() => { setAdminActiveTab('dashboard'); navigate('/admin'); }} icon={<LayoutDashboard size={20} />} label="Dashboard" />
+              <SideNavItem active={location.pathname === '/admin/setoran'} onClick={() => { setAdminActiveTab('setoran'); navigate('/admin/setoran'); }} icon={<Send size={20} />} label="Data Setoran" />
+              <SideNavItem active={location.pathname === '/admin/payout'} onClick={() => { setAdminActiveTab('payout'); navigate('/admin/payout'); }} icon={<CreditCard size={20} />} label="Payout" />
+              <SideNavItem active={location.pathname === '/admin/profil'} onClick={() => { setAdminActiveTab('profil'); navigate('/admin/profil'); }} icon={<User size={20} />} label="Profil" />
+            </>
+          ) : (
+            <>
+              <button
+                onClick={goToSetoran}
+                className={`w-full mb-4 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm uppercase tracking-wider text-white bg-gradient-to-br from-[#3DB8FF] to-[#168BFF] shadow-lg shadow-blue-200 transition-transform active:scale-95 ${location.pathname === '/setoran' ? 'ring-4 ring-blue-100' : ''}`}
+              >
+                <Inbox size={18} /> Setor Akun
+              </button>
+              <SideNavItem active={location.pathname === '/dashboard'} onClick={() => navigate('/dashboard')} icon={<Home size={20} />} label="Dashboard" />
+              <SideNavItem active={location.pathname === '/gacha'} onClick={() => navigate('/gacha')} icon={<Gift size={20} />} label="Gacha" />
+              <SideNavItem active={location.pathname === '/history'} onClick={() => navigate('/history')} icon={<HistoryIcon size={20} />} label="Riwayat Tugas" />
+              <SideNavItem active={location.pathname === '/withdraw'} onClick={() => navigate('/withdraw')} icon={<CreditCard size={20} />} label="Withdraw" />
+              <SideNavItem active={['/profil', '/penarikan', '/about-us'].includes(location.pathname)} onClick={() => navigate('/profil')} icon={<User size={20} />} label="Profil" />
+            </>
+          )}
+        </nav>
+        <div className="p-4 border-t border-gray-100">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={18} /> Logout
+          </button>
+        </div>
+      </aside>
+
+      <main className="pt-24 px-4 sm:px-6 lg:pt-8 lg:pl-72 lg:pr-8 w-full max-w-3xl lg:max-w-none mx-auto">
+        <div className="w-full lg:max-w-6xl lg:mx-auto">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
@@ -615,6 +663,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               userId={userId}
               savedData={withdrawDetails.method? withdrawDetails : undefined}
               showAlert={showAlert}
+              onBack={() => navigate('/profil')}
               onConfirm={(data) => {
                 setIsVerified(true);
                 setWithdrawDetails(data);
@@ -767,11 +816,12 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
             />
           } />
         </Routes>
+        </div>
       </main>
 
     {/* Bottom Navbar */}
 {userRole === 'admin' ? (
-  <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-between items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+  <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex justify-around items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
     <NavButton 
       active={location.pathname === '/admin'} 
       onClick={() => {setAdminActiveTab('dashboard'); navigate('/admin')}} // BALIKIN NAVIGATE
@@ -800,11 +850,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
     {/* Floating Setor Button */}
     <div className="floating-setor-wrapper">
-       <div className="floating-setor-btn" onClick={() => {
-          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3');
-          audio.play().catch(e => console.log('Audio play failed:', e));
-          navigate('/setoran'); // <- PENTING PAKE NAVIGATE
-       }}>
+       <div className="floating-setor-btn" onClick={goToSetoran}>
           <div className="setor-middle-ring">
              <div className="setor-inner-circle">
                 <Inbox size={26} className="text-white" />
@@ -832,6 +878,16 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     </div>
   );
 };
+const SideNavItem = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors ${active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`}
+  >
+    {icon}
+    <span>{label}</span>
+  </button>
+);
+
 const NavButtonPremium = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
   <div 
     className={`premium-nav-item ${active ? 'active' : ''}`}

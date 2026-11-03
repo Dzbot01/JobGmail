@@ -141,7 +141,7 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
   // === 7. LOADING STATE BIKIN BEDA ===
   if (initLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-[50vh] flex items-center justify-center">
         <div className="text-gray-500 text-sm">Memuat data...</div>
       </div>
     );
@@ -149,8 +149,8 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100">
-        <div className="flex items-center gap-4 mb-6">
+      <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-lg border-gray-100 lg:grid lg:grid-cols-2 lg:gap-x-10 lg:items-center">
+        <div className="flex items-center gap-4 mb-6 lg:col-span-2">
           <button onClick={onBack} className="p-2 bg-gray-50 rounded-full text-gray-600 hover:bg-gray-100">
             <ArrowLeft size={20} />
           </button>
@@ -318,7 +318,7 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
               </div>
             </>
           ) : (
-            <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex-col items-center justify-center gap-3 bg-gray-50/50">
+            <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 bg-gray-50/50">
               <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-500">
                 <Upload size={24} />
               </div>

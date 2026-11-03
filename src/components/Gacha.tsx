@@ -124,8 +124,8 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
 
   // UI LU TETEP 100% SAMA, GA GUE UBAH
   return (
-    <div className="space-y-6 pb-6">
-      <div className="bg-white rounded-2xl p-6 shadow-lg border-gray-100 text-center">
+    <div className="space-y-6 pb-6 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
+      <div className="bg-white rounded-2xl p-6 lg:p-10 shadow-lg border-gray-100 text-center lg:col-span-2">
         <h2 className="text-xl font-bold mb-2 text-gray-800">Lucky Spinner</h2>
         <p className="text-sm text-gray-500 mb-6 font-medium">Kamu punya <span className="font-bold text-blue-600">{spins}</span> jatah spin hari ini.</p>
 
@@ -168,7 +168,7 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
         <button
           onClick={handleSpin}
           disabled={spins === 0 || isSpinning}
-          className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg ${
+          className={`w-full sm:max-w-sm sm:mx-auto sm:block py-4 rounded-xl font-bold text-lg shadow-lg ${
             spins > 0 &&!isSpinning? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}
         >
@@ -176,7 +176,7 @@ const Gacha: React.FC<GachaProps> = ({ userId, spins, setSpins, setBalance, setT
         </button>
 
         {result!== null &&!isSpinning && (
-          <div className="mt-4 p-3 bg-yellow-50 border-yellow-100 rounded-xl flex items-center justify-center gap-2">
+          <div className="mt-4 p-3 bg-yellow-50 border-yellow-100 rounded-xl flex items-center justify-center gap-2 sm:max-w-sm sm:mx-auto">
             <Trophy className="text-yellow-600" size={20} />
             <span className="text-yellow-800 font-bold">
               {result === 0? 'Zonk! Coba lagi' : `Selamat! Kamu mendapatkan Rp. ${result}`}

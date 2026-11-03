@@ -34,8 +34,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 }) => {
   if (activeTab === 'dashboard') {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:col-span-2">
           <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100">
             <div className="bg-blue-50 w-10 h-10 rounded-xl flex items-center justify-center text-blue-600 mb-3">
               <Users size={20} />
@@ -58,7 +58,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       <p className="text-2xl font-black text-gray-800">${sgSpendable.toFixed(4)}</p> // spendable
     )}
           </div>
-          <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 col-span-2">
+          <div className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 col-span-2 lg:col-span-1">
             <div className="bg-purple-50 w-10 h-10 rounded-xl flex items-center justify-center text-purple-600 mb-3">
               <CreditCard size={20} />
             </div>
@@ -241,14 +241,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
              Belum ada setoran masuk
           </div>
         ) : (
-          submissions.map((sub) => (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {submissions.map((sub) => (
             <div key={sub.id} className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 space-y-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-2">
                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 flex-shrink-0">
                       <Mail size={16} />
                    </div>
-                   <p className="text-sm font-bold text-gray-700 break-all">{sub.email}</p>
+                   <p className="text-sm font-bold text-gray-700 break-all min-w-0">{sub.email}</p>
                 </div>
               </div>
               
@@ -280,7 +281,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               )}
             </div>
-          ))
+          ))}
+          </div>
         )}
       </div>
     );
@@ -295,7 +297,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
              Belum ada request withdraw
           </div>
         ) : (
-          withdrawRequests.map((req) => (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {withdrawRequests.map((req) => (
             <div key={req.id} className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                  <div>
@@ -346,7 +349,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
               )}
             </div>
-          ))
+          ))}
+          </div>
         )}
       </div>
     );
