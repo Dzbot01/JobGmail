@@ -4,6 +4,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import ElectricBorder from './ElectricBorder';
 import { Autoplay, Pagination } from 'swiper/modules';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import { withdrawScheduleText, WithdrawSchedule } from '../lib/settings';
 
 import 'swiper/css';
 import 'swiper/css/pagination';
@@ -461,7 +462,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
                <div className="space-y-2 sm:bg-blue-50/40 sm:border sm:border-blue-100 sm:rounded-2xl sm:p-5">
                   <h4 className="font-black text-blue-600 text-xs lg:text-sm uppercase tracking-tighter">Update Sistem Withdraw</h4>
                   <p className="text-xs lg:text-sm text-gray-600 leading-relaxed font-medium">
-                    Sistem Withdraw kini hanya tersedia pada hari Sabtu dan Minggu, Jika melakukan Withdraw di hari Sabtu maka akan di Proses pada hari minggu dan jika Withdraw di hari minggu maka akan di proses pada hari Senin. 
+                    {withdrawScheduleText(settings.withdrawSchedule as WithdrawSchedule)} Permintaan withdraw diproses maksimal 24 jam kerja.
                   </p>
                </div>
                <div className="h-px bg-gray-100 sm:hidden" />

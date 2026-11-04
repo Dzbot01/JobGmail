@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Users, Database, CreditCard, Loader2, CheckCircle, Mail, Settings, Wallet, ClipboardList, LogOut, ChevronRight, User as UserIcon } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -15,6 +15,8 @@ interface AdminPanelProps {
   sgEarned: number;
   sgSpendable: number;
   isLoadingSg: boolean;
+  /** Simpan pengaturan ke database (tabel app_settings) agar tersinkron ke semua user */
+  onSaveSettings?: () => Promise<void>;
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ 
@@ -30,8 +32,27 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onLogout,
   settings,
   updateSettings,
-  showAlert
+  showAlert,
+  onSaveSettings
 }) => {
+  const [savingSettings, setSavingSettings] = useState(false);
+  const saveAndBack = async (label: string) => {
+    setSavingSettings(true);
+    try {
+      if (onSaveSettings) await onSaveSettings();
+      showAlert('Berhasil!', `Setting ${label} disimpan & berlaku untuk semua user.`);
+      setTab('dashboard');
+    } catch (err: any) {
+      showAlert('Gagal!', 'Gagal menyimpan setting: ' + (err?.message || err), 'error');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  // Halaman Setor & Pay hanya menampilkan yang masih perlu diproses (riwayat tetap ada di akun user)
+  const pendingSubmissions = submissions.filter((s: any) => s.status === 'process');
+  const pendingWithdraws = withdrawRequests.filter((w: any) => w.status === 'process');
+
   if (activeTab === 'dashboard') {
     return (
       <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
@@ -146,10 +167,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               </p>
             </div>
             <button 
-              onClick={() => { showAlert("Berhasil!", "Setting withdraw berhasil disimpan!"); setTab('dashboard'); }}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg"
+              onClick={() => saveAndBack('withdraw')}
+              disabled={savingSettings}
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Simpan Perubahan
+              {savingSettings && <Loader2 size={18} className="animate-spin" />} Simpan Perubahan
             </button>
           </div>
         </div>
@@ -197,10 +219,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
               />
             </div>
             <button 
-              onClick={() => { showAlert("Berhasil!", "Setting tugas berhasil disimpan!"); setTab('dashboard'); }}
-              className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg"
+              onClick={() => saveAndBack('tugas')}
+              disabled={savingSettings}
+              className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Simpan Perubahan
+              {savingSettings && <Loader2 size={18} className="animate-spin" />} Simpan Perubahan
             </button>
           </div>
         </div>
@@ -235,14 +258,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   if (activeTab === 'setoran') {
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-gray-800 mb-2">Data Setoran User</h2>
-        {submissions.length === 0 ? (
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <h2 className="text-xl font-bold text-gray-800">Data Setoran User</h2>
+          <span className="text-xs font-bold text-orange-600">{pendingSubmissions.length} menunggu proses</span>
+        </div>
+        {pendingSubmissions.length === 0 ? (
           <div className="bg-white p-10 rounded-2xl shadow-lg text-center text-gray-400">
-             Belum ada setoran masuk
+             Tidak ada setoran yang menunggu diproses
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {submissions.map((sub) => (
+          {pendingSubmissions.map((sub) => (
             <div key={sub.id} className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 space-y-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-2">
@@ -291,14 +317,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   if (activeTab === 'payout') {
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-gray-800 mb-2 px-2">Withdrawal Requests</h2>
-        {withdrawRequests.length === 0 ? (
+        <div className="flex items-baseline justify-between gap-2 mb-2 px-2">
+          <h2 className="text-xl font-bold text-gray-800">Withdrawal Requests</h2>
+          <span className="text-xs font-bold text-orange-600">{pendingWithdraws.length} menunggu proses</span>
+        </div>
+        {pendingWithdraws.length === 0 ? (
           <div className="bg-white p-10 rounded-2xl shadow-lg text-center text-gray-400">
-             Belum ada request withdraw
+             Tidak ada request withdraw yang menunggu diproses
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {withdrawRequests.map((req) => (
+          {pendingWithdraws.map((req) => (
             <div key={req.id} className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                  <div>
