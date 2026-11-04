@@ -9,7 +9,8 @@ export const signInWithGoogle = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://job-gmail.vercel.app/auth/callback'
+      // Kembali ke domain yang sedang dibuka (produksi atau preview Vercel)
+      redirectTo: `${window.location.origin}/auth/callback`
     }
   });
   if (error) console.error(error);

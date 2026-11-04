@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { ChevronRight, Send, Eye, EyeOff, Loader } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronRight, Send, Eye, EyeOff, Loader, Timer, CheckCircle2 } from 'lucide-react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import OtpModal from './OtpModal';
+import { getSubmitCooldown, formatDuration, formatGap, COOLDOWN_STEPS_MS } from '../lib/submitCooldown';
 
 interface SetoranProps {
   isLoading: boolean;
@@ -12,6 +14,10 @@ interface SetoranProps {
   isLoading: boolean;
   onTaskSubmit: (data: { email: string, pass: string }) => void;
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
+  /** Email akun user yang login; tujuan pengiriman kode OTP */
+  userEmail: string;
+  /** Riwayat setoran milik user (kolom history) untuk menghitung jeda pengiriman */
+  submissions: Array<{ timestamp?: string }>;
   settings: {
     taskReward: number;
     taskPassword: string;
@@ -20,7 +26,37 @@ interface SetoranProps {
   };
 }
 
-const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, settings }) => {
+const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, settings, userEmail, submissions }) => {
+  // Jeda wajib antar pengiriman (10 menit, 30 menit, lalu 7 jam)
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const cooldown = useMemo(() => getSubmitCooldown(submissions || [], now), [submissions, now]);
+  const inCooldown = cooldown.waitMs > 0;
+
+  const checkCooldown = () => {
+    if (!inCooldown) return true;
+    showAlert(
+      'Tunggu Dulu!',
+      `Pengiriman ke-${cooldown.nextNumber} hari ini bisa dilakukan dalam ${formatDuration(cooldown.waitMs)}.`,
+      'error'
+    );
+    return false;
+  };
+
+  // Aksi setoran yang menunggu verifikasi OTP
+  const [pending, setPending] = useState<{ purpose: string; run: () => void } | null>(null);
+
+  const requireOtp = (purpose: string, run: () => void) => {
+    if (!userEmail) {
+      showAlert('Gagal!', 'Email akun tidak ditemukan. Silakan login ulang.', 'error');
+      return;
+    }
+    setPending({ purpose, run });
+  };
+
   // Single Account State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,10 +90,15 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
       return;
     }
 
-    onTaskSubmit({ email, pass: password });
-    setEmail('');
-    setPassword('');
-    setAgreed(false);
+    if (!checkCooldown()) return;
+
+    const submitted = { email, pass: password };
+    requireOtp(`setoran akun ${email}`, () => {
+      onTaskSubmit(submitted);
+      setEmail('');
+      setPassword('');
+      setAgreed(false);
+    });
   };
 
   const handleBulkSave = () => {
@@ -99,19 +140,65 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
       return;
     }
 
-    // Submit all accounts
-    emailList.forEach(mail => {
-      onTaskSubmit({ email: mail.trim(), pass: bulkPassword });
-    });
+    if (!checkCooldown()) return;
 
-    setBulkEmailsText('');
-    setBulkPassword('');
-    setBulkAgreed(false);
-    showAlert('Sukses!', `${emailList.length} Akun berhasil disetorkan!`, 'success');
+    const list = emailList.map(m => m.trim());
+    const pass = bulkPassword;
+    requireOtp(`setoran ${list.length} akun sekaligus`, () => {
+      // Submit all accounts
+      list.forEach(mail => {
+        onTaskSubmit({ email: mail, pass });
+      });
+
+      setBulkEmailsText('');
+      setBulkPassword('');
+      setBulkAgreed(false);
+      showAlert('Sukses!', `${list.length} Akun berhasil disetorkan!`, 'success');
+    });
   };
 
   return (
+    <>
+    <OtpModal
+      open={!!pending}
+      email={userEmail}
+      purpose={pending?.purpose || ''}
+      onClose={() => setPending(null)}
+      onVerified={() => {
+        const action = pending;
+        setPending(null);
+        action?.run();
+      }}
+    />
     <div className="space-y-8 pb-10 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+      {/* Status jeda pengiriman */}
+      <div className={`lg:col-span-2 rounded-2xl p-4 border flex items-start gap-3 ${inCooldown ? 'bg-orange-50 border-orange-200' : 'bg-emerald-50 border-emerald-100'}`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${inCooldown ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
+          {inCooldown ? <Timer size={20} /> : <CheckCircle2 size={20} />}
+        </div>
+        <div className="min-w-0 flex-1">
+          {inCooldown ? (
+            <>
+              <p className="text-xs font-black text-orange-700 uppercase tracking-wide">Jeda pengiriman aktif</p>
+              <p className="text-sm text-orange-800 mt-0.5">
+                Pengiriman ke-{cooldown.nextNumber} hari ini bisa dilakukan dalam{' '}
+                <span className="font-black tabular-nums">{formatDuration(cooldown.waitMs)}</span>
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-black text-emerald-700 uppercase tracking-wide">Siap kirim</p>
+              <p className="text-sm text-emerald-800 mt-0.5">
+                Ini akan menjadi pengiriman ke-{cooldown.nextNumber} hari ini.
+              </p>
+            </>
+          )}
+          <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed">
+            Aturan jeda: pengiriman ke-2 menunggu {formatGap(COOLDOWN_STEPS_MS[0])}, ke-3 menunggu {formatGap(COOLDOWN_STEPS_MS[1])}, ke-4 dan seterusnya menunggu {formatGap(COOLDOWN_STEPS_MS[2])}. Setoran bulk dihitung 1 kali pengiriman. Hitungan direset setiap hari.
+          </p>
+        </div>
+      </div>
+
       {/* SECTION 1: SINGLE */}
       <div className="space-y-3">
         <p className="px-2 text-[10px] font-black text-gray-400 uppercase tracking-widest leading-tight">
@@ -202,13 +289,13 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
 
    <button 
   type="submit"
-  disabled={!agreed || isLoading} // 1. Tambah isLoading ke disabled
+  disabled={!agreed || isLoading || inCooldown} // 1. Tambah isLoading ke disabled
   className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg ${
-    agreed && !isLoading ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed' // 2. Tambah !isLoading
+    agreed && !isLoading && !inCooldown ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed' // 2. Tambah !isLoading
   }`}
 >
   {isLoading ? <Loader size={18} className="animate-spin" /> : <Send size={18} />} {/* 3. Ganti icon pas loading */}
-  {isLoading ? 'Mengirim...' : 'Kirim Setoran'} {/* 4. Ganti text pas loading */}
+  {isLoading ? 'Mengirim...' : inCooldown ? `Tunggu ${formatDuration(cooldown.waitMs)}` : 'Kirim Setoran'} {/* 4. Ganti text pas loading */}
 </button>
           </form>
         </div>
@@ -322,12 +409,12 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
                 </button>
                 <button 
                   type="submit"
-                  disabled={!bulkAgreed || emailList.length < 10}
+                  disabled={!bulkAgreed || emailList.length < 10 || inCooldown}
                   className={`py-3 px-4 rounded-xl font-black text-xs uppercase shadow-lg transition-all ${
-                    bulkAgreed && emailList.length >= 10 ? 'bg-emerald-600 text-white shadow-emerald-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                    bulkAgreed && emailList.length >= 10 && !inCooldown ? 'bg-emerald-600 text-white shadow-emerald-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                   }`}
                 >
-                  Setor Sekarang
+                  {inCooldown ? `Tunggu ${formatDuration(cooldown.waitMs)}` : 'Setor Sekarang'}
                 </button>
               </div>
             </div>
@@ -335,6 +422,7 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
         </div>
       </div>
     </div>
+    </>
   );
 };
 
