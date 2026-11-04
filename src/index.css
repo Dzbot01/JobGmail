@@ -21,6 +21,116 @@
   animation: marquee 15s linear infinite;
 }
 
+/* ===== Marquee dashboard: loop mulus tanpa kartu =====
+   Dua salinan identik bersebelahan; track digeser tepat -50% lalu berulang,
+   sehingga awal salinan ke-2 menggantikan salinan ke-1 tanpa lompatan. */
+@keyframes marquee-seamless {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-seamless 28s linear infinite;
+  will-change: transform;
+}
+.marquee-mask:hover .marquee-track { animation-play-state: paused; }
+.marquee-group { display: flex; flex-shrink: 0; }
+.marquee-item {
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #1f2937;
+  white-space: nowrap;
+  padding-right: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+.marquee-dot { color: #94a3b8; margin-left: 20px; font-size: 12px; }
+.neon { font-weight: 800; }
+.neon-cyan { color: #00b8d9; text-shadow: 0 0 6px rgba(0, 229, 255, .55), 0 0 14px rgba(0, 229, 255, .35); }
+.neon-pink { color: #e600a8; text-shadow: 0 0 6px rgba(255, 0, 200, .5), 0 0 14px rgba(255, 0, 200, .3); }
+.neon-lime { color: #16b800; text-shadow: 0 0 6px rgba(57, 255, 20, .55), 0 0 14px rgba(57, 255, 20, .35); }
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation-duration: 80s; }
+}
+
+/* ===== Ikon WhatsApp 3D beranimasi ===== */
+.wa3d { position: relative; width: 56px; height: 64px; perspective: 400px; }
+.wa3d-tile {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: #fff;
+  background: radial-gradient(circle at 30% 25%, #7dfca5 0%, #2fd566 38%, #12a84a 75%, #0b7f37 100%);
+  box-shadow:
+    inset 0 3px 5px rgba(255, 255, 255, .55),
+    inset 0 -6px 10px rgba(0, 70, 25, .45),
+    0 5px 0 #0a6e30,
+    0 12px 20px rgba(16, 185, 80, .45);
+  transform-style: preserve-3d;
+  animation: wa3d-float 3.2s ease-in-out infinite;
+}
+.wa3d-glyph {
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 2px 0 rgba(0, 80, 30, .55)) drop-shadow(0 4px 6px rgba(0, 0, 0, .25));
+  transform: translateZ(14px);
+  animation: wa3d-wiggle 3.2s ease-in-out infinite;
+}
+.wa3d-shine {
+  position: absolute;
+  inset: -40% auto -40% -60%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent);
+  transform: skewX(-20deg);
+  animation: wa3d-shine 3.2s ease-in-out infinite;
+}
+.wa3d-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 40px;
+  height: 8px;
+  margin-left: -20px;
+  border-radius: 50%;
+  background: rgba(6, 95, 70, .28);
+  filter: blur(3px);
+  animation: wa3d-shadow 3.2s ease-in-out infinite;
+}
+@keyframes wa3d-float {
+  0%, 100% { transform: translateY(0) rotateX(8deg) rotateY(-14deg); }
+  50% { transform: translateY(-6px) rotateX(-6deg) rotateY(14deg); }
+}
+@keyframes wa3d-wiggle {
+  0%, 70%, 100% { transform: translateZ(14px) rotate(0); }
+  76% { transform: translateZ(14px) rotate(-12deg) scale(1.06); }
+  82% { transform: translateZ(14px) rotate(10deg) scale(1.06); }
+  88% { transform: translateZ(14px) rotate(-6deg); }
+}
+@keyframes wa3d-shine {
+  0%, 55% { left: -60%; }
+  80%, 100% { left: 130%; }
+}
+@keyframes wa3d-shadow {
+  0%, 100% { transform: scaleX(1); opacity: .9; }
+  50% { transform: scaleX(.75); opacity: .5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wa3d-tile, .wa3d-glyph, .wa3d-shine, .wa3d-shadow { animation: none; }
+}
+
 /* Restored Premium Baseline Bottom Navbar */
 .premium-nav-container {
   position: fixed;

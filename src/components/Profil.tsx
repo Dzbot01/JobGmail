@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BadgeCheck, XCircle, Wallet, Info, ChevronRight, CheckCircle2, XCircle as XIcon, Users, CreditCard, ShieldCheck } from 'lucide-react';
 import { supabase } from '../supabase';
+import { Copy, Check, Gift } from 'lucide-react';
+import { buildReferralLink, fetchReferralSummary, maskEmail, REFERRAL_REWARD, ReferralSummary } from '../lib/referral';
 
 interface ProfilProps {
   tasksDone: number; // <- ini udah ga kepake tapi biarin aja biar ga error di App
@@ -20,6 +22,33 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
   const [tasksDone, setTasksDone] = useState(0);
   const [tasksRejected, setTasksRejected] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
+
+  // Referral
+  const [referral, setReferral] = useState<ReferralSummary>({ invitees: [], earnings: 0, available: true });
+  const [copied, setCopied] = useState(false);
+  const referralLink = userId ? buildReferralLink(userId) : '';
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchReferralSummary(userId).then(setReferral).catch(err => console.error('Gagal load referral:', err));
+  }, [userId]);
+
+  const copyReferral = async () => {
+    if (!referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+    } catch {
+      // Fallback untuk browser yang memblokir clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = referralLink;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -97,14 +126,13 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
           <Users size={16} className="text-blue-500 mb-1.5" />
           <div className="flex flex-col items-center">
              <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Referrals</p>
-             <span className="text-[7px] bg-blue-50 text-blue-600 px-1 rounded font-black -mt-0.5">COMING SOON</span>
           </div>
-          <p className="text-base font-black text-gray-800">0</p>
+          <p className="text-base font-black text-gray-800">{referral.invitees.length}</p>
         </div>
         <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <CreditCard size={16} className="text-purple-500 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Income Referral</p>
-          <p className="text-base font-black text-gray-800">Rp. 0</p>
+          <p className="text-base font-black text-purple-600">Rp. {referral.earnings.toLocaleString('id-ID')}</p>
         </div>
         <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <ShieldCheck size={16} className="text-blue-600 mb-1.5" />
@@ -119,15 +147,47 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
       </div>
 
       {/* Referral Card */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border-gray-100 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-full -mr-10 -mt-10 opacity-50" />
-        <h3 className="font-black text-xs text-blue-600 uppercase tracking-wider mb-1.5">URL Referral</h3>
-        <p className="text-[10px] text-gray-500 font-medium leading-snug mb-3 pr-2">
-          Ayo undang teman mu untuk bergabung dan dapatkan komisi registrasi sebanyak <span className="text-emerald-600 font-black">Rp. 500</span>
+      <div className="bg-white rounded-2xl p-4 lg:p-5 shadow-sm border-gray-100 overflow-hidden relative lg:col-span-2">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-full -mr-10 -mt-10 opacity-70" />
+        <div className="relative flex items-center gap-2 mb-1.5">
+          <Gift size={16} className="text-purple-600" />
+          <h3 className="font-black text-xs text-purple-600 uppercase tracking-wider">URL Referral</h3>
+        </div>
+        <p className="relative text-[11px] text-gray-500 font-medium leading-snug mb-3 pr-2">
+          Undang teman mu untuk bergabung. Kamu dapat bonus saldo <span className="text-emerald-600 font-black">Rp {REFERRAL_REWARD}</span> setiap
+          kali tugas teman yang kamu undang <b>diterima admin</b> (tugas berstatus proses atau ditolak tidak dihitung).
         </p>
-        <div className="bg-gray-50 p-2 rounded-xl border-dashed border-gray-200 flex items-center justify-between">
-           <span className="text-[9px] text-gray-400 font-mono truncate mr-2">Coming Soon..</span>
-           <button className="bg-blue-600 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase shadow-sm active:scale-95 whitespace-nowrap">Copy</button>
+        <div className="relative bg-gray-50 p-2 rounded-xl border border-dashed border-gray-200 flex items-center justify-between gap-2">
+          <span className="text-[10px] text-gray-600 font-mono truncate" title={referralLink}>{referralLink || '-'}</span>
+          <button
+            onClick={copyReferral}
+            disabled={!referralLink}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase shadow-sm active:scale-95 whitespace-nowrap ${copied ? 'bg-emerald-500 text-white' : 'bg-blue-600 text-white'}`}
+          >
+            {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? 'Tersalin' : 'Copy'}
+          </button>
+        </div>
+
+        {!referral.available && (
+          <p className="relative text-[10px] text-orange-500 font-bold mt-2">Fitur referral sedang disiapkan.</p>
+        )}
+
+        <div className="relative mt-4">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Teman yang diundang ({referral.invitees.length})</p>
+          {referral.invitees.length === 0 ? (
+            <p className="text-[11px] text-gray-400">Belum ada teman yang mendaftar lewat link kamu.</p>
+          ) : (
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {referral.invitees.map((inv, i) => (
+                <div key={i} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-[11px] font-bold text-gray-700 truncate">{maskEmail(inv.email)}</span>
+                  <span className="text-[10px] font-black text-emerald-600 whitespace-nowrap">
+                    {inv.paidTasks} tugas · +Rp {(inv.paidTasks * REFERRAL_REWARD).toLocaleString('id-ID')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
