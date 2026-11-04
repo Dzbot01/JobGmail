@@ -21,7 +21,8 @@ interface WithdrawPageProps {
   balance: number;
   history: HistoryItem[];
   onBack: () => void;
-  onWithdrawSuccess: (amount: number) => void;
+  /** Potong saldo & catat withdraw. Mengembalikan true jika berhasil. */
+  onWithdrawSuccess: (amount: number) => Promise<boolean>;
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
 }
 
@@ -36,7 +37,11 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ withdrawSchedule, userEmail
   const isOpen = isWithdrawOpen(withdrawSchedule);
   const scheduleText = withdrawScheduleText(withdrawSchedule);
 
-  const handleWithdraw = async () => { 
+  const amountNum = parseInt(amount) || 0;
+  const overBalance = amountNum > balance;
+
+  const handleWithdraw = async () => {
+    if (isLoading) return; // cegah klik ganda
     if (!isOpen) {
       showAlert("Withdraw Ditutup", scheduleText, "error");
       return;
@@ -46,47 +51,38 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ withdrawSchedule, userEmail
       showAlert("Gagal!", "Minimal penarikan Rp. 1.000", "error");
       return;
     }
-    
+    if (numAmount > balance) {
+      showAlert("Saldo Tidak Cukup", `Saldo kamu Rp ${balance.toLocaleString('id-ID')}. Jumlah withdraw tidak boleh melebihi saldo.`, "error");
+      return;
+    }
+
     setIsLoading(true);
+    const container = document.querySelector('.u-container');
+    container?.classList.add('animating');
     try {
-      // 1. KIRIM EMAIL DULU
-      const { data: { session }} = await supabase.auth.getSession(); // <- kurungnya udah gua benerin
+      // 1. POTONG SALDO DULU (divalidasi ulang dengan saldo terbaru di database)
+      const ok = await onWithdrawSuccess(numAmount);
+      if (!ok) return;
+
+      // 2. BARU KIRIM EMAIL KONFIRMASI
+      const { data: { session }} = await supabase.auth.getSession();
       const { error: emailError } = await supabase.functions.invoke('kirim-email-withdraw', {
-        body: { 
-          email_user: userEmail,
-          amount: numAmount
-        },
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`
-        }
+        body: { email_user: userEmail, amount: numAmount },
+        headers: { Authorization: `Bearer ${session?.access_token}` }
       });
-      if(emailError) console.error('Gagal kirim email withdraw:', emailError.message);
+      if (emailError) console.error('Gagal kirim email withdraw:', emailError.message);
 
-      // 2. JALANIN ANIMASI + UPDATE STATE
-      const container = document.querySelector('.u-container');
-      if (container) {
-        container.classList.add('animating');
-        setTimeout(() => {
-          onWithdrawSuccess(numAmount);
-          setAmount('');
-          setActiveSubTab('history');
-          container.classList.remove('animating');
-        }, 1500);
-      } else {
-        onWithdrawSuccess(numAmount);
-        setAmount('');
-        setActiveSubTab('history');
-      }
-      
+      setAmount('');
+      setActiveSubTab('history');
       showAlert("Sukses!", "Permintaan withdraw dikirim. Cek email kamu.", "success");
-
-    } catch(err: any) {
+    } catch (err: any) {
       console.error(err);
       showAlert("Error", "Gagal memproses withdraw: " + err.message, "error");
     } finally {
+      setTimeout(() => container?.classList.remove('animating'), 600);
       setIsLoading(false);
     }
-  }; 
+  };
 
   return (
     <div className="space-y-6">
@@ -124,7 +120,9 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ withdrawSchedule, userEmail
                 <button 
                   key={val}
                   onClick={() => setAmount(val.toString())}
-                  className="py-3 px-1 rounded-xl border border-gray-100 bg-gray-50 text-xs font-bold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition-colors active:scale-95"
+                  disabled={val > balance}
+                  title={val > balance ? 'Melebihi saldo' : undefined}
+                  className="py-3 px-1 rounded-xl border border-gray-100 bg-gray-50 text-xs font-bold text-gray-700 hover:border-blue-400 hover:bg-blue-50 transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-100 disabled:hover:bg-gray-50"
                 >
                   Rp {val.toLocaleString('id-ID')}
                 </button>
@@ -145,7 +143,15 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ withdrawSchedule, userEmail
                     className="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:border-blue-400 focus:bg-white outline-none font-bold text-lg"
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 mt-2 italic">Minimal penarikan Rp. 1.000</p>
+                <div className="flex items-center justify-between mt-2 gap-2">
+                  <p className="text-[10px] text-gray-400 italic">Minimal penarikan Rp. 1.000</p>
+                  <button type="button" onClick={() => setAmount(String(balance))} className="text-[10px] font-bold text-blue-600 whitespace-nowrap">
+                    Saldo: Rp {balance.toLocaleString('id-ID')} · Tarik semua
+                  </button>
+                </div>
+                {overBalance && (
+                  <p className="text-[11px] text-red-500 font-bold mt-1">Jumlah melebihi saldo kamu.</p>
+                )}
               </div>
             </div>
 
@@ -175,7 +181,12 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ withdrawSchedule, userEmail
 
             <div className="flex justify-center mt-8 lg:col-start-1">
   {isOpen ? (
-    <div className="u-container" onClick={handleWithdraw}>
+    <div
+      className={`u-container ${overBalance || isLoading ? 'opacity-50 pointer-events-none' : ''}`}
+      onClick={handleWithdraw}
+      role="button"
+      aria-disabled={overBalance || isLoading}
+    >
       <div className="left-side">
         <div className="u-card">
           <div className="card-line"></div>
