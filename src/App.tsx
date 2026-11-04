@@ -810,8 +810,8 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
           <Route path="/history" element={<UserHistory submissions={allSubmissions} />} />
 
           {/* TOP UP (Tripay) */}
-          <Route path="/topup" element={<TopupPage userId={userId} balance={balance} onBalanceChange={refreshBalance} showAlert={showAlert} />} />
-          <Route path="/topup/pay/:reference" element={<TopupPay onBalanceChange={refreshBalance} showAlert={showAlert} />} />
+          <Route path="/topup" element={<TopupPage userId={userId} userEmail={userEmail} balance={balance} onBalanceChange={refreshBalance} showAlert={showAlert} />} />
+          <Route path="/topup/pay/:reference" element={<TopupPay userEmail={userEmail} onBalanceChange={refreshBalance} showAlert={showAlert} />} />
           <Route path="/topup/:code" element={<TopupConfirm userId={userId} userEmail={userEmail} username={username} showAlert={showAlert} />} />
 
           {/* MARKETPLACE PEKERJAAN */}

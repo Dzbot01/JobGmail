@@ -58,3 +58,14 @@ Sebelum migrasi dijalankan, halaman menampilkan pesan "Fitur Cari Pekerjaan belu
   - Deskripsi singkat terpotong 50 karakter; pekerjaan baru tersimpan dengan kolom bernama (`email`, `screenshot_selesai: image_url`).
   - Terima & Bayar: status `paid`, saldo pembuat −1.000, pekerja +1.000.
   - Tanpa error JS & tanpa overflow horizontal.
+
+## 5. Review kiriman oleh pembuat pekerjaan (tambahan 2026-11-04)
+
+- Kiriman pekerja tersimpan di tabel `job_submissions` (jawaban kolom submit dalam `answers`).
+- Panel **Pekerjaan Saya** (mode Pencari Pekerja) memuat semua kiriman sekaligus dan menampilkan badge
+  "N kiriman menunggu review" per pekerjaan.
+- **Terima & Bayar**: konfirmasi → RPC `review_job_submission` memindahkan bayaran dari saldo pembuat ke pekerja.
+- **Tolak**: modal dengan kolom **Alasan Penolakan wajib** (min. 5, maks. 300 karakter). Alasan disimpan di
+  `job_submissions.reason`, tampil di panel pembuat dan di halaman Kerjakan Tugas milik pekerja; slot dikembalikan.
+- Validasi: Playwright (375 & 1440 px) — badge pending, tombol Tolak nonaktif saat alasan kosong/< 5 karakter,
+  tolak dengan alasan → status `rejected`, alasan tersimpan & tampil, modal tertutup, tanpa error JS.

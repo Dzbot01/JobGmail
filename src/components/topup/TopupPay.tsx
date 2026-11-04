@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Copy, Check, ExternalLink, Loader2, RefreshCw, CheckCircle2, Clock, XCircle, ChevronDown } from 'lucide-react';
-import { TripayTransaction, claimTopup, fetchTransaction, formatRp } from '../../lib/tripay';
+import { TripayTransaction, claimTopupAndNotify, fetchTransaction, formatRp } from '../../lib/tripay';
 
 interface Props {
+  userEmail: string;
   onBalanceChange: () => void;
   showAlert: (message: string, subtext: string, type?: 'success' | 'error') => void;
 }
 
 const POLL_MS = 10000;
 
-const TopupPay: React.FC<Props> = ({ onBalanceChange, showAlert }) => {
+const TopupPay: React.FC<Props> = ({ userEmail, onBalanceChange, showAlert }) => {
   const { reference = '' } = useParams();
   const navigate = useNavigate();
   const [tx, setTx] = useState<TripayTransaction | null>(() => {
@@ -34,9 +35,10 @@ const TopupPay: React.FC<Props> = ({ onBalanceChange, showAlert }) => {
       setError('');
       if (st === 'PAID' && !creditedRef.current) {
         // Database memverifikasi ulang ke Tripay sebelum menambah saldo
-        const res = await claimTopup(reference);
+        const deposit = fresh.order_items?.reduce((s, it) => s + it.price * (it.quantity || 1), 0) ?? 0;
+        const res = await claimTopupAndNotify(reference, userEmail, { amount: deposit, method: fresh.payment_name || fresh.payment_method });
         creditedRef.current = true;
-        if (res.credited) showAlert('Top Up Berhasil!', `${formatRp(res.amount || 0)} sudah masuk ke saldo kamu.`, 'success');
+        if (res.credited) showAlert('Top Up Berhasil!', `${formatRp(res.amount || 0)} sudah masuk ke saldo kamu. Bukti dikirim ke email.`, 'success');
         onBalanceChange();
       } else if (manual && st === 'UNPAID') {
         showAlert('Belum Dibayar', 'Pembayaran belum kami terima. Selesaikan pembayaran lalu cek lagi.', 'error');
@@ -47,7 +49,7 @@ const TopupPay: React.FC<Props> = ({ onBalanceChange, showAlert }) => {
     } finally {
       setChecking(false);
     }
-  }, [reference, onBalanceChange, showAlert]);
+  }, [reference, userEmail, onBalanceChange, showAlert]);
 
   useEffect(() => { check(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [reference]);
 

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusCircle, Loader2, RefreshCw, ChevronRight, Wallet, Clock, CheckCircle2, XCircle } from 'lucide-react';
-import { TopupRow, TripayChannel, claimTopup, fetchChannels, formatRp, listMyTopups, MIN_TOPUP, topupErrorMessage, channelMin } from '../../lib/tripay';
+import { TopupRow, TripayChannel, claimTopupAndNotify, fetchChannels, formatRp, listMyTopups, MIN_TOPUP, topupErrorMessage, channelMin } from '../../lib/tripay';
 
 interface Props {
   userId: string;
+  userEmail: string;
   balance: number;
   onBalanceChange: () => void;
   showAlert: (message: string, subtext: string, type?: 'success' | 'error') => void;
@@ -20,7 +21,7 @@ const statusBadge: Record<string, { cls: string; icon: React.ReactNode; label: s
   REFUND: { cls: 'bg-blue-100 text-blue-600', icon: <XCircle size={12} />, label: 'Refund' },
 };
 
-const TopupPage: React.FC<Props> = ({ userId, balance, onBalanceChange, showAlert }) => {
+const TopupPage: React.FC<Props> = ({ userId, userEmail, balance, onBalanceChange, showAlert }) => {
   const navigate = useNavigate();
   const [channels, setChannels] = useState<TripayChannel[]>(() => {
     try { return JSON.parse(sessionStorage.getItem(CACHE_KEY) || '[]'); } catch { return []; }
@@ -53,7 +54,7 @@ const TopupPage: React.FC<Props> = ({ userId, balance, onBalanceChange, showAler
       let credited = false;
       for (const r of pending) {
         try {
-          const res = await claimTopup(r.reference!);
+          const res = await claimTopupAndNotify(r.reference!, userEmail, { amount: r.amount, method: r.method_name || r.method });
           if (res.credited) {
             credited = true;
             showAlert('Top Up Berhasil!', `${formatRp(res.amount || r.amount)} masuk ke saldo kamu.`, 'success');

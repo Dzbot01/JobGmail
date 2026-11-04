@@ -54,3 +54,10 @@ Menu Top Up: sidebar desktop, panel tarik navbar mobile, dan tombol di kartu sal
   - Cek status saat belum bayar → saldo tetap 5.000; setelah PAID → saldo 55.000; klik ulang & buka ulang → tetap 55.000 (1 kali klaim).
   - Setelah top up, mode Pencari terbuka.
   - Tanpa migrasi → tidak ada transaksi Tripay dibuat, pesan "Fitur Top Up belum aktif".
+
+## 5. Email "Deposit Sukses" (tambahan 2026-11-04)
+
+- Setelah `claim_topup` mengembalikan `credited: true` (hanya sekali per transaksi), aplikasi mengirim email
+  "Deposit Sukses Rp …" lewat endpoint Resend yang sama (`src/lib/emailApi.ts`): nominal, metode, referensi, waktu (WIB).
+- Klaim ulang / halaman dibuka ulang tidak mengirim email lagi (server tidak mengkredit dua kali).
+- Validasi: Playwright — 1 email ke alamat user setelah PAID (berisi nominal & referensi); setelah cek ulang dan buka ulang halaman tetap 1 email.

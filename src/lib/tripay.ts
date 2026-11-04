@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { sendEmail, emailLayout, escapeHtml } from './emailApi';
 
 /**
  * Top Up via Tripay melalui Cloudflare Worker (API key Tripay hanya ada di worker).
@@ -171,3 +172,35 @@ export async function claimTopup(reference: string): Promise<{ status: string; c
 }
 
 export const formatRp = (n: number) => `Rp ${Number(n || 0).toLocaleString('id-ID')}`;
+
+/** Email "Deposit Sukses" (Resend via worker). */
+export async function sendDepositSuccessEmail(to: string, info: { amount: number; method: string; reference: string }) {
+  if (!to) return;
+  const rows = [
+    ['Nominal', formatRp(info.amount)],
+    ['Metode', info.method || '-'],
+    ['Referensi', info.reference],
+    ['Waktu', new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB'],
+  ]
+    .map(([k, v]) => `<tr><td style="padding:6px 0;color:#6b7280;">${escapeHtml(k)}</td><td style="padding:6px 0;text-align:right;font-weight:bold;color:#111827;">${escapeHtml(v)}</td></tr>`)
+    .join('');
+  const body = `
+    <p>Deposit kamu berhasil dan saldo sudah ditambahkan ke akun Job Gmail.</p>
+    <p style="margin:20px 0;font-size:28px;font-weight:bold;color:#059669;">+ ${escapeHtml(formatRp(info.amount))}</p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;border-top:1px solid #e5e7eb;">${rows}</table>
+    <p style="margin-top:20px;color:#6b7280;font-size:12px;">Simpan email ini sebagai bukti transaksi. Jika kamu tidak merasa melakukan deposit, segera hubungi admin.</p>`;
+  const res = await sendEmail({ to, subject: `Deposit Sukses ${formatRp(info.amount)} - Job Gmail`, html: emailLayout('Deposit Sukses', body) });
+  if (!res.ok) console.error('Gagal kirim email deposit:', res.error);
+}
+
+/**
+ * Klaim saldo top up; jika server BARU SAJA mengkreditkan saldo (credited = true, terjadi sekali per
+ * transaksi), kirim email "Deposit Sukses". Klaim ulang tidak mengirim email lagi.
+ */
+export async function claimTopupAndNotify(reference: string, email: string, info: { amount: number; method: string }) {
+  const res = await claimTopup(reference);
+  if (res.credited) {
+    sendDepositSuccessEmail(email, { amount: res.amount || info.amount, method: info.method, reference }).catch(() => {});
+  }
+  return res;
+}
