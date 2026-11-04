@@ -606,8 +606,14 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
       <main className="pt-24 px-4 sm:px-6 lg:pt-8 lg:pl-72 lg:pr-8 w-full max-w-3xl lg:max-w-none mx-auto">
         <div className="w-full lg:max-w-6xl lg:mx-auto">
+        {/* Arahkan sesuai peran sebelum halaman dirender, agar admin tidak sempat melihat dashboard user */}
+        {userRole === 'admin' && !location.pathname.startsWith('/admin') ? (
+          <Navigate to="/admin" replace />
+        ) : userRole === 'user' && location.pathname.startsWith('/admin') ? (
+          <Navigate to="/dashboard" replace />
+        ) : (
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to={userRole === 'admin' ? '/admin' : '/dashboard'} replace />} />
 
           {/* USER ROUTES */}
           <Route path="/dashboard" element={
@@ -643,6 +649,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
             <Setoran
              isLoading={isLoading}
               userEmail={userEmail}
+              submissions={allSubmissions}
               onTaskSubmit={handleTaskSubmit}
               showAlert={showAlert}
               settings={{...systemSettings, withdrawDetailsSet:!!withdrawDetails.method}}
@@ -831,6 +838,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
             />
           } />
         </Routes>
+        )}
         </div>
       </main>
 
