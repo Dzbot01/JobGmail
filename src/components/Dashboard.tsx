@@ -16,9 +16,12 @@ interface DashboardProps {
     taskReward: number;
     withdrawSchedule: string;
   };
+  userEmail?: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, isMusicPlaying }) => {
+const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, isMusicPlaying, userEmail }) => {
+  // Username = prefix email yang dipakai mendaftar
+  const username = (userEmail || '').split('@')[0] || 'Member';
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showInfoBoard, setShowInfoBoard] = useState(false);
   const [fakeLogs, setFakeLogs] = useState<any[]>([]);
@@ -119,15 +122,15 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
   };
 
   return (
-    <div className="-mx-4 sm:-mx-6 lg:mx-0 -mt-4 lg:mt-0 bg-gray-50/30">
+    <div className="-mx-4 sm:-mx-6 lg:mx-0 -mt-8 bg-gray-50/30">
       {/* Premium Fintech Header Section (DANA Style) */}
-      <div className="bg-gradient-to-b from-[#118eea] to-[#005cbb] h-44 lg:h-48 rounded-b-[48px] lg:rounded-[32px] relative overflow-hidden">
+      <div className="bg-gradient-to-b from-[#118eea] to-[#005cbb] h-48 rounded-b-[48px] lg:rounded-b-[32px] relative overflow-hidden">
          <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
          <div className="absolute top-20 -left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
          
-         <div className="px-8 lg:px-10 pt-8 text-white">
+         <div className="px-8 lg:px-10 pt-9 text-white">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Dashboard Utama</p>
-            <h1 className="text-lg lg:text-2xl font-black tracking-tight mt-1 text-white">Hello, Member!</h1>
+            <h1 className="text-lg lg:text-2xl font-black tracking-tight mt-1 text-white truncate">Halo, {username}!</h1>
          </div>
       </div>
 
@@ -178,16 +181,19 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
           </button>
         </div>
 
-        {/* Marquee Welcome Line - WHITE, FULL WIDTH */}
-        <div className="bg-white -mx-4 sm:-mx-6 lg:mx-0 px-4 py-3 shadow-sm border-y border-gray-100 lg:border lg:rounded-2xl lg:col-span-2">
-          <div className="overflow-hidden">
-            <div className="whitespace-nowrap animate-marquee flex items-center gap-4">
-               <span className="text-[11px] font-bold text-gray-500 uppercase tracking-tight">
-                 Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu. &bull; 
-                 Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu. &bull; 
-                 Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu.
-               </span>
-            </div>
+        {/* Marquee: tanpa kartu, loop mulus (2 salinan identik, geser -50%) */}
+        <div className="marquee-mask -mx-4 sm:-mx-6 lg:mx-0 py-1 overflow-hidden" aria-label="Selamat datang! Kerjakan tugas untuk mulai dapatkan penghasilan pertama mu.">
+          <div className="marquee-track" aria-hidden="true">
+            {[0, 1].map(copy => (
+              <div key={copy} className="marquee-group">
+                {[0, 1, 2].map(i => (
+                  <span key={i} className="marquee-item">
+                    <span className="neon neon-cyan">Selamat datang!</span> Kerjakan <span className="neon neon-pink">tugas</span> untuk mulai dapatkan <span className="neon neon-lime">penghasilan pertama</span> mu.
+                    <span className="marquee-dot">✦</span>
+                  </span>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -198,10 +204,14 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
           rel="noopener noreferrer"
           className="bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl p-5 flex items-center gap-4 active:scale-[0.98] transition-all"
         >
-          <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-200 flex-shrink-0">
-             <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
+          <div className="wa3d flex-shrink-0" aria-hidden="true">
+            <div className="wa3d-tile">
+              <span className="wa3d-shine" />
+              <svg viewBox="0 0 24 24" fill="currentColor" className="wa3d-glyph">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.353-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.216 1.36.186 1.871.123.57-.07 1.758-.47 2.011-1.24.252-.772.252-1.438.177-1.581-.075-.143-.269-.223-.566-.372zM12.003 21c-1.74 0-3.41-.449-4.91-1.304l-.352-.208-3.65.958 1.006-3.468-.244-.38A8.931 8.931 0 0 1 2.5 12.1c0-4.963 4.04-9 9-9 2.404 0 4.66.936 6.36 2.636a8.956 8.93 0 0 1 2.64 6.364c0 4.963-4.04 9-9 9zM12 2c-5.523 0-10 4.477-10 10 0 1.767 1.47 3.42 1.4 4.94l-1.4 4.8 5.1-1.34c1.55.8 3.23 1.23 4.9 1.23 5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
-             </svg>
+              </svg>
+            </div>
+            <span className="wa3d-shadow" />
           </div>
           <div>
             <p className="text-[11px] text-emerald-800 font-bold leading-relaxed">

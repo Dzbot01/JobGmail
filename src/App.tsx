@@ -19,6 +19,8 @@ import BannedUsers from './components/admin/BannedUsers';
 import UserHistory from './components/UserHistory';
 import SupportBubble from './components/SupportBubble';
 import CustomAlert from './components/CustomAlert';
+import PromoBanner from './components/PromoBanner';
+import { getStoredReferral, clearStoredReferral, isMissingColumnError, creditReferralReward, REFERRAL_REWARD } from './lib/referral';
 
 type AdminTab = 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
 
@@ -60,6 +62,27 @@ useEffect(() => {
   // State dari file UI Baru
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
 
+  // Banner info PanelKitaLegalbot (ditutup = tidak muncul lagi di sesi ini)
+  const [showPromo, setShowPromo] = useState(() => {
+    try { return sessionStorage.getItem('promo_panelkita_closed') !== '1'; } catch { return true; }
+  });
+  const closePromo = () => {
+    setShowPromo(false);
+    try { sessionStorage.setItem('promo_panelkita_closed', '1'); } catch { /* storage diblokir */ }
+  };
+
+  // Ukur tinggi header agar konten (dan kartu "Halo" di dashboard) menempel tepat di bawahnya
+  const headerRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const apply = () => document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`);
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
+
   const [systemSettings, setSystemSettings] = useState({
     withdrawSchedule: 'Selalu Buka',
     taskReward: 1600,
@@ -97,9 +120,9 @@ const upsertUser = async (user: any) => {
 
   } else {
     // KALO BARU: BARU KASIH DEFAULT SPIN + POOL
-    await supabase
-.from('pengguna')
-.insert({
+    const ref = getStoredReferral();
+    const referredBy = ref && ref !== id ? ref : null;
+    const newUser: Record<string, any> = {
       id: id,
       email: email,
       nama: nama,
@@ -110,9 +133,18 @@ const upsertUser = async (user: any) => {
       last_spin_date: today,
       history: [],
       withdraw_history: [],
-      payment: {}
-    });
+      payment: {},
+      ...(referredBy ? { referred_by: referredBy } : {})
+    };
+    let { error: insertError } = await supabase.from('pengguna').insert(newUser);
+    // Kolom referral belum dimigrasi / pengundang tidak valid → tetap buat akun tanpa referral
+    if (insertError && referredBy && (isMissingColumnError(insertError) || insertError.code === '23503')) {
+      delete newUser.referred_by;
+      ({ error: insertError } = await supabase.from('pengguna').insert(newUser));
+    }
+    if (insertError) console.error('Gagal membuat user:', insertError);
   }
+  clearStoredReferral();
 };
 
   // === 3. useEffect AUTH & DB SUPABASE (Logic Lama + Upsert) ===
@@ -455,7 +487,13 @@ const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected'
   if (newStatus === 'paid') {
     setTasksDone(t => t + 1);
     setTotalIncome(i => i + systemSettings.taskReward);
-    showAlert('Sukses!', `Tugas disetujui. Saldo ${taskYangDiubah.userEmail} +Rp${systemSettings.taskReward}`);
+    // Bonus referral: hanya saat tugas benar-benar berubah menjadi "paid" (bukan saat masih proses)
+    const referrer = taskLama?.status !== 'paid' ? await creditReferralReward(taskYangDiubah.userId) : null;
+    showAlert(
+      'Sukses!',
+      `Tugas disetujui. Saldo ${taskYangDiubah.userEmail} +Rp${systemSettings.taskReward}` +
+        (referrer ? ` · Bonus referral +Rp${REFERRAL_REWARD} ke ${referrer}` : '')
+    );
   } else {
     showAlert('Tugas Ditolak!', 'Tugas tidak memenuhi kriteria sistem.', 'error');
   }
@@ -518,6 +556,8 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
   }
 };
 
+  const username = (userEmail || '').split('@')[0] || 'Member';
+
   const goToSetoran = () => {
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3');
     audio.play().catch(e => console.log('Audio play failed:', e));
@@ -554,13 +594,18 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     />
   )}
 
-      {/* Header (mobile & tablet) */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-sm z-50 px-5 py-3 flex items-center justify-start border-b border-gray-100">
-        <img
-          src={LOGO_URL}
-          alt="Job Gmail Logo"
-          className="h-10 w-auto object-contain"
-        />
+      {/* Header: logo (mobile/tablet) + banner info (user). Tingginya diukur ke --header-h */}
+      <header ref={headerRef} className="fixed top-0 left-0 right-0 lg:left-64 z-50">
+        <div className="lg:hidden bg-white shadow-sm px-5 py-3 flex items-center justify-start border-b border-gray-100">
+          <img
+            src={LOGO_URL}
+            alt="Job Gmail Logo"
+            className="h-10 w-auto object-contain"
+          />
+        </div>
+        {userRole === 'user' && showPromo && (
+          <PromoBanner username={username} onClose={closePromo} />
+        )}
       </header>
 
       {/* Sidebar (desktop) */}
@@ -604,7 +649,10 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
         </div>
       </aside>
 
-      <main className="pt-24 px-4 sm:px-6 lg:pt-8 lg:pl-72 lg:pr-8 w-full max-w-3xl lg:max-w-none mx-auto">
+      <main
+        className="px-4 sm:px-6 lg:pl-72 lg:pr-8 w-full max-w-3xl lg:max-w-none mx-auto"
+        style={{ paddingTop: 'calc(var(--header-h, 65px) + 2rem)' }}
+      >
         <div className="w-full lg:max-w-6xl lg:mx-auto">
         {/* Arahkan sesuai peran sebelum halaman dirender, agar admin tidak sempat melihat dashboard user */}
         {userRole === 'admin' && !location.pathname.startsWith('/admin') ? (
