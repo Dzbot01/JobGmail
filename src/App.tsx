@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut, Megaphone, Ban, Briefcase } from 'lucide-react';
+import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut, Megaphone, Ban, Briefcase, PlusCircle } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './supabase'; // IMPORT SUPABASE
 
@@ -18,6 +18,9 @@ import Broadcast from './components/admin/Broadcast';
 import BannedUsers from './components/admin/BannedUsers';
 import JobsPage from './components/jobs/JobsPage';
 import JobDetail from './components/jobs/JobDetail';
+import TopupPage from './components/topup/TopupPage';
+import TopupConfirm from './components/topup/TopupConfirm';
+import TopupPay from './components/topup/TopupPay';
 import UserHistory from './components/UserHistory';
 import SupportBubble from './components/SupportBubble';
 import CustomAlert from './components/CustomAlert';
@@ -667,6 +670,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               <SideNavItem active={location.pathname.startsWith('/jobs')} onClick={() => navigate('/jobs')} icon={<Briefcase size={20} />} label="Cari Pekerjaan" />
               <SideNavItem active={location.pathname === '/gacha'} onClick={() => navigate('/gacha')} icon={<Gift size={20} />} label="Gacha" />
               <SideNavItem active={location.pathname === '/history'} onClick={() => navigate('/history')} icon={<HistoryIcon size={20} />} label="Riwayat Tugas" />
+              <SideNavItem active={location.pathname.startsWith('/topup')} onClick={() => navigate('/topup')} icon={<PlusCircle size={20} />} label="Top Up" />
               <SideNavItem active={location.pathname === '/withdraw'} onClick={() => navigate('/withdraw')} icon={<CreditCard size={20} />} label="Withdraw" />
               <SideNavItem active={['/profil', '/penarikan', '/about-us'].includes(location.pathname)} onClick={() => navigate('/profil')} icon={<User size={20} />} label="Profil" />
             </>
@@ -701,6 +705,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
             <Dashboard
               balance={balance}
               onWithdraw={() => navigate('/withdraw')}
+              onTopup={() => navigate('/topup')}
               settings={systemSettings}
               isMusicPlaying={isMusicPlaying}
               userName={userName}
@@ -740,6 +745,8 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
           <Route path="/profil" element={
             <Profil
               userId={userId}
+              balance={balance}
+              onNavigateToTopup={() => navigate('/topup')}
               isVerified={isVerified}
               onNavigateToWithdraw={() => navigate('/penarikan')}
               onNavigateToAbout={() => navigate('/about-us')}
@@ -801,6 +808,11 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 } />
 
           <Route path="/history" element={<UserHistory submissions={allSubmissions} />} />
+
+          {/* TOP UP (Tripay) */}
+          <Route path="/topup" element={<TopupPage userId={userId} balance={balance} onBalanceChange={refreshBalance} showAlert={showAlert} />} />
+          <Route path="/topup/pay/:reference" element={<TopupPay onBalanceChange={refreshBalance} showAlert={showAlert} />} />
+          <Route path="/topup/:code" element={<TopupConfirm userId={userId} userEmail={userEmail} username={username} showAlert={showAlert} />} />
 
           {/* MARKETPLACE PEKERJAAN */}
           <Route path="/jobs" element={
