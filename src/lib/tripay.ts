@@ -159,7 +159,7 @@ export async function createTopup(params: {
 }
 
 export async function listMyTopups(userId: string): Promise<TopupRow[]> {
-  const { data, error } = await supabase.from('topups').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(30);
+  const { data, error } = await supabase.from('topups').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(10);
   if (error) throw new Error(topupErrorMessage(error));
   return (data || []) as TopupRow[];
 }

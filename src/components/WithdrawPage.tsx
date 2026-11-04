@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Wallet, History, ArrowLeft, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../supabase';
 import { WithdrawSchedule, isWithdrawOpen, withdrawScheduleText } from '../lib/settings';
+import { HISTORY_LIMIT } from '../lib/jobs';
 
 export interface HistoryItem {
   id: string;
@@ -249,7 +250,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ withdrawSchedule, userEmail
               <p className="text-sm font-medium text-gray-400">Belum ada riwayat penarikan</p>
             </div>
           ) : (
-            history.map((item) => (
+            history.slice(0, HISTORY_LIMIT).map((item) => (
               <div key={item.id} className="bg-white rounded-2xl p-3 shadow-lg border border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${

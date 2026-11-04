@@ -142,6 +142,7 @@ const JobDetail: React.FC<Props> = ({ userId, userEmail, isBanned, showAlert }) 
             <div className={`rounded-2xl border p-5 space-y-2 ${statusInfo[mine.status]?.cls || ''}`}>
               <p className="text-xs font-black uppercase tracking-wider flex items-center gap-2"><CheckCircle2 size={16} /> Tugas sudah dikirim</p>
               <p className="text-sm font-bold">{statusInfo[mine.status]?.label}</p>
+              {mine.status === 'process' && <p className="text-xs">Bayaran <b>{formatRupiah(job.reward)}</b> masuk ke <b>saldo pending</b> — dipindah ke saldo utama saat diterima, hilang jika ditolak.</p>}
               {mine.reason && <p className="text-xs">Alasan: {mine.reason}</p>}
               <p className="text-[11px] opacity-70">Dikirim {new Date(mine.created_at).toLocaleString('id-ID')}</p>
             </div>

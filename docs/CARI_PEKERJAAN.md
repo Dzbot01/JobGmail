@@ -69,3 +69,23 @@ Sebelum migrasi dijalankan, halaman menampilkan pesan "Fitur Cari Pekerjaan belu
   `job_submissions.reason`, tampil di panel pembuat dan di halaman Kerjakan Tugas milik pekerja; slot dikembalikan.
 - Validasi: Playwright (375 & 1440 px) — badge pending, tombol Tolak nonaktif saat alasan kosong/< 5 karakter,
   tolak dengan alasan → status `rejected`, alasan tersimpan & tampil, modal tertutup, tanpa error JS.
+
+## 6. Saldo pending & Riwayat Pekerjaan (tambahan 2026-11-04)
+
+**Saldo pending** = total bayaran dari kiriman pekerja yang masih berstatus `process`. Tidak disimpan sebagai kolom
+terpisah, melainkan dihitung dari `job_submissions` + `jobs.reward`, sehingga selalu konsisten:
+kirim tugas → masuk pending; diterima (`review_job_submission`) → keluar dari pending & masuk saldo utama;
+ditolak → hilang dari pending. Tampil di kartu saldo Dashboard ("+ Rp … saldo pending"), halaman Cari Pekerjaan,
+halaman Kerjakan Tugas (setelah kirim), dan halaman Riwayat.
+
+**Riwayat Pekerjaan** (`JobHistory`): filter Semua / Proses / Diterima / Ditolak beserta jumlahnya, maksimal 10 data
+terbaru (judul, tanggal, bayaran, status, alasan penolakan). Tampil di Cari Pekerjaan (mode Pekerja; kolom kanan di
+desktop) dan di halaman Riwayat (`/history`) di samping Riwayat Setor.
+
+**Batas 10 data** untuk semua daftar riwayat: Riwayat Setor, Riwayat Withdraw, Riwayat Top Up, Riwayat Pekerjaan
+(dengan keterangan "10 terbaru dari N").
+
+Validasi (Playwright, 375 & 1440 px, data uji 12 kiriman: 5 proses, 4 diterima, 3 ditolak):
+pending Rp 8.500 di Dashboard & Cari Pekerjaan; 10 item + "Menampilkan 10 terbaru dari 12 data"; filter Ditolak 3 item
+dengan alasan; Proses 5 item; tolak kiriman Rp 500 → pending Rp 8.000; terima kiriman Rp 2.000 → pending Rp 6.000;
+Riwayat Setor 10 dari 14; Riwayat Withdraw 10 dari 13; tanpa error JS & tanpa overflow.
