@@ -6,6 +6,8 @@ import CreateJobForm from './CreateJobForm';
 import MyJobs from './MyJobs';
 import { Job, formatRupiah, jobsErrorMessage, listOpenJobs, searchJobs, slotsLeft } from '../../lib/jobs';
 import { useAccountMode } from '../../lib/accountMode';
+import { MIN_SALDO_PENCARI } from '../../lib/tripay';
+import { Lock } from 'lucide-react';
 
 interface Props {
   userId: string;
@@ -59,7 +61,20 @@ const JobsPage: React.FC<Props> = ({ userId, username, balance, showAlert, onBal
         </button>
       </div>
 
-      {mode === 'pencari' ? (
+      {mode === 'pencari' && balance < MIN_SALDO_PENCARI ? (
+        <div className="bg-white rounded-2xl p-8 shadow-lg border border-amber-200 text-center space-y-3 max-w-xl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto"><Lock size={26} /></div>
+          <h3 className="text-lg font-black text-gray-800">Mode Pencari Pekerja Terkunci</h3>
+          <p className="text-sm text-gray-500">
+            Untuk membuat pekerjaan, saldo kamu minimal <b>Rp {MIN_SALDO_PENCARI.toLocaleString('id-ID')}</b>.
+            Saldo saat ini <b>Rp {balance.toLocaleString('id-ID')}</b>.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-1">
+            <button onClick={() => navigate('/topup')} className="px-5 py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm">Top Up Saldo</button>
+            <button onClick={() => navigate('/profil')} className="px-5 py-3 rounded-xl border border-gray-200 text-gray-600 font-bold text-sm">Ganti ke mode Pekerja</button>
+          </div>
+        </div>
+      ) : mode === 'pencari' ? (
         <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-5 lg:gap-6 lg:items-start">
           <div className="lg:col-span-3">
             <CreateJobForm userId={userId} ownerName={username} balance={balance} showAlert={showAlert} onCreated={() => setRefreshKey(k => k + 1)} />

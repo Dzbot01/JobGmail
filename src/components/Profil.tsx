@@ -3,6 +3,8 @@ import { BadgeCheck, XCircle, Wallet, Info, ChevronRight, CheckCircle2, XCircle 
 import { supabase } from '../supabase';
 import { Copy, Check, Gift, HardHat, Briefcase } from 'lucide-react';
 import { useAccountMode } from '../lib/accountMode';
+import { MIN_SALDO_PENCARI } from '../lib/tripay';
+import { Lock } from 'lucide-react';
 import { buildReferralLink, fetchReferralSummary, maskEmail, REFERRAL_REWARD, ReferralSummary } from '../lib/referral';
 
 interface ProfilProps {
@@ -13,9 +15,13 @@ interface ProfilProps {
   onNavigateToWithdraw: () => void;
   onNavigateToAbout: () => void;
   onLogout?: () => void;
+  /** Saldo saat ini — mode Pencari Pekerja butuh minimal Rp 10.000 */
+  balance?: number;
+  onNavigateToTopup?: () => void;
 }
 
-const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdraw, onNavigateToAbout, onLogout }) => {
+const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdraw, onNavigateToAbout, onLogout, balance = 0, onNavigateToTopup }) => {
+  const pencariLocked = balance < MIN_SALDO_PENCARI;
   const [nama, setNama] = useState('User Member');
   const [email, setEmail] = useState('Kesalahan: Harap Login ulang');
 
@@ -161,22 +167,38 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
           {([
             { key: 'pekerja', label: 'Pekerja', desc: 'Cari & kerjakan pekerjaan', icon: <HardHat size={18} /> },
             { key: 'pencari', label: 'Pencari Pekerja', desc: 'Buat pekerjaan & review', icon: <Briefcase size={18} /> },
-          ] as const).map(opt => (
+          ] as const).map(opt => {
+            const locked = opt.key === 'pencari' && pencariLocked && mode !== 'pencari';
+            return (
             <button
               key={opt.key}
               role="radio"
               aria-checked={mode === opt.key}
-              onClick={() => setMode(opt.key)}
-              className={`flex items-center gap-2 p-3 rounded-xl text-left transition-all ${mode === opt.key ? 'bg-white shadow-md text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+              aria-disabled={locked}
+              onClick={() => {
+                if (locked) { onNavigateToTopup?.(); return; }
+                setMode(opt.key);
+              }}
+              title={locked ? `Butuh saldo minimal Rp ${MIN_SALDO_PENCARI.toLocaleString('id-ID')}` : undefined}
+              className={`flex items-center gap-2 p-3 rounded-xl text-left transition-all ${mode === opt.key ? 'bg-white shadow-md text-blue-600' : locked ? 'text-gray-400' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              {opt.icon}
+              {locked ? <Lock size={18} /> : opt.icon}
               <span className="min-w-0">
                 <span className="block text-xs font-black">{opt.label}</span>
-                <span className="block text-[10px] text-gray-400 truncate">{opt.desc}</span>
+                <span className="block text-[10px] text-gray-400 truncate">{locked ? `Min. saldo Rp ${MIN_SALDO_PENCARI.toLocaleString('id-ID')}` : opt.desc}</span>
               </span>
             </button>
-          ))}
+            );
+          })}
         </div>
+        {pencariLocked && (
+          <div className="mt-3 flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+            <p className="text-[11px] text-amber-800 leading-snug">
+              Mode <b>Pencari Pekerja</b> membutuhkan saldo minimal <b>Rp {MIN_SALDO_PENCARI.toLocaleString('id-ID')}</b>. Saldo kamu Rp {balance.toLocaleString('id-ID')}.
+            </p>
+            <button onClick={onNavigateToTopup} className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-[11px] font-black">Top Up</button>
+          </div>
+        )}
       </div>
 
       {/* Referral Card */}

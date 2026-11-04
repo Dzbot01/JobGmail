@@ -12,6 +12,7 @@ import 'swiper/css/pagination';
 interface DashboardProps {
   balance: number;
   onWithdraw: () => void;
+  onTopup?: () => void;
   isMusicPlaying: boolean;
   settings: {
     taskReward: number;
@@ -20,7 +21,7 @@ interface DashboardProps {
   userEmail?: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, isMusicPlaying, userEmail }) => {
+const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, onTopup, settings, isMusicPlaying, userEmail }) => {
   // Username = prefix email yang dipakai mendaftar
   const username = (userEmail || '').split('@')[0] || 'Member';
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -150,12 +151,22 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, settings, is
           
           <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-2xl border border-blue-100">
             <p className="text-[10px] text-blue-700 font-bold italic">Minimal withdraw: <span className="font-black not-italic">Rp. 1.000</span></p>
-            <button 
-              onClick={onWithdraw}
-              className="bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform"
-            >
-              Withdraw
-            </button>
+            <div className="flex gap-2">
+              {onTopup && (
+                <button
+                  onClick={onTopup}
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
+                >
+                  Top Up
+                </button>
+              )}
+              <button 
+                onClick={onWithdraw}
+                className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform"
+              >
+                Withdraw
+              </button>
+            </div>
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Home, Gift, Inbox, User, History as HistoryIcon, Briefcase, CreditCard, Wallet, Info, ChevronUp } from 'lucide-react';
+import { Home, Gift, Inbox, User, History as HistoryIcon, Briefcase, CreditCard, Wallet, Info, ChevronUp, PlusCircle } from 'lucide-react';
 
 interface Props {
   pathname: string;
@@ -14,6 +14,7 @@ const HINT_KEY = 'jg_nav_sheet_seen';
 /** Menu tambahan yang muncul saat bottom navbar ditarik ke atas. */
 const MORE_ITEMS = [
   { to: '/jobs', label: 'Cari Pekerjaan', icon: Briefcase, match: (p: string) => p.startsWith('/jobs') },
+  { to: '/topup', label: 'Top Up', icon: PlusCircle, match: (p: string) => p.startsWith('/topup') },
   { to: '/withdraw', label: 'Withdraw', icon: CreditCard, match: (p: string) => p === '/withdraw' },
   { to: '/penarikan', label: 'Alamat Penarikan', icon: Wallet, match: (p: string) => p === '/penarikan' },
   { to: '/about-us', label: 'Tentang Kami', icon: Info, match: (p: string) => p === '/about-us' },
@@ -122,7 +123,7 @@ const MobileUserNav: React.FC<Props> = ({ pathname, navigate, onSetor }) => {
         style={{ height: shownLift + 1, transition, paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-hidden={!open}
       >
-        <div className="px-5 pt-5 grid grid-cols-4 gap-3" style={{ opacity: Math.min(1, progress * 1.6), transform: `translateY(${(1 - progress) * 20}px)` }}>
+        <div className="px-5 pt-5 grid grid-cols-3 sm:grid-cols-5 gap-x-3 gap-y-4" style={{ opacity: Math.min(1, progress * 1.6), transform: `translateY(${(1 - progress) * 20}px)` }}>
           {MORE_ITEMS.map(item => {
             const Icon = item.icon;
             const active = item.match(pathname);
