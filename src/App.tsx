@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut } from 'lucide-react';
+import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut, Megaphone } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './supabase'; // IMPORT SUPABASE
 
@@ -14,6 +14,7 @@ import AlamatPenarikan from './components/AlamatPenarikan';
 import WithdrawPage, { HistoryItem } from './components/WithdrawPage';
 import AuthPage from './components/AuthPage';
 import AdminPanel from './components/admin/AdminPanel';
+import Broadcast from './components/admin/Broadcast';
 import UserHistory from './components/UserHistory';
 import SupportBubble from './components/SupportBubble';
 import CustomAlert from './components/CustomAlert';
@@ -572,6 +573,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               <SideNavItem active={location.pathname === '/admin'} onClick={() => { setAdminActiveTab('dashboard'); navigate('/admin'); }} icon={<LayoutDashboard size={20} />} label="Dashboard" />
               <SideNavItem active={location.pathname === '/admin/setoran'} onClick={() => { setAdminActiveTab('setoran'); navigate('/admin/setoran'); }} icon={<Send size={20} />} label="Data Setoran" />
               <SideNavItem active={location.pathname === '/admin/payout'} onClick={() => { setAdminActiveTab('payout'); navigate('/admin/payout'); }} icon={<CreditCard size={20} />} label="Payout" />
+              <SideNavItem active={location.pathname === '/admin/broadcast'} onClick={() => navigate('/admin/broadcast')} icon={<Megaphone size={20} />} label="Broadcast" />
               <SideNavItem active={location.pathname === '/admin/profil'} onClick={() => { setAdminActiveTab('profil'); navigate('/admin/profil'); }} icon={<User size={20} />} label="Profil" />
             </>
           ) : (
@@ -787,6 +789,11 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               showAlert={showAlert}
             />
           } />
+          <Route path="/admin/broadcast" element={
+            userRole === 'admin'
+              ? <Broadcast showAlert={showAlert} />
+              : <Navigate to="/dashboard" replace />
+          } />
           <Route path="/admin/withdraw-settings" element={
             <AdminPanel
               submissions={allSubmissions}
@@ -821,7 +828,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
     {/* Bottom Navbar */}
 {userRole === 'admin' ? (
-  <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex justify-around items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+  <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-3 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex justify-around items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
     <NavButton 
       active={location.pathname === '/admin'} 
       onClick={() => {setAdminActiveTab('dashboard'); navigate('/admin')}} // BALIKIN NAVIGATE
@@ -830,6 +837,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     />
     <NavButton active={location.pathname === '/admin/setoran'} onClick={() => {setAdminActiveTab('setoran'); navigate('/admin/setoran')}} icon={<Send size={22} />} label="Setor" />
     <NavButton active={location.pathname === '/admin/payout'} onClick={() => {setAdminActiveTab('payout'); navigate('/admin/payout')}} icon={<CreditCard size={22} />} label="Pay" />
+    <NavButton active={location.pathname === '/admin/broadcast'} onClick={() => navigate('/admin/broadcast')} icon={<Megaphone size={22} />} label="Broadcast" />
     <NavButton active={location.pathname === '/admin/profil'} onClick={() => {setAdminActiveTab('profil'); navigate('/admin/profil')}} icon={<User size={22} />} label="Profil" />
   </nav>
 ) : (
