@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut, Megaphone } from 'lucide-react';
+import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut, Megaphone, Ban } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './supabase'; // IMPORT SUPABASE
 
@@ -15,6 +15,7 @@ import WithdrawPage, { HistoryItem } from './components/WithdrawPage';
 import AuthPage from './components/AuthPage';
 import AdminPanel from './components/admin/AdminPanel';
 import Broadcast from './components/admin/Broadcast';
+import BannedUsers from './components/admin/BannedUsers';
 import UserHistory from './components/UserHistory';
 import SupportBubble from './components/SupportBubble';
 import CustomAlert from './components/CustomAlert';
@@ -574,6 +575,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               <SideNavItem active={location.pathname === '/admin/setoran'} onClick={() => { setAdminActiveTab('setoran'); navigate('/admin/setoran'); }} icon={<Send size={20} />} label="Data Setoran" />
               <SideNavItem active={location.pathname === '/admin/payout'} onClick={() => { setAdminActiveTab('payout'); navigate('/admin/payout'); }} icon={<CreditCard size={20} />} label="Payout" />
               <SideNavItem active={location.pathname === '/admin/broadcast'} onClick={() => navigate('/admin/broadcast')} icon={<Megaphone size={20} />} label="Broadcast" />
+              <SideNavItem active={location.pathname === '/admin/banned'} onClick={() => navigate('/admin/banned')} icon={<Ban size={20} />} label="Banned User" />
               <SideNavItem active={location.pathname === '/admin/profil'} onClick={() => { setAdminActiveTab('profil'); navigate('/admin/profil'); }} icon={<User size={20} />} label="Profil" />
             </>
           ) : (
@@ -795,6 +797,11 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               ? <Broadcast showAlert={showAlert} />
               : <Navigate to="/dashboard" replace />
           } />
+          <Route path="/admin/banned" element={
+            userRole === 'admin'
+              ? <BannedUsers showAlert={showAlert} />
+              : <Navigate to="/dashboard" replace />
+          } />
           <Route path="/admin/withdraw-settings" element={
             <AdminPanel
               submissions={allSubmissions}
@@ -838,7 +845,8 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     />
     <NavButton active={location.pathname === '/admin/setoran'} onClick={() => {setAdminActiveTab('setoran'); navigate('/admin/setoran')}} icon={<Send size={22} />} label="Setor" />
     <NavButton active={location.pathname === '/admin/payout'} onClick={() => {setAdminActiveTab('payout'); navigate('/admin/payout')}} icon={<CreditCard size={22} />} label="Pay" />
-    <NavButton active={location.pathname === '/admin/broadcast'} onClick={() => navigate('/admin/broadcast')} icon={<Megaphone size={22} />} label="Broadcast" />
+    <NavButton active={location.pathname === '/admin/broadcast'} onClick={() => navigate('/admin/broadcast')} icon={<Megaphone size={22} />} label="Cast" />
+    <NavButton active={location.pathname === '/admin/banned'} onClick={() => navigate('/admin/banned')} icon={<Ban size={22} />} label="Banned" />
     <NavButton active={location.pathname === '/admin/profil'} onClick={() => {setAdminActiveTab('profil'); navigate('/admin/profil')}} icon={<User size={22} />} label="Profil" />
   </nav>
 ) : (
