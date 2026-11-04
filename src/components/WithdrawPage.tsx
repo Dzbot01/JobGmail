@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Wallet, History, ArrowLeft, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../supabase';
+import { WithdrawSchedule, isWithdrawOpen, withdrawScheduleText } from '../lib/settings';
 
 export interface HistoryItem {
   id: string;
@@ -14,6 +15,8 @@ export interface HistoryItem {
 }
 
 interface WithdrawPageProps {
+  /** Jadwal dari pengaturan admin (tabel app_settings) */
+  withdrawSchedule: WithdrawSchedule;
   userEmail: string;
   balance: number;
   history: HistoryItem[];
@@ -22,25 +25,22 @@ interface WithdrawPageProps {
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
 }
 
-const WithdrawPage: React.FC<WithdrawPageProps> = ({ userEmail, balance, history, onBack, onWithdrawSuccess, showAlert }) => {
+const WithdrawPage: React.FC<WithdrawPageProps> = ({ withdrawSchedule, userEmail, balance, history, onBack, onWithdrawSuccess, showAlert }) => {
   const [activeSubTab, setActiveSubTab] = useState<'withdraw' | 'history'>('withdraw');
   const [amount, setAmount] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   
   const quickAmounts = [1000, 3000, 5000, 10000, 50000, 100000];
   
-  // WIB (UTC+7) Date Logic
-const getWIBDate = () => {
-  const now = new Date();
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (3600000 * 7));
-};
-
-const wibNow = getWIBDate();
-const currentDay = wibNow.getDay(); // 0 = Minggu, 6 = Sabtu
-const isWeekend = currentDay === 0 || currentDay === 6;
+  // Jadwal withdraw mengikuti pengaturan admin (dihitung dalam WIB)
+  const isOpen = isWithdrawOpen(withdrawSchedule);
+  const scheduleText = withdrawScheduleText(withdrawSchedule);
 
   const handleWithdraw = async () => { 
+    if (!isOpen) {
+      showAlert("Withdraw Ditutup", scheduleText, "error");
+      return;
+    }
     const numAmount = parseInt(amount);
     if (isNaN(numAmount) || numAmount < 1000) {
       showAlert("Gagal!", "Minimal penarikan Rp. 1.000", "error");
@@ -162,8 +162,8 @@ const isWeekend = currentDay === 0 || currentDay === 6;
                     "Proses penarikan memakan waktu 1-24 jam kerja",
                     "Terdapat biaya admin sesuai dengan metode penarikan yang dipilih",
                     "Penarikan yang sudah diproses tidak dapat dibatalkan", 
-                    "Withdraw hanya tersedia di hari Sabtu dan Minggu.",
-                    "Proses withdraw akan dilakukan selama 24 jam kerja. Jika anda withdraw Sabtu maka akan diproses hari Minggu, jika withdraw Minggu maka akan diproses hari Senin."
+                    scheduleText,
+                    "Proses withdraw dilakukan maksimal 24 jam kerja setelah permintaan dikirim."
                   ].map((text, i) => (
                     <li key={i} className="flex gap-2 text-[10px] text-gray-500 leading-relaxed">
                       <span className="font-bold text-blue-600">{i + 1}.</span>
@@ -174,7 +174,7 @@ const isWeekend = currentDay === 0 || currentDay === 6;
               </div>
 
             <div className="flex justify-center mt-8 lg:col-start-1">
-  {isWeekend ? (
+  {isOpen ? (
     <div className="u-container" onClick={handleWithdraw}>
       <div className="left-side">
         <div className="u-card">
@@ -221,7 +221,7 @@ const isWeekend = currentDay === 0 || currentDay === 6;
       </p>
 
       <p className="text-[11px] text-gray-500 mt-2 leading-relaxed">
-        Withdraw hanya tersedia pada hari <span className="font-bold">Sabtu</span> dan <span className="font-bold">Minggu</span>.
+        {scheduleText}
       </p>
     </div>
   )}

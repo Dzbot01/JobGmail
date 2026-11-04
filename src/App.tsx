@@ -23,6 +23,7 @@ import SupportBubble from './components/SupportBubble';
 import CustomAlert from './components/CustomAlert';
 import PromoBanner from './components/PromoBanner';
 import MobileUserNav from './components/MobileUserNav';
+import { DEFAULT_SETTINGS, SystemSettings, loadSettings, saveSettings, subscribeSettings } from './lib/settings';
 import { getStoredReferral, clearStoredReferral, isMissingColumnError, creditReferralReward, REFERRAL_REWARD } from './lib/referral';
 
 type AdminTab = 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
@@ -86,12 +87,23 @@ useEffect(() => {
     return () => ro.disconnect();
   });
 
-  const [systemSettings, setSystemSettings] = useState({
-    withdrawSchedule: 'Selalu Buka',
-    taskReward: 1600,
-    taskPassword: 'Ajax1122*',
-    taskDescription: 'Silahkan masukkan data akun Gmail yang baru kamu buat. Pastikan akun dalam keadaan aktif dan belum pernah didaftarkan sebelumnya.'
-  });
+  // Pengaturan sistem global: dibaca dari tabel app_settings + realtime, disimpan oleh admin
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    loadSettings().then(s => { if (alive && s) setSystemSettings(s); });
+    const unsubscribe = subscribeSettings(s => setSystemSettings(s));
+    // Cadangan bila realtime tidak aktif: muat ulang saat tab kembali aktif
+    const onFocus = () => loadSettings().then(s => { if (alive && s) setSystemSettings(s); });
+    window.addEventListener('focus', onFocus);
+    return () => { alive = false; unsubscribe(); window.removeEventListener('focus', onFocus); };
+  }, [userId]);
+
+  const persistSettings = async () => {
+    await saveSettings(systemSettings, userId);
+  };
 
   const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
   const [alertState, setAlertState] = useState<{show: boolean, message: string, subtext: string, type: 'success' | 'error'}>({
@@ -747,6 +759,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
 <Route path="/withdraw" element={
   <WithdrawPage
+    withdrawSchedule={systemSettings.withdrawSchedule}
     balance={balance}
     history={withdrawHistory}
     onBack={() => navigate('/dashboard')}
@@ -818,6 +831,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               onLogout={handleLogout}
               settings={systemSettings}
               updateSettings={setSystemSettings}
+              onSaveSettings={persistSettings}
               showAlert={showAlert}
               sgEarned={sgEarned}
               sgSpendable={sgSpendable}
@@ -834,6 +848,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               onLogout={handleLogout}
               settings={systemSettings}
               updateSettings={setSystemSettings}
+              onSaveSettings={persistSettings}
               showAlert={showAlert}
             />
           } />
@@ -848,6 +863,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     onLogout={handleLogout}
     settings={systemSettings}
     updateSettings={setSystemSettings}
+              onSaveSettings={persistSettings}
     showAlert={showAlert}
   />
 } />
@@ -862,6 +878,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               onLogout={handleLogout}
               settings={systemSettings}
               updateSettings={setSystemSettings}
+              onSaveSettings={persistSettings}
               showAlert={showAlert}
             />
           } />
@@ -886,6 +903,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               onLogout={handleLogout}
               settings={systemSettings}
               updateSettings={setSystemSettings}
+              onSaveSettings={persistSettings}
               showAlert={showAlert}
             />
           } />
@@ -900,6 +918,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               onLogout={handleLogout}
               settings={systemSettings}
               updateSettings={setSystemSettings}
+              onSaveSettings={persistSettings}
               showAlert={showAlert}
             />
           } />

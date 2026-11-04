@@ -124,20 +124,51 @@ const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
   const toggleAll = () =>
     setSelected(prev => { const n = new Set(prev); visible.forEach(u => (allVisibleSelected ? n.delete(u.id) : n.add(u.id))); return n; });
 
+  /**
+   * Banned = tandai is_banned + HAPUS PERMANEN data user (saldo, riwayat setoran & withdraw,
+   * alamat penarikan, spin, bonus referral, pekerjaan & kiriman tugas). Unban hanya membuka blokir.
+   */
   const setBanned = async (ids: string[], banned: boolean) => {
     if (ids.length === 0) return;
-    const label = banned ? 'BANNED' : 'buka blokir (unban)';
-    if (!window.confirm(`Yakin ingin ${label} ${ids.length} user?`)) return;
+    const msg = banned
+      ? `BANNED ${ids.length} user?\n\nSemua data mereka akan DIHAPUS PERMANEN: saldo, riwayat setoran, riwayat withdraw, alamat penarikan, bonus referral, serta pekerjaan & kiriman tugas.\n\nTindakan ini tidak bisa dibatalkan (Unban tidak mengembalikan data).`
+      : `Buka blokir (unban) ${ids.length} user? Data yang sudah dihapus tidak akan kembali.`;
+    if (!window.confirm(msg)) return;
     setSaving(true);
-    const { error } = await supabase.from('pengguna').update({ is_banned: banned }).in('id', ids);
+    let error: any = null;
+    if (banned) {
+      // 1) Fungsi server atomik (migrasi 20261104_settings_and_ban.sql)
+      const rpc = await supabase.rpc('admin_ban_users', { p_ids: ids });
+      if (rpc.error) {
+        const missing = rpc.error.code === 'PGRST202' || /could not find the function|does not exist/i.test(rpc.error.message || '');
+        if (!missing) error = rpc.error;
+        else {
+          // 2) Cadangan sebelum migrasi: kosongkan data inti langsung di tabel pengguna
+          const res = await supabase.from('pengguna').update({
+            is_banned: true, saldo: 0, history: [], withdraw_history: [], payment: {}, spin_hari_ini: 0, pool_hadiah_hari_ini: 0,
+          }).in('id', ids);
+          error = res.error;
+        }
+      }
+    } else {
+      error = (await supabase.from('pengguna').update({ is_banned: false }).in('id', ids)).error;
+    }
     setSaving(false);
     if (error) {
       showAlert('Gagal!', 'Gagal menyimpan status banned: ' + error.message, 'error');
       return;
     }
-    setUsers(prev => prev.map(u => (ids.includes(u.id) ? { ...u, isBanned: banned } : u)));
+    setUsers(prev => prev.map(u => {
+      if (!ids.includes(u.id)) return u;
+      return banned ? { ...u, isBanned: true, tasks: [], perDay: {}, maxPerDay: 0, maxDay: '' } : { ...u, isBanned: false };
+    }));
     setSelected(new Set());
-    showAlert(banned ? 'User Dibanned' : 'Blokir Dibuka', `${ids.length} user berhasil diperbarui.`, banned ? 'error' : 'success');
+    setExpanded(null);
+    showAlert(
+      banned ? 'User Dibanned' : 'Blokir Dibuka',
+      banned ? `${ids.length} user diblokir dan seluruh datanya dihapus.` : `${ids.length} user berhasil dibuka blokirnya.`,
+      banned ? 'error' : 'success'
+    );
   };
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count: number; active: string }[] = [
@@ -155,7 +186,7 @@ const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
           </div>
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-gray-800">Banned User</h2>
-            <p className="text-[11px] text-gray-400 font-medium">Pantau setoran spam & blokir user</p>
+            <p className="text-[11px] text-gray-400 font-medium">Pantau setoran spam & blokir user (banned = data user dihapus)</p>
           </div>
         </div>
         <button onClick={load} disabled={loading || saving} className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-white disabled:opacity-50" title="Muat ulang">

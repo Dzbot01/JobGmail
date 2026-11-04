@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Send, Eye, EyeOff, Loader, Timer, CheckCircle2 } from 'lucide-react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import OtpModal from './OtpModal';
+import { validateGmailAddress, MAX_DIGITS } from '../lib/gmailValidation';
 import { getSubmitCooldown, formatDuration, formatGap, COOLDOWN_STEPS_MS } from '../lib/submitCooldown';
 
 interface SetoranProps {
@@ -75,8 +76,9 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
     e.preventDefault();
     if (!agreed) return;
     
-    if (!email.endsWith('@gmail.com')) {
-      showAlert('Gagal!', 'Alamat email tidak valid! Harus menggunakan @gmail.com', 'error');
+    const emailError = validateGmailAddress(email);
+    if (emailError) {
+      showAlert('Email Tidak Valid!', emailError, 'error');
       return;
     }
 
@@ -106,9 +108,9 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
       showAlert('Gagal!', 'Harap isi daftar alamat email terlebih dahulu!', 'error');
       return;
     }
-    const invalid = emailList.find(e => !e.trim().endsWith('@gmail.com'));
-    if (invalid) {
-      showAlert('Gagal!', `Email ${invalid} tidak valid! Semua email wajib @gmail.com`, 'error');
+    const invalidIdx = emailList.findIndex(e => validateGmailAddress(e) !== null);
+    if (invalidIdx >= 0) {
+      showAlert('Email Tidak Valid!', `Baris ${invalidIdx + 1} (${emailList[invalidIdx].trim()}): ${validateGmailAddress(emailList[invalidIdx])}`, 'error');
       return;
     }
     setIsBulkSaved(true);
@@ -124,9 +126,9 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
       return;
     }
 
-    const invalid = emailList.find(e => !e.trim().endsWith('@gmail.com'));
-    if (invalid) {
-      showAlert('Gagal!', `Email ${invalid} tidak valid! Semua email wajib @gmail.com`, 'error');
+    const invalidIdx = emailList.findIndex(e => validateGmailAddress(e) !== null);
+    if (invalidIdx >= 0) {
+      showAlert('Email Tidak Valid!', `Baris ${invalidIdx + 1} (${emailList[invalidIdx].trim()}): ${validateGmailAddress(emailList[invalidIdx])}`, 'error');
       return;
     }
 
@@ -245,13 +247,24 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Alamat Email</label>
               <input 
-                type="email" 
+                type="text" 
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="contoh@gmail.com"
-                className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-100 focus:border-blue-400 focus:bg-white outline-none"
+                aria-invalid={!!(email && validateGmailAddress(email))}
+                aria-describedby="email-rules"
+                className={`w-full px-4 py-3.5 rounded-xl bg-gray-50 border focus:bg-white outline-none ${email && validateGmailAddress(email) ? 'border-red-300 focus:border-red-400' : 'border-gray-100 focus:border-blue-400'}`}
               />
+              {email && validateGmailAddress(email) ? (
+                <p className="text-[11px] text-red-500 font-bold mt-1.5">{validateGmailAddress(email)}</p>
+              ) : (
+                <p id="email-rules" className="text-[10px] text-gray-400 mt-1.5">Hanya huruf kecil, angka (maks {MAX_DIGITS}) dan titik. Tanpa huruf besar atau karakter lain.</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Password</label>
@@ -352,6 +365,9 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
                 required
                 value={bulkEmailsText}
                 onChange={(e) => setBulkEmailsText(e.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 placeholder="email1@gmail.com&#10;email2@gmail.com&#10;..."
                 className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-100 focus:border-emerald-400 focus:bg-white outline-none font-medium text-sm resize-none"
               />
@@ -373,9 +389,14 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
               <div className="bg-gray-50 p-4 rounded-xl border border-dashed border-gray-200">
                  <p className="text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Konfirmasi Email ({emailList.length}):</p>
                  <div className="max-h-24 overflow-y-auto space-y-1">
-                    {emailList.map((m, i) => (
-                      <p key={i} className="text-[10px] text-emerald-600 font-bold">{i+1}. {m}</p>
-                    ))}
+                    {emailList.map((m, i) => {
+                      const err = validateGmailAddress(m);
+                      return (
+                        <p key={i} className={`text-[10px] font-bold ${err ? 'text-red-500' : 'text-emerald-600'}`}>
+                          {i+1}. {m}{err ? ` — ${err}` : ''}
+                        </p>
+                      );
+                    })}
                  </div>
               </div>
             )}
