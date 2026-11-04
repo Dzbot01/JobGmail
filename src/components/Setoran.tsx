@@ -7,13 +7,13 @@ import { getSubmitCooldown, formatDuration, formatGap, COOLDOWN_STEPS_MS } from 
 
 interface SetoranProps {
   isLoading: boolean;
-  onTaskSubmit: (data: { email: string, pass: string }) => void;
+  onTaskSubmit: (data: { email: string, pass: string } | { email: string, pass: string }[]) => void;
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
 }
 
 interface SetoranProps {
   isLoading: boolean;
-  onTaskSubmit: (data: { email: string, pass: string }) => void;
+  onTaskSubmit: (data: { email: string, pass: string } | { email: string, pass: string }[]) => void;
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
   /** Email akun user yang login; tujuan pengiriman kode OTP */
   userEmail: string;
@@ -147,15 +147,12 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
     const list = emailList.map(m => m.trim());
     const pass = bulkPassword;
     requireOtp(`setoran ${list.length} akun sekaligus`, () => {
-      // Submit all accounts
-      list.forEach(mail => {
-        onTaskSubmit({ email: mail, pass });
-      });
+      // Kirim semua akun dalam satu kali simpan (notifikasi sukses ditampilkan oleh App)
+      onTaskSubmit(list.map(mail => ({ email: mail, pass })));
 
       setBulkEmailsText('');
       setBulkPassword('');
       setBulkAgreed(false);
-      showAlert('Sukses!', `${list.length} Akun berhasil disetorkan!`, 'success');
     });
   };
 

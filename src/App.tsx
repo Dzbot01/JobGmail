@@ -23,6 +23,7 @@ import SupportBubble from './components/SupportBubble';
 import CustomAlert from './components/CustomAlert';
 import PromoBanner from './components/PromoBanner';
 import MobileUserNav from './components/MobileUserNav';
+import { requestWithdraw } from './lib/withdraw';
 import { DEFAULT_SETTINGS, SystemSettings, loadSettings, saveSettings, subscribeSettings } from './lib/settings';
 import { getStoredReferral, clearStoredReferral, isMissingColumnError, creditReferralReward, REFERRAL_REWARD } from './lib/referral';
 
@@ -379,22 +380,27 @@ if (role === 'admin') {
     navigate('/', { replace: true });
   }
 
-const handleTaskSubmit = async (data: { email: string, pass: string }) => {
+// Simpan satu atau banyak setoran dalam SATU kali update (setoran bulk sebelumnya memanggil
+// fungsi ini 10x bersamaan sehingga saling menimpa dan hanya 1 akun yang tersimpan).
+const handleTaskSubmit = async (input: { email: string, pass: string } | { email: string, pass: string }[]) => {
+  const items = Array.isArray(input) ? input : [input];
+  if (items.length === 0) return;
   setIsLoading(true);
 
-  const newSub = {
+  const now = new Date().toISOString();
+  const newSubs = items.map(it => ({
     id: crypto.randomUUID(),
-    userId: userId, 
-    email: data.email,
-    password: data.pass, // Saran: jangan simpan password asli di DB
+    userId: userId,
+    email: it.email,
+    password: it.pass, // Saran: jangan simpan password asli di DB
     status: 'process',
-    timestamp: new Date().toISOString()
-  };
+    timestamp: now
+  }));
 
   const oldHistory = [...allSubmissions];
 
   try {
-    // 1. AMBIL DULU HISTORY LAMA USER INI DARI DB
+    // 1. AMBIL HISTORY TERBARU USER INI DARI DB
     const { data: userData, error: fetchError } = await supabase
       .from('pengguna')
       .select('history')
@@ -403,47 +409,52 @@ const handleTaskSubmit = async (data: { email: string, pass: string }) => {
 
     if (fetchError) throw fetchError;
 
-    const userHistoryOnly = [newSub, ...(userData?.history || [])];
+    const existing: any[] = userData?.history || [];
+    // Cegah email yang sama disetor dua kali oleh user yang sama
+    const already = new Set(existing.map((h: any) => String(h.email || '').toLowerCase()));
+    const dupes = newSubs.filter(sub => already.has(sub.email.toLowerCase()));
+    if (dupes.length) {
+      showAlert('Gagal!', `Email sudah pernah kamu setor: ${dupes.map(d => d.email).join(', ')}`, 'error');
+      return;
+    }
 
-    // 2. SAVE CUMA HISTORY DIA
+    // 2. SIMPAN SEMUA SEKALIGUS
     const { error: updateError } = await supabase
       .from('pengguna')
-      .update({ history: userHistoryOnly })
+      .update({ history: [...newSubs, ...existing] })
       .eq('id', userId);
 
     if (updateError) throw updateError;
 
-    // 3. KIRIM EMAIL KE USER
+    // 3. EMAIL NOTIFIKASI (sekali untuk user, sekali untuk admin)
+    const namaGmail = newSubs.map(sub => sub.email).join(', ');
     const { error: emailErrorUser } = await supabase.functions.invoke('kirim-email-setoran', {
-      body: { 
-        email_user: userEmail,
-        nama_gmail: data.email
-      }
-    })
-    if(emailErrorUser) console.error('Gagal kirim email ke user:', emailErrorUser.message);
+      body: { email_user: userEmail, nama_gmail: namaGmail }
+    });
+    if (emailErrorUser) console.error('Gagal kirim email ke user:', emailErrorUser.message);
 
-    // 4. KIRIM EMAIL KE ADMIN REALTIME <- TAMBAHIN INI
     const { error: emailErrorAdmin } = await supabase.functions.invoke('kirim-email-setoran', {
-      body: { 
+      body: {
         email_user: 'servindo342@gmail.com', // email admin
-        nama_gmail: data.email,
-        is_admin: true, // flag biar templatenya beda
-        user_penyetor: userEmail // biar admin tau siapa yg nyetor
+        nama_gmail: namaGmail,
+        is_admin: true,
+        user_penyetor: userEmail
       }
-    })
-    if(emailErrorAdmin) console.error('Gagal kirim email ke admin:', emailErrorAdmin.message);
+    });
+    if (emailErrorAdmin) console.error('Gagal kirim email ke admin:', emailErrorAdmin.message);
 
-    // 5. BARU UPDATE STATE SETELAH SEMUA SUKSES
-    const updatedHistory = [newSub, ...oldHistory];
-    setAllSubmissions(updatedHistory);
+    // 4. UPDATE STATE SETELAH SUKSES
+    setAllSubmissions([...newSubs, ...oldHistory]);
 
-    showAlert('Sukses!', 'Setoran berhasil dikirim. Notifikasi sudah dikirim ke email kamu.', 'success');
+    showAlert('Sukses!', newSubs.length > 1
+      ? `${newSubs.length} akun berhasil disetor. Notifikasi sudah dikirim ke email kamu.`
+      : 'Setoran berhasil dikirim. Notifikasi sudah dikirim ke email kamu.', 'success');
     navigate('/history');
 
   } catch (err: any) {
     console.error('Gagal simpan tugas:', err);
     showAlert('Gagal!', 'Gagal menyimpan tugas: ' + err.message, 'error');
-    setAllSubmissions(oldHistory); 
+    setAllSubmissions(oldHistory);
   } finally {
     setIsLoading(false);
   }
@@ -765,45 +776,25 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     onBack={() => navigate('/dashboard')}
     showAlert={showAlert}
     userEmail={userEmail}
-    onWithdrawSuccess={async (amount: number) => { // <- TAMBAH PARAMETER AMOUNT
+    onWithdrawSuccess={async (amount: number) => {
+      // Saldo dipotong lewat requestWithdraw: dicek ulang dengan saldo terbaru di database
+      // (RPC atomik di server bila migrasi sudah dijalankan) → saldo tidak mungkin minus.
       try {
-        // 1. BIKIN DATA BARU
-        const newWithdraw: HistoryItem = {
-          id: crypto.randomUUID(),
-          amount: amount,
-          status: 'process',
-          date: new Date().toISOString(), // pake ISO biar rapi
+        const res = await requestWithdraw({
+          userId,
+          amount,
+          userName,
           method: withdrawDetails.method,
           walletNumber: withdrawDetails.number,
-          userName: userName
-        };
-
-        const newBalance = balance - amount;
-        const updatedWithdrawHistory = [newWithdraw, ...withdrawHistory];
-
-        // 2. UPDATE UI DULU BIAR CEPET
-        setBalance(newBalance);
-        setWithdrawHistory(updatedWithdrawHistory);
-
-        // 3. SAVE KE SUPABASE
-        const { error } = await supabase
-  .from('pengguna')
-  .update({ 
-    saldo: newBalance,
-    withdraw_history: updatedWithdrawHistory 
-  })
-  .eq('id', userId);
-
-        if (error) throw error;
-
-        showAlert('Sukses!', 'Permintaan withdraw sedang diproses.', 'success');
-        
+        });
+        setBalance(res.saldo);
+        setWithdrawHistory(res.history);
+        return true;
       } catch (err: any) {
         console.error('Gagal withdraw:', err);
-        showAlert('Gagal!', 'Gagal memproses withdraw: ' + err.message, 'error');
-        // rollback kalo gagal
-        setBalance(balance); 
-        setWithdrawHistory(withdrawHistory);
+        showAlert('Gagal!', err?.message || 'Gagal memproses withdraw', 'error');
+        refreshBalance();
+        return false;
       }
     }}
   />
