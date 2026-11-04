@@ -30,7 +30,7 @@ Tanggal: 2026-11-04 · Branch: `claude/fervent-bell-wqab80`
 | 2 | Shader memakai `ss()` pengganti `smoothstep()` | `smoothstep(e0, e1, x)` dengan `e0 > e1` **tidak terdefinisi** di GLSL; di SwiftShader (renderer software Chrome saat GPU tidak tersedia) hasilnya 0. Rumus eksplisit identik dengan perilaku GPU umum. |
 | 3 | Tidak memanggil `loseContext()` saat unmount | React StrictMode (dev) memasang ulang komponen pada canvas yang sama; context yang sudah di-lose membuat panel putih. Browser tetap membersihkan context sendiri. |
 | 4 | LightTunnel hanya dipasang di desktop (`matchMedia('(min-width: 1024px)')`) | Panel tersembunyi di mobile; menghindari context WebGL yang tidak terlihat dan hemat baterai. |
-| 5 | URL endpoint via `VITE_EMAIL_API_URL`, default `https://cekidku.my.id/api/email/send` | URL worker tidak disertakan di permintaan; bisa diganti dari env Vercel tanpa ubah kode. |
+| 5 | URL endpoint via `VITE_EMAIL_API_URL`, default `https://boosteryuk.boosteryukid.workers.dev/api/email/send` (modul bersama `src/lib/emailApi.ts`) | Bisa diganti dari env Vercel tanpa ubah kode. |
 | 6 | Isi pesan di-escape sebelum dimasukkan ke template HTML | Mencegah HTML/script tak sengaja dari input admin masuk ke email. |
 | 7 | Route `/admin/broadcast` di-guard `userRole === 'admin'` | User biasa diarahkan ke `/dashboard`. |
 

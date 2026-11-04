@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronRight, Send, Eye, EyeOff, Loader } from 'lucide-react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import OtpModal from './OtpModal';
 
 interface SetoranProps {
   isLoading: boolean;
@@ -12,6 +13,8 @@ interface SetoranProps {
   isLoading: boolean;
   onTaskSubmit: (data: { email: string, pass: string }) => void;
   showAlert: (message: string, subtext: string, type: 'success' | 'error') => void;
+  /** Email akun user yang login; tujuan pengiriman kode OTP */
+  userEmail: string;
   settings: {
     taskReward: number;
     taskPassword: string;
@@ -20,7 +23,18 @@ interface SetoranProps {
   };
 }
 
-const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, settings }) => {
+const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, settings, userEmail }) => {
+  // Aksi setoran yang menunggu verifikasi OTP
+  const [pending, setPending] = useState<{ purpose: string; run: () => void } | null>(null);
+
+  const requireOtp = (purpose: string, run: () => void) => {
+    if (!userEmail) {
+      showAlert('Gagal!', 'Email akun tidak ditemukan. Silakan login ulang.', 'error');
+      return;
+    }
+    setPending({ purpose, run });
+  };
+
   // Single Account State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,10 +68,13 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
       return;
     }
 
-    onTaskSubmit({ email, pass: password });
-    setEmail('');
-    setPassword('');
-    setAgreed(false);
+    const submitted = { email, pass: password };
+    requireOtp(`setoran akun ${email}`, () => {
+      onTaskSubmit(submitted);
+      setEmail('');
+      setPassword('');
+      setAgreed(false);
+    });
   };
 
   const handleBulkSave = () => {
@@ -99,18 +116,34 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
       return;
     }
 
-    // Submit all accounts
-    emailList.forEach(mail => {
-      onTaskSubmit({ email: mail.trim(), pass: bulkPassword });
-    });
+    const list = emailList.map(m => m.trim());
+    const pass = bulkPassword;
+    requireOtp(`setoran ${list.length} akun sekaligus`, () => {
+      // Submit all accounts
+      list.forEach(mail => {
+        onTaskSubmit({ email: mail, pass });
+      });
 
-    setBulkEmailsText('');
-    setBulkPassword('');
-    setBulkAgreed(false);
-    showAlert('Sukses!', `${emailList.length} Akun berhasil disetorkan!`, 'success');
+      setBulkEmailsText('');
+      setBulkPassword('');
+      setBulkAgreed(false);
+      showAlert('Sukses!', `${list.length} Akun berhasil disetorkan!`, 'success');
+    });
   };
 
   return (
+    <>
+    <OtpModal
+      open={!!pending}
+      email={userEmail}
+      purpose={pending?.purpose || ''}
+      onClose={() => setPending(null)}
+      onVerified={() => {
+        const action = pending;
+        setPending(null);
+        action?.run();
+      }}
+    />
     <div className="space-y-8 pb-10 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
       {/* SECTION 1: SINGLE */}
       <div className="space-y-3">
@@ -335,6 +368,7 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
         </div>
       </div>
     </div>
+    </>
   );
 };
 

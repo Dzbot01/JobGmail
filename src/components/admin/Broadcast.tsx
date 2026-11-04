@@ -1,14 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Megaphone, Users, Clock, Search, Send, Loader2, CheckCircle2, XCircle, RefreshCw, Square, Eye } from 'lucide-react';
 import { supabase } from '../../supabase';
+import { sendEmail, escapeHtml, emailLayout } from '../../lib/emailApi';
 
-/**
- * Endpoint worker (Cloudflare) yang meneruskan email ke Resend.
- * Bisa diganti lewat env Vercel: VITE_EMAIL_API_URL
- */
-const EMAIL_API_URL: string =
-  (import.meta as any).env?.VITE_EMAIL_API_URL || 'https://cekidku.my.id/api/email/send';
-const EMAIL_FROM = 'Job Gmail <noreply@cekidku.my.id>';
 // Jeda antar email agar tidak kena rate limit Resend (default 2 request/detik)
 const SEND_DELAY_MS = 600;
 
@@ -31,28 +25,11 @@ interface BroadcastProps {
   showAlert: (message: string, subtext: string, type?: 'success' | 'error') => void;
 }
 
-const escapeHtml = (text: string) =>
-  text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-
 const personalize = (text: string, r: Recipient) =>
   text.replace(/\{nama\}/gi, r.nama).replace(/\{email\}/gi, r.email);
 
-const buildHtml = (subject: string, message: string) => `<!doctype html>
-<html><body style="margin:0;padding:24px;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;">
-    <tr><td style="background:#1d4ed8;padding:20px 28px;color:#ffffff;font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;">Job Gmail</td></tr>
-    <tr><td style="padding:28px;">
-      <h1 style="margin:0 0 16px;font-size:20px;color:#111827;">${escapeHtml(subject)}</h1>
-      <div style="font-size:14px;line-height:1.6;color:#374151;">${escapeHtml(message).replace(/\n/g, '<br>')}</div>
-    </td></tr>
-    <tr><td style="padding:16px 28px;background:#f9fafb;font-size:11px;color:#9ca3af;">Email ini dikirim ke pengguna terdaftar Job Gmail.</td></tr>
-  </table>
-</body></html>`;
+const buildHtml = (subject: string, message: string) =>
+  emailLayout(subject, escapeHtml(message).replace(/\n/g, '<br>'));
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -154,30 +131,8 @@ const Broadcast: React.FC<BroadcastProps> = ({ showAlert }) => {
       if (stopRef.current) break;
       const r = recipients[i];
       const subj = personalize(subject, r);
-      try {
-        const res = await fetch(EMAIL_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: r.email,
-            subject: subj,
-            html: buildHtml(subj, personalize(message, r)),
-            from: EMAIL_FROM,
-          }),
-        });
-        if (res.ok) {
-          out.push({ email: r.email, ok: true });
-        } else {
-          let detail = `HTTP ${res.status}`;
-          try {
-            const body = await res.json();
-            detail = body?.error?.message || body?.message || body?.error || detail;
-          } catch { /* body bukan JSON */ }
-          out.push({ email: r.email, ok: false, error: String(detail) });
-        }
-      } catch (err: any) {
-        out.push({ email: r.email, ok: false, error: err?.message || 'Network error' });
-      }
+      const res = await sendEmail({ to: r.email, subject: subj, html: buildHtml(subj, personalize(message, r)) });
+      out.push(res.ok ? { email: r.email, ok: true } : { email: r.email, ok: false, error: res.error });
       setResults([...out]);
       setProgress({ done: i + 1, total: recipients.length });
       if (i < recipients.length - 1) await sleep(SEND_DELAY_MS);

@@ -640,6 +640,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
           <Route path="/setoran" element={
             <Setoran
              isLoading={isLoading}
+              userEmail={userEmail}
               onTaskSubmit={handleTaskSubmit}
               showAlert={showAlert}
               settings={{...systemSettings, withdrawDetailsSet:!!withdrawDetails.method}}
