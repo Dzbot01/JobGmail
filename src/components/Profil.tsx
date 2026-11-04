@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BadgeCheck, XCircle, Wallet, Info, ChevronRight, CheckCircle2, XCircle as XIcon, Users, CreditCard, ShieldCheck } from 'lucide-react';
 import { supabase } from '../supabase';
-import { Copy, Check, Gift } from 'lucide-react';
+import { Copy, Check, Gift, HardHat, Briefcase } from 'lucide-react';
+import { useAccountMode } from '../lib/accountMode';
 import { buildReferralLink, fetchReferralSummary, maskEmail, REFERRAL_REWARD, ReferralSummary } from '../lib/referral';
 
 interface ProfilProps {
@@ -22,6 +23,9 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
   const [tasksDone, setTasksDone] = useState(0);
   const [tasksRejected, setTasksRejected] = useState(0);
   const [totalIncome, setTotalIncome] = useState(0);
+
+  // Mode akun (Pekerja / Pencari Pekerja)
+  const { mode, setMode, saving: savingMode } = useAccountMode(userId);
 
   // Referral
   const [referral, setReferral] = useState<ReferralSummary>({ invitees: [], earnings: 0, available: true });
@@ -143,6 +147,35 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
           <Wallet size={16} className="text-emerald-600 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total Pendapatan</p>
           <p className="text-base font-black text-emerald-600">Rp. {totalIncome.toLocaleString('id-ID')}</p> {/* UDAH DARI DB */}
+        </div>
+      </div>
+
+      {/* Mode Akun */}
+      <div className="bg-white rounded-2xl p-4 lg:p-5 shadow-sm border-gray-100 lg:col-span-2">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-black text-xs text-gray-800 uppercase tracking-wider">Mode Akun</h3>
+          {savingMode && <span className="text-[10px] text-gray-400 font-bold">Menyimpan…</span>}
+        </div>
+        <p className="text-[11px] text-gray-500 mb-3">Menentukan tampilan halaman <b>Cari Pekerjaan</b>.</p>
+        <div role="radiogroup" aria-label="Mode akun" className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-2xl">
+          {([
+            { key: 'pekerja', label: 'Pekerja', desc: 'Cari & kerjakan pekerjaan', icon: <HardHat size={18} /> },
+            { key: 'pencari', label: 'Pencari Pekerja', desc: 'Buat pekerjaan & review', icon: <Briefcase size={18} /> },
+          ] as const).map(opt => (
+            <button
+              key={opt.key}
+              role="radio"
+              aria-checked={mode === opt.key}
+              onClick={() => setMode(opt.key)}
+              className={`flex items-center gap-2 p-3 rounded-xl text-left transition-all ${mode === opt.key ? 'bg-white shadow-md text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              {opt.icon}
+              <span className="min-w-0">
+                <span className="block text-xs font-black">{opt.label}</span>
+                <span className="block text-[10px] text-gray-400 truncate">{opt.desc}</span>
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 

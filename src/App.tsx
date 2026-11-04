@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut, Megaphone, Ban } from 'lucide-react';
+import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut, Megaphone, Ban, Briefcase } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './supabase'; // IMPORT SUPABASE
 
@@ -16,10 +16,13 @@ import AuthPage from './components/AuthPage';
 import AdminPanel from './components/admin/AdminPanel';
 import Broadcast from './components/admin/Broadcast';
 import BannedUsers from './components/admin/BannedUsers';
+import JobsPage from './components/jobs/JobsPage';
+import JobDetail from './components/jobs/JobDetail';
 import UserHistory from './components/UserHistory';
 import SupportBubble from './components/SupportBubble';
 import CustomAlert from './components/CustomAlert';
 import PromoBanner from './components/PromoBanner';
+import MobileUserNav from './components/MobileUserNav';
 import { getStoredReferral, clearStoredReferral, isMissingColumnError, creditReferralReward, REFERRAL_REWARD } from './lib/referral';
 
 type AdminTab = 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
@@ -558,6 +561,12 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
   const username = (userEmail || '').split('@')[0] || 'Member';
 
+  const refreshBalance = async () => {
+    if (!userId) return;
+    const { data } = await supabase.from('pengguna').select('saldo').eq('id', userId).single();
+    if (data && typeof data.saldo === 'number') setBalance(data.saldo);
+  };
+
   const goToSetoran = () => {
     const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3');
     audio.play().catch(e => console.log('Audio play failed:', e));
@@ -632,6 +641,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
                 <Inbox size={18} /> Setor Akun
               </button>
               <SideNavItem active={location.pathname === '/dashboard'} onClick={() => navigate('/dashboard')} icon={<Home size={20} />} label="Dashboard" />
+              <SideNavItem active={location.pathname.startsWith('/jobs')} onClick={() => navigate('/jobs')} icon={<Briefcase size={20} />} label="Cari Pekerjaan" />
               <SideNavItem active={location.pathname === '/gacha'} onClick={() => navigate('/gacha')} icon={<Gift size={20} />} label="Gacha" />
               <SideNavItem active={location.pathname === '/history'} onClick={() => navigate('/history')} icon={<HistoryIcon size={20} />} label="Riwayat Tugas" />
               <SideNavItem active={location.pathname === '/withdraw'} onClick={() => navigate('/withdraw')} icon={<CreditCard size={20} />} label="Withdraw" />
@@ -788,6 +798,14 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
           <Route path="/history" element={<UserHistory submissions={allSubmissions} />} />
 
+          {/* MARKETPLACE PEKERJAAN */}
+          <Route path="/jobs" element={
+            <JobsPage userId={userId} username={username} balance={balance} showAlert={showAlert} onBalanceChange={refreshBalance} />
+          } />
+          <Route path="/jobs/:id" element={
+            <JobDetail userId={userId} userEmail={userEmail} isBanned={isBanned} showAlert={showAlert} />
+          } />
+
           {/* ADMIN ROUTES */}
           <Route path="/admin" element={
             <AdminPanel
@@ -906,47 +924,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     <NavButton active={location.pathname === '/admin/profil'} onClick={() => {setAdminActiveTab('profil'); navigate('/admin/profil')}} icon={<User size={22} />} label="Profil" />
   </nav>
 ) : (
-  <nav className="premium-nav-container">
-    <NavButtonPremium 
-      active={location.pathname === '/dashboard'} 
-      onClick={() => navigate('/dashboard')}
-      icon={<Home size={22} />}
-      label="Dash"
-    />
-
-    <NavButtonPremium 
-      active={location.pathname === '/gacha'} 
-      onClick={() => navigate('/gacha')}
-      icon={<Gift size={22} />}
-      label="Gacha"
-    />
-
-    {/* Floating Setor Button */}
-    <div className="floating-setor-wrapper">
-       <div className="floating-setor-btn" onClick={goToSetoran}>
-          <div className="setor-middle-ring">
-             <div className="setor-inner-circle">
-                <Inbox size={26} className="text-white" />
-                <span className="setor-label">SETOR</span>
-             </div>
-          </div>
-       </div>
-    </div>
-
-    <NavButtonPremium 
-      active={location.pathname === '/history'} 
-      onClick={() => navigate('/history')}
-      icon={<HistoryIcon size={22} />}
-      label="History"
-    />
-
-    <NavButtonPremium 
-      active={['/profil', '/penarikan', '/about-us'].includes(location.pathname)} 
-      onClick={() => navigate('/profil')}
-      icon={<User size={22} />}
-      label="Profil"
-    />
-  </nav>
+  <MobileUserNav pathname={location.pathname} navigate={navigate} onSetor={goToSetoran} />
 )}
     </div>
   );
@@ -959,17 +937,6 @@ const SideNavItem = ({ active, onClick, icon, label }: { active: boolean, onClic
     {icon}
     <span>{label}</span>
   </button>
-);
-
-const NavButtonPremium = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
-  <div 
-    className={`premium-nav-item ${active ? 'active' : ''}`}
-    onClick={onClick}
-  >
-    {active && <div className="premium-active-glow" />}
-    {icon}
-    <span className="relative z-10">{label}</span>
-  </div>
 );
 
 const NavButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
