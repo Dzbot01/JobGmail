@@ -13,6 +13,8 @@ interface DashboardProps {
   balance: number;
   onWithdraw: () => void;
   onTopup?: () => void;
+  /** Saldo pending dari pekerjaan yang menunggu review */
+  pendingBalance?: number;
   isMusicPlaying: boolean;
   settings: {
     taskReward: number;
@@ -21,7 +23,7 @@ interface DashboardProps {
   userEmail?: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, onTopup, settings, isMusicPlaying, userEmail }) => {
+const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, onTopup, pendingBalance = 0, settings, isMusicPlaying, userEmail }) => {
   // Username = prefix email yang dipakai mendaftar
   const username = (userEmail || '').split('@')[0] || 'Member';
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -143,6 +145,9 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, onTopup, set
             <div>
               <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Saldo Utama</p>
               <h2 className="text-3xl font-black mt-1 text-gray-900 tracking-tighter">Rp. {balance.toLocaleString('id-ID')}</h2>
+              {pendingBalance > 0 && (
+                <p className="mt-1 text-[11px] font-bold text-amber-600">+ Rp. {pendingBalance.toLocaleString('id-ID')} saldo pending</p>
+              )}
             </div>
             <div className="bg-blue-50 p-2.5 rounded-2xl">
               <CreditCard className="text-blue-600" size={24} />

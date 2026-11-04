@@ -205,3 +205,48 @@ export async function reviewSubmission(id: string, approve: boolean, reason?: st
   const { error } = await supabase.rpc('review_job_submission', { p_submission_id: id, p_approve: approve, p_reason: reason || null });
   if (error) throw error;
 }
+
+// ===== Riwayat pekerjaan & saldo pending milik pekerja =====
+
+/** Batas data yang ditampilkan di setiap daftar riwayat. */
+export const HISTORY_LIMIT = 10;
+
+export interface MySubmission extends JobSubmission {
+  jobs?: { title: string; reward: number; owner_name: string } | null;
+}
+
+/** Riwayat kiriman milik pekerja (terbaru dulu), digabung dengan judul & bayaran pekerjaan. */
+export async function listMySubmissions(workerId: string, status?: JobSubmission['status'], limit = HISTORY_LIMIT) {
+  let q = supabase
+    .from('job_submissions')
+    .select('id, job_id, worker_id, worker_email, answers, status, reason, created_at, jobs(title, reward, owner_name)')
+    .eq('worker_id', workerId);
+  if (status) q = q.eq('status', status);
+  const { data, error } = await q.order('created_at', { ascending: false }).limit(limit);
+  if (error) throw error;
+  return (data || []) as unknown as MySubmission[];
+}
+
+/** Jumlah per status (untuk label filter). */
+export async function countMySubmissions(workerId: string) {
+  const { data, error } = await supabase.from('job_submissions').select('status').eq('worker_id', workerId);
+  if (error) throw error;
+  const counts = { process: 0, paid: 0, rejected: 0, total: 0 };
+  (data || []).forEach((r: any) => { counts.total++; if (r.status in counts) (counts as any)[r.status]++; });
+  return counts;
+}
+
+/**
+ * Saldo pending = total bayaran dari kiriman yang masih "process".
+ * Diterima → pindah ke saldo utama (RPC review_job_submission); ditolak → hilang dari pending.
+ */
+export async function fetchPendingEarnings(workerId: string) {
+  const { data, error } = await supabase
+    .from('job_submissions')
+    .select('id, jobs(reward)')
+    .eq('worker_id', workerId)
+    .eq('status', 'process');
+  if (error) throw error;
+  const rows = (data || []) as any[];
+  return { amount: rows.reduce((sum, r) => sum + (Number(r.jobs?.reward) || 0), 0), count: rows.length };
+}

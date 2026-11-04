@@ -21,6 +21,8 @@ import JobDetail from './components/jobs/JobDetail';
 import TopupPage from './components/topup/TopupPage';
 import TopupConfirm from './components/topup/TopupConfirm';
 import TopupPay from './components/topup/TopupPay';
+import JobHistory from './components/jobs/JobHistory';
+import { usePendingEarnings } from './lib/usePendingEarnings';
 import UserHistory from './components/UserHistory';
 import SupportBubble from './components/SupportBubble';
 import CustomAlert from './components/CustomAlert';
@@ -587,6 +589,9 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
   const username = (userEmail || '').split('@')[0] || 'Member';
 
+  // Saldo pending (bayaran pekerjaan yang masih direview) — dimuat ulang saat pindah halaman
+  const pendingEarnings = usePendingEarnings(userRole === 'user' ? userId : '', location.pathname);
+
   const refreshBalance = async () => {
     if (!userId) return;
     const { data } = await supabase.from('pengguna').select('saldo').eq('id', userId).single();
@@ -706,6 +711,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               balance={balance}
               onWithdraw={() => navigate('/withdraw')}
               onTopup={() => navigate('/topup')}
+              pendingBalance={pendingEarnings.amount}
               settings={systemSettings}
               isMusicPlaying={isMusicPlaying}
               userName={userName}
@@ -807,7 +813,12 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
   />
 } />
 
-          <Route path="/history" element={<UserHistory submissions={allSubmissions} />} />
+          <Route path="/history" element={
+            <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+              <UserHistory submissions={allSubmissions} />
+              <JobHistory userId={userId} pendingAmount={pendingEarnings.amount} pendingCount={pendingEarnings.count} onRefresh={pendingEarnings.reload} />
+            </div>
+          } />
 
           {/* TOP UP (Tripay) */}
           <Route path="/topup" element={<TopupPage userId={userId} userEmail={userEmail} balance={balance} onBalanceChange={refreshBalance} showAlert={showAlert} />} />
