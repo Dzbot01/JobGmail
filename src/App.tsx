@@ -710,7 +710,6 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
             <Dashboard
               balance={balance}
               onWithdraw={() => navigate('/withdraw')}
-              onTopup={() => navigate('/topup')}
               pendingBalance={pendingEarnings.amount}
               settings={systemSettings}
               isMusicPlaying={isMusicPlaying}

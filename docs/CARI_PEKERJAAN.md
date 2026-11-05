@@ -89,3 +89,15 @@ Validasi (Playwright, 375 & 1440 px, data uji 12 kiriman: 5 proses, 4 diterima, 
 pending Rp 8.500 di Dashboard & Cari Pekerjaan; 10 item + "Menampilkan 10 terbaru dari 12 data"; filter Ditolak 3 item
 dengan alasan; Proses 5 item; tolak kiriman Rp 500 → pending Rp 8.000; terima kiriman Rp 2.000 → pending Rp 6.000;
 Riwayat Setor 10 dari 14; Riwayat Withdraw 10 dari 13; tanpa error JS & tanpa overflow.
+
+## 7. Perapian UI (2026-11-05)
+
+- Cari Pekerjaan (mode Pekerja): kartu Riwayat Pekerjaan tidak lagi ditampilkan di halaman ini (tetap tersedia di
+  halaman Riwayat). Diganti 2 kartu kecil di bawah header: **Saldo Didapat** (total bayaran kiriman yang diterima)
+  dan **Saldo Pending** (kiriman yang masih direview), dihitung dalam satu query dari `job_submissions` + `jobs`.
+- Dashboard: tombol Top Up di kartu saldo dihapus; menu Top Up tetap di panel tarik bottom navbar dan sidebar desktop.
+- Ikon WhatsApp di Dashboard: logo resmi dari **Simple Icons** (`simple-icons@13.21.0`, lisensi CC0), warna brand
+  `#25D366`, tanpa kartu/efek 3D; CSS animasi 3D lama dihapus.
+- Validasi (Playwright, 390 & 1440 px): kartu saldo hanya berisi tombol Withdraw; logo WhatsApp 48px tanpa kartu;
+  Saldo Didapat Rp 9.500 (4 diterima) & Saldo Pending Rp 8.500 (5 proses) sesuai data uji; kartu riwayat tidak tampil;
+  menu Top Up tetap ada; tanpa error JS & overflow.
