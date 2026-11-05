@@ -61,75 +61,7 @@
   .marquee-track { animation-duration: 80s; }
 }
 
-/* ===== Ikon WhatsApp 3D beranimasi ===== */
-.wa3d { position: relative; width: 56px; height: 64px; perspective: 400px; }
-.wa3d-tile {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  color: #fff;
-  background: radial-gradient(circle at 30% 25%, #7dfca5 0%, #2fd566 38%, #12a84a 75%, #0b7f37 100%);
-  box-shadow:
-    inset 0 3px 5px rgba(255, 255, 255, .55),
-    inset 0 -6px 10px rgba(0, 70, 25, .45),
-    0 5px 0 #0a6e30,
-    0 12px 20px rgba(16, 185, 80, .45);
-  transform-style: preserve-3d;
-  animation: wa3d-float 3.2s ease-in-out infinite;
-}
-.wa3d-glyph {
-  width: 32px;
-  height: 32px;
-  filter: drop-shadow(0 2px 0 rgba(0, 80, 30, .55)) drop-shadow(0 4px 6px rgba(0, 0, 0, .25));
-  transform: translateZ(14px);
-  animation: wa3d-wiggle 3.2s ease-in-out infinite;
-}
-.wa3d-shine {
-  position: absolute;
-  inset: -40% auto -40% -60%;
-  width: 40%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent);
-  transform: skewX(-20deg);
-  animation: wa3d-shine 3.2s ease-in-out infinite;
-}
-.wa3d-shadow {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 40px;
-  height: 8px;
-  margin-left: -20px;
-  border-radius: 50%;
-  background: rgba(6, 95, 70, .28);
-  filter: blur(3px);
-  animation: wa3d-shadow 3.2s ease-in-out infinite;
-}
-@keyframes wa3d-float {
-  0%, 100% { transform: translateY(0) rotateX(8deg) rotateY(-14deg); }
-  50% { transform: translateY(-6px) rotateX(-6deg) rotateY(14deg); }
-}
-@keyframes wa3d-wiggle {
-  0%, 70%, 100% { transform: translateZ(14px) rotate(0); }
-  76% { transform: translateZ(14px) rotate(-12deg) scale(1.06); }
-  82% { transform: translateZ(14px) rotate(10deg) scale(1.06); }
-  88% { transform: translateZ(14px) rotate(-6deg); }
-}
-@keyframes wa3d-shine {
-  0%, 55% { left: -60%; }
-  80%, 100% { left: 130%; }
-}
-@keyframes wa3d-shadow {
-  0%, 100% { transform: scaleX(1); opacity: .9; }
-  50% { transform: scaleX(.75); opacity: .5; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .wa3d-tile, .wa3d-glyph, .wa3d-shine, .wa3d-shadow { animation: none; }
-}
+
 
 /* Restored Premium Baseline Bottom Navbar */
 .premium-nav-container {

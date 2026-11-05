@@ -7,8 +7,7 @@ import MyJobs from './MyJobs';
 import { Job, formatRupiah, jobsErrorMessage, listOpenJobs, searchJobs, slotsLeft } from '../../lib/jobs';
 import { useAccountMode } from '../../lib/accountMode';
 import { usePendingEarnings } from '../../lib/usePendingEarnings';
-import JobHistory from './JobHistory';
-import { Hourglass } from 'lucide-react';
+import { Hourglass, CircleDollarSign } from 'lucide-react';
 import { MIN_SALDO_PENCARI } from '../../lib/tripay';
 import { Lock } from 'lucide-react';
 
@@ -88,17 +87,27 @@ const JobsPage: React.FC<Props> = ({ userId, username, balance, showAlert, onBal
           </div>
         </div>
       ) : (
-        <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
-          <div className="lg:col-span-2 space-y-6">
-          {pending.amount > 0 && (
-            <button
-              onClick={() => document.getElementById('job-history')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              className="lg:hidden w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200 text-left"
-            >
-              <span className="flex items-center gap-2 text-xs font-bold text-amber-700"><Hourglass size={16} /> Saldo pending</span>
-              <span className="text-sm font-black text-amber-700">{formatRupiah(pending.amount)}</span>
-            </button>
-          )}
+        <>
+          {/* Ringkasan pendapatan dari pekerjaan */}
+          <div className="grid grid-cols-2 gap-3 lg:max-w-xl">
+            <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-md border border-gray-100 flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0"><CircleDollarSign size={20} /></div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-wide text-gray-400 whitespace-nowrap">Saldo Didapat</p>
+                <p className="text-base sm:text-lg font-black text-emerald-600 truncate">{formatRupiah(pending.earned)}</p>
+                <p className="text-[10px] text-gray-400">{pending.earnedCount} pekerjaan diterima</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-md border border-gray-100 flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0"><Hourglass size={20} /></div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-wide text-gray-400 whitespace-nowrap">Saldo Pending</p>
+                <p className="text-base sm:text-lg font-black text-amber-600 truncate">{formatRupiah(pending.amount)}</p>
+                <p className="text-[10px] text-gray-400">{pending.count} menunggu review</p>
+              </div>
+            </div>
+          </div>
+
           {/* Pencarian */}
           <div className="relative">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -133,7 +142,7 @@ const JobsPage: React.FC<Props> = ({ userId, username, balance, showAlert, onBal
               <p className="text-xs font-bold text-gray-400">{query ? 'Tidak ada pekerjaan yang cocok dengan kata kunci.' : 'Belum ada pekerjaan yang dibuka.'}</p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {results.map(job => {
                 const full = slotsLeft(job) === 0;
                 const own = job.owner_id === userId;
@@ -164,11 +173,7 @@ const JobsPage: React.FC<Props> = ({ userId, username, balance, showAlert, onBal
               })}
             </div>
           )}
-          </div>
-          <div id="job-history" className="lg:sticky scroll-mt-28" style={{ top: 'calc(var(--header-h, 0px) + 1.5rem)' }}>
-            <JobHistory userId={userId} pendingAmount={pending.amount} pendingCount={pending.count} onRefresh={pending.reload} />
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

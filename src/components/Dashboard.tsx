@@ -12,7 +12,6 @@ import 'swiper/css/pagination';
 interface DashboardProps {
   balance: number;
   onWithdraw: () => void;
-  onTopup?: () => void;
   /** Saldo pending dari pekerjaan yang menunggu review */
   pendingBalance?: number;
   isMusicPlaying: boolean;
@@ -23,7 +22,7 @@ interface DashboardProps {
   userEmail?: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, onTopup, pendingBalance = 0, settings, isMusicPlaying, userEmail }) => {
+const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, pendingBalance = 0, settings, isMusicPlaying, userEmail }) => {
   // Username = prefix email yang dipakai mendaftar
   const username = (userEmail || '').split('@')[0] || 'Member';
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -156,22 +155,12 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, onTopup, pen
           
           <div className="flex items-center justify-between bg-blue-50/50 p-3 rounded-2xl border border-blue-100">
             <p className="text-[10px] text-blue-700 font-bold italic">Minimal withdraw: <span className="font-black not-italic">Rp. 1.000</span></p>
-            <div className="flex gap-2">
-              {onTopup && (
-                <button
-                  onClick={onTopup}
-                  className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-emerald-200 active:scale-95 transition-transform"
-                >
-                  Top Up
-                </button>
-              )}
-              <button 
-                onClick={onWithdraw}
-                className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform"
-              >
-                Withdraw
-              </button>
-            </div>
+            <button 
+              onClick={onWithdraw}
+              className="bg-blue-600 text-white px-5 py-2 rounded-xl text-xs font-black shadow-lg shadow-blue-200 active:scale-95 transition-transform"
+            >
+              Withdraw
+            </button>
           </div>
         </div>
 
@@ -221,15 +210,15 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, onTopup, pen
           rel="noopener noreferrer"
           className="bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl p-5 flex items-center gap-4 active:scale-[0.98] transition-all"
         >
-          <div className="wa3d flex-shrink-0" aria-hidden="true">
-            <div className="wa3d-tile">
-              <span className="wa3d-shine" />
-              <svg viewBox="0 0 24 24" fill="currentColor" className="wa3d-glyph">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.353-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.216 1.36.186 1.871.123.57-.07 1.758-.47 2.011-1.24.252-.772.252-1.438.177-1.581-.075-.143-.269-.223-.566-.372zM12.003 21c-1.74 0-3.41-.449-4.91-1.304l-.352-.208-3.65.958 1.006-3.468-.244-.38A8.931 8.931 0 0 1 2.5 12.1c0-4.963 4.04-9 9-9 2.404 0 4.66.936 6.36 2.636a8.956 8.93 0 0 1 2.64 6.364c0 4.963-4.04 9-9 9zM12 2c-5.523 0-10 4.477-10 10 0 1.767 1.47 3.42 1.4 4.94l-1.4 4.8 5.1-1.34c1.55.8 3.23 1.23 4.9 1.23 5.523 0 10-4.477 10-10S17.523 2 12 2z"/>
-              </svg>
-            </div>
-            <span className="wa3d-shadow" />
-          </div>
+          {/* Logo WhatsApp resmi (Simple Icons, CC0) — warna brand #25D366, tanpa kartu */}
+          <svg viewBox="0 0 32 32" className="w-12 h-12 flex-shrink-0 drop-shadow-sm" role="img" aria-label="WhatsApp">
+            <circle cx="16" cy="16" r="16" fill="#25D366" />
+            <path
+              transform="translate(5 5) scale(0.9167)"
+              fill="#FFFFFF"
+              d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
+            />
+          </svg>
           <div>
             <p className="text-[11px] text-emerald-800 font-bold leading-relaxed">
               Ayo gabung saluran whatsapp komunitas Freelance job Gmail kami untuk mendapatkan info updated seputar Maintenance dan Update Fitur lainnya.

@@ -243,10 +243,18 @@ export async function countMySubmissions(workerId: string) {
 export async function fetchPendingEarnings(workerId: string) {
   const { data, error } = await supabase
     .from('job_submissions')
-    .select('id, jobs(reward)')
+    .select('id, status, jobs(reward)')
     .eq('worker_id', workerId)
-    .eq('status', 'process');
+    .in('status', ['process', 'paid']);
   if (error) throw error;
   const rows = (data || []) as any[];
-  return { amount: rows.reduce((sum, r) => sum + (Number(r.jobs?.reward) || 0), 0), count: rows.length };
+  const sum = (st: string) => rows.filter(r => r.status === st).reduce((s, r) => s + (Number(r.jobs?.reward) || 0), 0);
+  return {
+    /** saldo pending: kiriman yang masih direview */
+    amount: sum('process'),
+    count: rows.filter(r => r.status === 'process').length,
+    /** saldo didapat: total bayaran dari kiriman yang sudah diterima */
+    earned: sum('paid'),
+    earnedCount: rows.filter(r => r.status === 'paid').length,
+  };
 }
