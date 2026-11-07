@@ -54,7 +54,7 @@ const statusClass = (s: string) =>
 const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>('spam');
+  const [tab, setTab] = useState<Tab>('all');
   const [query, setQuery] = useState('');
   const [threshold, setThreshold] = useState(DEFAULT_SPAM_THRESHOLD);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -112,7 +112,7 @@ const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
     const q = query.trim().toLowerCase();
     return users
       .filter(u => (tab === 'spam' ? u.maxPerDay >= threshold : tab === 'banned' ? u.isBanned : true))
-      .filter(u => !q || u.email.toLowerCase().includes(q) || u.nama.toLowerCase().includes(q))
+      .filter(u => !q || u.email.toLowerCase().includes(q) || u.nama.toLowerCase().includes(q) || u.tasks.some(t => (t.email || '').toLowerCase().includes(q)))
       .sort((a, b) => b.maxPerDay - a.maxPerDay || b.tasks.length - a.tasks.length);
   }, [users, tab, query, threshold]);
 
@@ -172,8 +172,8 @@ const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
   };
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode; count: number; active: string }[] = [
-    { key: 'spam', label: 'Terindikasi Spam', icon: <AlertTriangle size={16} />, count: counts.spam, active: 'border-orange-400 bg-orange-50 text-orange-600' },
     { key: 'all', label: 'Semua User', icon: <Users size={16} />, count: counts.all, active: 'border-blue-500 bg-blue-50 text-blue-600' },
+    { key: 'spam', label: 'Terindikasi Spam', icon: <AlertTriangle size={16} />, count: counts.spam, active: 'border-orange-400 bg-orange-50 text-orange-600' },
     { key: 'banned', label: 'Dibanned', icon: <UserX size={16} />, count: counts.banned, active: 'border-red-400 bg-red-50 text-red-600' },
   ];
 
@@ -215,7 +215,7 @@ const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Cari email atau nama"
+            placeholder="Cari email/nama user atau email setoran"
             className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm outline-none focus:border-blue-400 focus:bg-white"
           />
         </div>
@@ -254,6 +254,8 @@ const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
               const open = expanded === u.id;
               const spam = isSpam(u);
               const days = Object.entries(u.perDay).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+              const q = query.trim().toLowerCase();
+              const matchedTasks = q ? u.tasks.filter(t => (t.email || '').toLowerCase().includes(q)) : [];
               return (
                 <div key={u.id} className={`bg-white rounded-2xl shadow-md border overflow-hidden ${u.isBanned ? 'border-red-200' : spam ? 'border-orange-200' : 'border-gray-100'}`}>
                   <div className="p-4 flex items-start gap-3">
@@ -265,6 +267,17 @@ const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
                         {spam && <span className="px-2 py-0.5 rounded-md bg-orange-100 text-orange-600 text-[9px] font-black uppercase">Spam</span>}
                       </div>
                       <p className="text-[11px] text-gray-400 truncate">{u.nama}</p>
+                      {matchedTasks.length > 0 && (
+                        <div className="mt-2 rounded-lg bg-yellow-50 border border-yellow-200 px-2.5 py-1.5 space-y-0.5">
+                          <p className="text-[9px] font-black uppercase tracking-wider text-yellow-700">Mengirim setoran yang cocok ({matchedTasks.length})</p>
+                          {matchedTasks.slice(0, 3).map(t => (
+                            <p key={t.id} className="text-[11px] text-gray-700 truncate">
+                              <b>{t.email}</b> <span className="text-gray-400">· {formatDay(dayKey(t.timestamp))} {formatTime(t.timestamp)} · {t.status}</span>
+                            </p>
+                          ))}
+                          {matchedTasks.length > 3 && <p className="text-[10px] text-yellow-700">+{matchedTasks.length - 3} lainnya</p>}
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px]">
                         <span className="text-gray-500">Total setoran: <b className="text-gray-800">{u.tasks.length}</b></span>
                         <span className="text-gray-500">
@@ -306,7 +319,7 @@ const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
                               <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${n >= threshold ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'}`}>{n} setoran</span>
                             </div>
                             {u.tasks.filter(t => dayKey(t.timestamp) === day).map(t => (
-                              <div key={t.id} className="flex items-center justify-between gap-2 bg-white rounded-lg border border-gray-100 px-3 py-2">
+                              <div key={t.id} className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${q && (t.email || '').toLowerCase().includes(q) ? 'bg-yellow-50 border-yellow-300' : 'bg-white border-gray-100'}`}>
                                 <div className="min-w-0">
                                   <p className="text-xs font-bold text-gray-700 truncate">{t.email}</p>
                                   <p className="text-[10px] text-gray-400">{formatTime(t.timestamp)}{t.password ? ` · ${t.password}` : ''}</p>

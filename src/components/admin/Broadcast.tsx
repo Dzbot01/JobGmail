@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Megaphone, Users, Clock, Search, Send, Loader2, CheckCircle2, XCircle, RefreshCw, Square, Eye } from 'lucide-react';
+import { Megaphone, Users, Clock, Search, Send, Loader2, CheckCircle2, XCircle, RefreshCw, Square, Eye, FileText, X } from 'lucide-react';
 import { supabase } from '../../supabase';
 import { sendEmail, escapeHtml, emailLayout } from '../../lib/emailApi';
 
@@ -31,6 +31,20 @@ const personalize = (text: string, r: Recipient) =>
 const buildHtml = (subject: string, message: string) =>
   emailLayout(subject, escapeHtml(message).replace(/\n/g, '<br>'));
 
+/** Template pesan: setoran belum logout dari perangkat. Nama & email setoran diisi manual oleh admin. */
+export const LOGOUT_TEMPLATE_SUBJECT = 'Segera logout akun setoran anda';
+export function buildLogoutTemplate(nama: string, emailSetoran: string) {
+  const n = nama.trim() || '{nama}';
+  const e = emailSetoran.trim() || '[email setoran]';
+  return (
+    `Halo ${n},\n` +
+    `Kami telah menerima data setoran anda dengan nama : ${e}, kami melihat bahwa anda belum logout dari akun tersebut. ` +
+    'segera logout dari akun tersebut dengan cara menghapus akun dari perangkat di pengaturan dan balas email ini agar kami dapat mem verifikasi nya ' +
+    'atau jika tidak akun anda akan kami blokir permanen.\n' +
+    'Terimakasih.'
+  );
+}
+
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const Broadcast: React.FC<BroadcastProps> = ({ showAlert }) => {
@@ -43,11 +57,28 @@ const Broadcast: React.FC<BroadcastProps> = ({ showAlert }) => {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [showTemplate, setShowTemplate] = useState(false);
+  const [tplNama, setTplNama] = useState('');
+  const [tplEmail, setTplEmail] = useState('');
+
+  const applyTemplate = () => {
+    if (!tplEmail.trim()) {
+      showAlert('Gagal!', 'Isi email setoran terlebih dahulu.', 'error');
+      return;
+    }
+    if ((subject.trim() || message.trim()) && !window.confirm('Ganti subjek & isi pesan saat ini dengan template?')) return;
+    setSubject(LOGOUT_TEMPLATE_SUBJECT);
+    setMessage(buildLogoutTemplate(tplNama, tplEmail));
+    setShowTemplate(false);
+  };
 
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [results, setResults] = useState<SendResult[]>([]);
   const stopRef = useRef(false);
+  // Balasan penerima diarahkan ke email admin yang sedang login
+  const [replyTo, setReplyTo] = useState('');
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => setReplyTo(data.user?.email || '')).catch(() => {}); }, []);
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -131,7 +162,7 @@ const Broadcast: React.FC<BroadcastProps> = ({ showAlert }) => {
       if (stopRef.current) break;
       const r = recipients[i];
       const subj = personalize(subject, r);
-      const res = await sendEmail({ to: r.email, subject: subj, html: buildHtml(subj, personalize(message, r)) });
+      const res = await sendEmail({ to: r.email, subject: subj, html: buildHtml(subj, personalize(message, r)), replyTo: replyTo || undefined });
       out.push(res.ok ? { email: r.email, ok: true } : { email: r.email, ok: false, error: res.error });
       setResults([...out]);
       setProgress({ done: i + 1, total: recipients.length });
@@ -255,7 +286,56 @@ const Broadcast: React.FC<BroadcastProps> = ({ showAlert }) => {
         {/* PESAN */}
         <div className="space-y-6 lg:col-span-3">
           <div className="bg-white rounded-2xl p-5 lg:p-6 shadow-lg border border-gray-100 space-y-4">
-            <h3 className="font-bold text-gray-800 uppercase text-xs tracking-wider">Tulis Pesan</h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-bold text-gray-800 uppercase text-xs tracking-wider">Tulis Pesan</h3>
+              <button
+                type="button"
+                onClick={() => setShowTemplate(v => !v)}
+                disabled={sending}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 border transition-colors disabled:opacity-50 ${showTemplate ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'}`}
+              >
+                <FileText size={13} /> Template: Belum Logout
+              </button>
+            </div>
+
+            {showTemplate && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-blue-700">Template pesan: belum logout akun</p>
+                  <button type="button" onClick={() => setShowTemplate(false)} className="p-1 text-blue-400 hover:text-blue-700" aria-label="Tutup template"><X size={14} /></button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="tpl-nama" className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nama penerima</label>
+                    <input
+                      id="tpl-nama"
+                      value={tplNama}
+                      onChange={e => setTplNama(e.target.value)}
+                      placeholder="Kosongkan = {nama} otomatis"
+                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-sm outline-none focus:border-blue-400"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="tpl-email" className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Email setoran</label>
+                    <input
+                      id="tpl-email"
+                      value={tplEmail}
+                      onChange={e => setTplEmail(e.target.value)}
+                      placeholder="contoh@gmail.com"
+                      className="w-full px-3 py-2.5 rounded-lg bg-white border border-gray-200 text-sm outline-none focus:border-blue-400"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-600 whitespace-pre-line bg-white rounded-lg border border-gray-100 p-3 leading-relaxed">{buildLogoutTemplate(tplNama, tplEmail)}</p>
+                <button
+                  type="button"
+                  onClick={applyTemplate}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-blue-600 text-white text-xs font-bold"
+                >
+                  Gunakan template
+                </button>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Subjek</label>
               <input
