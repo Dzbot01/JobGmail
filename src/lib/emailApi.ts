@@ -15,16 +15,18 @@ export interface SendEmailInput {
   to: string;
   subject: string;
   html: string;
+  /** Alamat balasan (mis. email admin) agar balasan penerima tidak ke noreply. */
+  replyTo?: string;
 }
 
 export type SendEmailResult = { ok: true } | { ok: false; error: string };
 
-export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<SendEmailResult> {
+export async function sendEmail({ to, subject, html, replyTo }: SendEmailInput): Promise<SendEmailResult> {
   try {
     const res = await fetch(EMAIL_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, subject, html, from: EMAIL_FROM }),
+      body: JSON.stringify({ to, subject, html, from: EMAIL_FROM, ...(replyTo ? { reply_to: replyTo } : {}) }),
     });
     if (res.ok) return { ok: true };
     let detail = `HTTP ${res.status}`;

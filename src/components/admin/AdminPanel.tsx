@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Copy, Check } from 'lucide-react';
+import { supabase } from '../../supabase';
 import { Users, Database, CreditCard, Loader2, CheckCircle, Mail, Settings, Wallet, ClipboardList, LogOut, ChevronRight, User as UserIcon } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -36,6 +38,44 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   onSaveSettings
 }) => {
   const [savingSettings, setSavingSettings] = useState(false);
+  // Nama pengirim setoran: peta userId -> nama (fallback prefix email)
+  const [senderNames, setSenderNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    supabase.from('pengguna').select('id, nama').then(({ data }: any) => {
+      const map: Record<string, string> = {};
+      (data || []).forEach((u: any) => { if (u.nama) map[u.id] = u.nama; });
+      setSenderNames(map);
+    });
+  }, []);
+  const senderName = (sub: any) => sub.userName || senderNames[sub.userId] || String(sub.userEmail || '').split('@')[0] || '-';
+
+  // Salin email ke clipboard (dengan tanda centang sesaat)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const copyText = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(k => (k === key ? null : k)), 1500);
+  };
+  const CopyBtn = ({ text, k, label }: { text: string; k: string; label: string }) => (
+    <button
+      type="button"
+      onClick={() => copyText(text, k)}
+      title={label}
+      aria-label={label}
+      className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${copiedKey === k ? 'bg-emerald-50 text-emerald-600' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'}`}
+    >
+      {copiedKey === k ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  );
   const saveAndBack = async (label: string) => {
     setSavingSettings(true);
     try {
@@ -270,13 +310,27 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {pendingSubmissions.map((sub) => (
             <div key={sub.id} className="bg-white p-5 rounded-2xl shadow-lg border border-gray-100 space-y-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2 min-w-0">
                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 flex-shrink-0">
                       <Mail size={16} />
                    </div>
-                   <p className="text-sm font-bold text-gray-700 break-all min-w-0">{sub.email}</p>
+                   <p className="text-sm font-bold text-gray-700 break-all min-w-0 pt-1">{sub.email}</p>
                 </div>
+                <CopyBtn text={sub.email} k={`sub-${sub.id}`} label="Salin email setoran" />
+              </div>
+
+              {/* Pengirim setoran */}
+              <div className="flex items-center gap-2 rounded-xl border border-gray-100 px-3 py-2">
+                <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-[11px] font-black flex-shrink-0">
+                  {senderName(sub).charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Pengirim</p>
+                  <p className="text-xs font-bold text-gray-700 truncate">{senderName(sub)}</p>
+                  <p className="text-[10px] text-gray-400 truncate">{sub.userEmail || '-'}</p>
+                </div>
+                {sub.userEmail && <CopyBtn text={sub.userEmail} k={`user-${sub.id}`} label="Salin email pengirim" />}
               </div>
               
               <div className="bg-gray-50 p-3 rounded-xl space-y-2">
