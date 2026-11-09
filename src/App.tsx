@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut, Megaphone, Ban, Briefcase, PlusCircle } from 'lucide-react';
+import { Home, Gift, Inbox, User, LayoutDashboard, Send, CreditCard, History as HistoryIcon, LogOut, Megaphone, Ban, Briefcase, PlusCircle, LifeBuoy, ClipboardCheck } from 'lucide-react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from './supabase'; // IMPORT SUPABASE
 
@@ -16,6 +16,11 @@ import AuthPage from './components/AuthPage';
 import AdminPanel from './components/admin/AdminPanel';
 import Broadcast from './components/admin/Broadcast';
 import BannedUsers from './components/admin/BannedUsers';
+import AdminHistory from './components/admin/AdminHistory';
+import AdminTickets from './components/admin/AdminTickets';
+import UserTickets from './components/tickets/UserTickets';
+import TicketChat from './components/tickets/TicketChat';
+import { OPENED_FROM_LOGIN } from './lib/welcomeVoice';
 import JobsPage from './components/jobs/JobsPage';
 import JobDetail from './components/jobs/JobDetail';
 import TopupPage from './components/topup/TopupPage';
@@ -37,6 +42,9 @@ type AdminTab = 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settin
 const LOGO_URL = 'https://cdn.phototourl.com/member/2026-06-24-82f2ee5b-333f-41b2-a310-7686368b2cec.png';
 
 // 1. KONSTANTA DEFAULT USER BARU
+// Sambutan suara hanya sekali per pemuatan halaman yang berasal dari redirect login
+let welcomeConsumed = false;
+
 const DAILY_REWARD_LIMIT = 10;
 const MAX_SPINS = 3;
 
@@ -71,6 +79,8 @@ useEffect(() => {
 
   // State dari file UI Baru
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  // Suara sambutan di dashboard: hanya setelah login berhasil (refresh tidak dihitung)
+  const [playWelcome, setPlayWelcome] = useState(false);
 
   // Banner info PanelKitaLegalbot (ditutup = tidak muncul lagi di sesi ini)
   const [showPromo, setShowPromo] = useState(() => {
@@ -274,6 +284,11 @@ if (!mounted) return;
 
 setUserRole(role as 'user' | 'admin');
 
+if (role === 'user' && OPENED_FROM_LOGIN && !welcomeConsumed) {
+  welcomeConsumed = true;
+  setPlayWelcome(true);
+}
+
 if (role === 'admin') {
   setAdminActiveTab('dashboard');
   fetchSproutGigsBalance();
@@ -281,15 +296,15 @@ if (role === 'admin') {
   // 1. AMBIL SEMUA DATA USER BUAT ADMIN PANEL
   const { data: allUsers, error } = await supabase
 .from('pengguna')
-.select('id, email, history, withdraw_history');
+.select('id, email, nama, history, withdraw_history');
 
   if (!error && allUsers) {
     // 2. GABUNGIN SEMUA HISTORY + KASIH TAU INI MILIK SIAPA
     const allTasks = allUsers.flatMap(u => 
-  (u.history || []).map((task: any) => ({ ...task, userId: u.id, userEmail: u.email }))
+  (u.history || []).map((task: any) => ({ ...task, userId: u.id, userEmail: u.email, userName: u.nama || String(u.email || '').split('@')[0] }))
 ).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // <- TAMBAH INI
     const allWithdraws = allUsers.flatMap(u => 
-  (u.withdraw_history || []).map((wd: any) => ({ ...wd, userId: u.id, userEmail: u.email }))
+  (u.withdraw_history || []).map((wd: any) => ({ ...wd, userId: u.id, userEmail: u.email, userName: u.nama || wd.userName || String(u.email || '').split('@')[0] }))
 ).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     setAllSubmissions(allTasks);
@@ -483,8 +498,9 @@ const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected'
   }
 
   // 3. UPDATE HANYA DI ARRAY HISTORY MILIK DIA
+  const decidedAt = new Date().toISOString();
   const userHistoryUpdated = (userTarget.history || []).map((s: any) => 
-    s.id === id? {...s, status: newStatus, reason } : s
+    s.id === id? {...s, status: newStatus, reason, ...(newStatus === 'paid' ? { paidAt: decidedAt } : {}) } : s
   );
 
   let newSaldo = userTarget.saldo;
@@ -512,7 +528,7 @@ const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected'
 
   // 6. BARU UPDATE STATE ADMIN BIAR UI REFRESH
   setAllSubmissions(prev => prev.map(s => 
-    s.id === id? {...s, status: newStatus, reason } : s
+    s.id === id? {...s, status: newStatus, reason, ...(newStatus === 'paid' ? { paidAt: decidedAt } : {}) } : s
   ));
 
   if (newStatus === 'paid') {
@@ -548,8 +564,9 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
   }
 
   // 3. UPDATE HANYA DI ARRAY WITHDRAW MILIK DIA
+  const decidedAt = new Date().toISOString();
   const userWithdrawUpdated = (userTarget.withdraw_history || []).map((w: any) => 
-    w.id === id? {...w, status: newStatus, reason } : w
+    w.id === id? {...w, status: newStatus, reason, ...(newStatus === 'paid' ? { paidAt: decidedAt } : {}) } : w
   );
 
   let newSaldo = userTarget.saldo;
@@ -577,7 +594,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
   // 6. BARU UPDATE STATE ADMIN BIAR UI REFRESH
   setWithdrawHistory(prev => prev.map(w => 
-    w.id === id? {...w, status: newStatus, reason } : w
+    w.id === id? {...w, status: newStatus, reason, ...(newStatus === 'paid' ? { paidAt: decidedAt } : {}) } : w
   ));
 
   if (newStatus === 'paid') {
@@ -659,6 +676,8 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               <SideNavItem active={location.pathname === '/admin'} onClick={() => { setAdminActiveTab('dashboard'); navigate('/admin'); }} icon={<LayoutDashboard size={20} />} label="Dashboard" />
               <SideNavItem active={location.pathname === '/admin/setoran'} onClick={() => { setAdminActiveTab('setoran'); navigate('/admin/setoran'); }} icon={<Send size={20} />} label="Data Setoran" />
               <SideNavItem active={location.pathname === '/admin/payout'} onClick={() => { setAdminActiveTab('payout'); navigate('/admin/payout'); }} icon={<CreditCard size={20} />} label="Payout" />
+              <SideNavItem active={location.pathname === '/admin/riwayat'} onClick={() => navigate('/admin/riwayat')} icon={<ClipboardCheck size={20} />} label="Riwayat" />
+              <SideNavItem active={location.pathname.startsWith('/admin/tiket')} onClick={() => navigate('/admin/tiket')} icon={<LifeBuoy size={20} />} label="Tiket Bantuan" />
               <SideNavItem active={location.pathname === '/admin/broadcast'} onClick={() => navigate('/admin/broadcast')} icon={<Megaphone size={20} />} label="Broadcast" />
               <SideNavItem active={location.pathname === '/admin/banned'} onClick={() => navigate('/admin/banned')} icon={<Ban size={20} />} label="Banned User" />
               <SideNavItem active={location.pathname === '/admin/profil'} onClick={() => { setAdminActiveTab('profil'); navigate('/admin/profil'); }} icon={<User size={20} />} label="Profil" />
@@ -677,6 +696,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               <SideNavItem active={location.pathname === '/history'} onClick={() => navigate('/history')} icon={<HistoryIcon size={20} />} label="Riwayat Tugas" />
               <SideNavItem active={location.pathname.startsWith('/topup')} onClick={() => navigate('/topup')} icon={<PlusCircle size={20} />} label="Top Up" />
               <SideNavItem active={location.pathname === '/withdraw'} onClick={() => navigate('/withdraw')} icon={<CreditCard size={20} />} label="Withdraw" />
+              <SideNavItem active={location.pathname.startsWith('/tiket')} onClick={() => navigate('/tiket')} icon={<LifeBuoy size={20} />} label="Tiket Bantuan" />
               <SideNavItem active={['/profil', '/penarikan', '/about-us'].includes(location.pathname)} onClick={() => navigate('/profil')} icon={<User size={20} />} label="Profil" />
             </>
           )}
@@ -715,6 +735,8 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               isMusicPlaying={isMusicPlaying}
               userName={userName}
               userEmail={userEmail}
+              playWelcome={playWelcome}
+              onWelcomeDone={() => setPlayWelcome(false)}
             />
           } />
 
@@ -819,6 +841,10 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
             </div>
           } />
 
+          {/* TIKET BANTUAN (user) */}
+          <Route path="/tiket" element={<UserTickets userId={userId} showAlert={showAlert} />} />
+          <Route path="/tiket/:id" element={<TicketChat viewer="user" userId={userId} showAlert={showAlert} />} />
+
           {/* TOP UP (Tripay) */}
           <Route path="/topup" element={<TopupPage userId={userId} userEmail={userEmail} balance={balance} onBalanceChange={refreshBalance} showAlert={showAlert} />} />
           <Route path="/topup/pay/:reference" element={<TopupPay userEmail={userEmail} onBalanceChange={refreshBalance} showAlert={showAlert} />} />
@@ -895,6 +921,17 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               showAlert={showAlert}
             />
           } />
+          <Route path="/admin/riwayat" element={
+            userRole === 'admin'
+              ? <AdminHistory submissions={allSubmissions} withdrawRequests={withdrawHistory} />
+              : <Navigate to="/dashboard" replace />
+          } />
+          <Route path="/admin/tiket" element={
+            userRole === 'admin' ? <AdminTickets /> : <Navigate to="/dashboard" replace />
+          } />
+          <Route path="/admin/tiket/:id" element={
+            userRole === 'admin' ? <TicketChat viewer="admin" userId={userId} showAlert={showAlert} /> : <Navigate to="/dashboard" replace />
+          } />
           <Route path="/admin/broadcast" element={
             userRole === 'admin'
               ? <Broadcast showAlert={showAlert} />
@@ -942,7 +979,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
     {/* Bottom Navbar */}
 {userRole === 'admin' ? (
-  <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-3 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex justify-around items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+  <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-1 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] grid grid-cols-8 items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
     <NavButton 
       active={location.pathname === '/admin'} 
       onClick={() => {setAdminActiveTab('dashboard'); navigate('/admin')}} // BALIKIN NAVIGATE
@@ -951,6 +988,8 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     />
     <NavButton active={location.pathname === '/admin/setoran'} onClick={() => {setAdminActiveTab('setoran'); navigate('/admin/setoran')}} icon={<Send size={22} />} label="Setor" />
     <NavButton active={location.pathname === '/admin/payout'} onClick={() => {setAdminActiveTab('payout'); navigate('/admin/payout')}} icon={<CreditCard size={22} />} label="Pay" />
+    <NavButton active={location.pathname === '/admin/riwayat'} onClick={() => navigate('/admin/riwayat')} icon={<ClipboardCheck size={22} />} label="Riwayat" />
+    <NavButton active={location.pathname.startsWith('/admin/tiket')} onClick={() => navigate('/admin/tiket')} icon={<LifeBuoy size={22} />} label="Tiket" />
     <NavButton active={location.pathname === '/admin/broadcast'} onClick={() => navigate('/admin/broadcast')} icon={<Megaphone size={22} />} label="Cast" />
     <NavButton active={location.pathname === '/admin/banned'} onClick={() => navigate('/admin/banned')} icon={<Ban size={22} />} label="Banned" />
     <NavButton active={location.pathname === '/admin/profil'} onClick={() => {setAdminActiveTab('profil'); navigate('/admin/profil')}} icon={<User size={22} />} label="Profil" />
@@ -974,10 +1013,10 @@ const SideNavItem = ({ active, onClick, icon, label }: { active: boolean, onClic
 const NavButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
   <button
     onClick={onClick}
-    className={`flex flex-col items-center gap-1.5 transition-colors ${active? 'text-blue-600' : 'text-gray-400'}`}
+    className={`flex flex-col items-center gap-1.5 min-w-0 transition-colors ${active? 'text-blue-600' : 'text-gray-400'}`}
   >
     {icon}
-    <span className={`text-[10px] font-bold uppercase tracking-wider ${active? 'opacity-100' : 'opacity-70'}`}>{label}</span>
+    <span className={`text-[8px] min-[400px]:text-[9px] font-bold uppercase tracking-tight max-w-full truncate ${active? 'opacity-100' : 'opacity-70'}`}>{label}</span>
   </button>
 );
 

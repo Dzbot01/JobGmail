@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { supabase } from '../../supabase';
+import { formatWIB, timeAgo } from '../../lib/datetime';
+import { ActivityItem, buildActivities, fetchRecentSpinWins } from '../../lib/activity';
+import { Send, Gift, ArrowUpRight } from 'lucide-react';
 import { Users, Database, CreditCard, Loader2, CheckCircle, Mail, Settings, Wallet, ClipboardList, LogOut, ChevronRight, User as UserIcon } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -47,6 +50,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       setSenderNames(map);
     });
   }, []);
+  // Aktivitas terbaru: setoran, request withdraw, dan hadiah spin harian
+  const [spinWins, setSpinWins] = useState<any[]>([]);
+  useEffect(() => {
+    if (activeTab !== 'dashboard') return;
+    let alive = true;
+    fetchRecentSpinWins().then(rows => { if (alive) setSpinWins(rows); });
+    return () => { alive = false; };
+  }, [activeTab]);
+  const nameOf = (id?: string, fallbackEmail?: string) => senderNames[id || ''] || String(fallbackEmail || '').split('@')[0] || 'User';
+  const activities: ActivityItem[] = buildActivities(submissions, withdrawRequests, spinWins, nameOf).slice(0, 8);
+
   const senderName = (sub: any) => sub.userName || senderNames[sub.userId] || String(sub.userEmail || '').split('@')[0] || '-';
 
   // Salin email ke clipboard (dengan tanda centang sesaat)
@@ -160,13 +174,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
 
         <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
           <h3 className="font-bold text-gray-800 mb-4">Aktivitas Terakhir</h3>
-          <div className="space-y-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center gap-3 border-b border-gray-50 pb-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-full" />
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-gray-700">User #829{i} submit tugas</p>
-                  <p className="text-[10px] text-gray-400">2 menit yang lalu</p>
+          <div className="space-y-3">
+            {activities.length === 0 ? (
+              <p className="text-xs font-bold text-gray-400 text-center py-6">Belum ada aktivitas user</p>
+            ) : activities.map(a => (
+              <div key={a.id} className="flex items-center gap-3 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${a.type === 'setoran' ? 'bg-blue-50 text-blue-600' : a.type === 'withdraw' ? 'bg-purple-50 text-purple-600' : 'bg-amber-50 text-amber-600'}`}>
+                  {a.type === 'setoran' ? <Send size={15} /> : a.type === 'withdraw' ? <ArrowUpRight size={16} /> : <Gift size={15} />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-700 leading-snug"><b>{a.name}</b> {a.text}</p>
+                  <p className="text-[10px] text-gray-400" title={formatWIB(a.at)}>{timeAgo(a.at)}</p>
                 </div>
               </div>
             ))}
@@ -401,11 +419,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                  </div>
                  <div className="flex justify-between text-[10px]">
                     <span className="text-gray-400">Nama Pengguna</span>
-                    <span className="font-bold text-gray-800">{req.userName || 'User Member'}</span>
+                    <span className="font-bold text-gray-800 truncate">{req.userName || nameOf(req.userId, req.userEmail)}</span>
                  </div>
                  <div className="flex justify-between text-[10px]">
                     <span className="text-gray-400">Tanggal</span>
-                    <span className="font-bold text-gray-800">{req.date}</span>
+                    <span className="font-bold text-gray-800">{formatWIB(req.date)}</span>
                  </div>
               </div>
 

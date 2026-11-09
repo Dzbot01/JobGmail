@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Home, Gift, Inbox, User, History as HistoryIcon, Briefcase, CreditCard, Wallet, Info, ChevronUp, PlusCircle } from 'lucide-react';
+import { Home, Gift, Inbox, User, History as HistoryIcon, Briefcase, CreditCard, Wallet, Info, ChevronUp, PlusCircle, LifeBuoy } from 'lucide-react';
 
 interface Props {
   pathname: string;
@@ -16,6 +16,7 @@ const MORE_ITEMS = [
   { to: '/jobs', label: 'Cari Pekerjaan', icon: Briefcase, match: (p: string) => p.startsWith('/jobs') },
   { to: '/topup', label: 'Top Up', icon: PlusCircle, match: (p: string) => p.startsWith('/topup') },
   { to: '/withdraw', label: 'Withdraw', icon: CreditCard, match: (p: string) => p === '/withdraw' },
+  { to: '/tiket', label: 'Tiket Bantuan', icon: LifeBuoy, match: (p: string) => p.startsWith('/tiket') },
   { to: '/penarikan', label: 'Alamat Penarikan', icon: Wallet, match: (p: string) => p === '/penarikan' },
   { to: '/about-us', label: 'Tentang Kami', icon: Info, match: (p: string) => p === '/about-us' },
 ];

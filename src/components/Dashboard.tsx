@@ -5,6 +5,8 @@ import ElectricBorder from './ElectricBorder';
 import { Autoplay, Pagination } from 'swiper/modules';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { withdrawScheduleText, WithdrawSchedule } from '../lib/settings';
+import { useWelcomeVoice } from '../lib/welcomeVoice';
+import { Volume2 } from 'lucide-react';
 
 import 'swiper/css';
 import 'swiper/css/pagination';
@@ -20,9 +22,14 @@ interface DashboardProps {
     withdrawSchedule: string;
   };
   userEmail?: string;
+  /** Putar suara sambutan (hanya tepat setelah login berhasil, bukan saat refresh) */
+  playWelcome?: boolean;
+  onWelcomeDone?: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, pendingBalance = 0, settings, isMusicPlaying, userEmail }) => {
+const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, pendingBalance = 0, settings, isMusicPlaying, userEmail, playWelcome = false, onWelcomeDone }) => {
+  const welcome = useWelcomeVoice(playWelcome, () => onWelcomeDone?.());
+  const showSubtitle = playWelcome && welcome.phase !== 'idle' && welcome.phase !== 'done';
   // Username = prefix email yang dipakai mendaftar
   const username = (userEmail || '').split('@')[0] || 'Member';
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -132,8 +139,30 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, pendingBalan
          <div className="absolute top-20 -left-10 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
          
          <div className="px-8 lg:px-10 pt-9 text-white">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Dashboard Utama</p>
-            <h1 className="text-lg lg:text-2xl font-black tracking-tight mt-1 text-white truncate">Halo, {username}!</h1>
+            {showSubtitle ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 flex items-center gap-1.5">
+                    <Volume2 size={12} className={welcome.phase === 'playing' ? 'animate-pulse' : ''} /> Sambutan
+                  </p>
+                  <button onClick={welcome.skip} className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25" aria-label="Lewati sambutan">Lewati</button>
+                </div>
+                {/* Subtitle per kalimat utuh, berganti mengikuti audio */}
+                <p key={welcome.index} aria-live="polite" className="jg-subtitle-in text-sm sm:text-base lg:text-xl font-black leading-snug mt-1.5 text-white line-clamp-3 lg:pr-16">
+                  {welcome.sentence}
+                </p>
+                {welcome.phase === 'blocked' && (
+                  <button onClick={welcome.play} className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full bg-white text-blue-700 shadow">
+                    <Volume2 size={13} /> Ketuk untuk dengar sambutan
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80">Dashboard Utama</p>
+                <h1 className="text-lg lg:text-2xl font-black tracking-tight mt-1 text-white truncate">Halo, {username}!</h1>
+              </>
+            )}
          </div>
       </div>
 
