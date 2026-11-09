@@ -168,6 +168,7 @@ const WithdrawPage: React.FC<WithdrawPageProps> = ({ withdrawSchedule, userEmail
                     "Pastikan alamat penarikan sudah benar dan sesuai",
                     "Proses penarikan memakan waktu 1-24 jam kerja",
                     "Terdapat biaya admin sesuai dengan metode penarikan yang dipilih",
+                    "Penarikan via GoPay dikenakan biaya fee Rp 999",
                     "Penarikan yang sudah diproses tidak dapat dibatalkan", 
                     scheduleText,
                     "Proses withdraw dilakukan maksimal 24 jam kerja setelah permintaan dikirim."
