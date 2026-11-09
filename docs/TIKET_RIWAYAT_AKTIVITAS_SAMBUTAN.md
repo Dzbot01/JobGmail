@@ -61,3 +61,28 @@ storage bucket "ticket-images" (publik, maks 2 MB, jpg/png/webp, folder = user i
 ## 7. Temuan lain (belum diubah)
 - `useEffect` autentikasi di `App.tsx` bergantung pada `navigate`, sehingga setiap pindah halaman memuat ulang sesi, profil, dan (untuk admin) semua data user. Efek sampingnya data admin selalu segar, tapi ada beban query dan potensi kedip "Sebentar ya...". Perbaikan yang disarankan: `navigate` lewat `useRef` + tombol muat ulang/realtime untuk data admin. Tidak diubah di sini agar perilaku "data segar" tidak hilang tanpa diskusi.
 - `withdraw_history[].userName` lama berisi string kosong (nama dibaca dari `session.user_metadata` yang tidak ada). Admin sekarang memakai `pengguna.nama`, jadi tampilan sudah benar.
+
+---
+
+## 8. Perbaikan 2026-11-09: suara sambutan dobel & subtitle macet
+
+**Gejala (laporan user):** setelah menekan "dengar", suara jalan tapi subtitle diam. Saat layar disentuh, subtitle mulai jalan bersama suara **kedua**.
+
+**Akar masalah (direproduksi di Playwright, emulasi Pixel 7, autoplay diblokir): 4 elemen audio diputar bersamaan.**
+1. Dashboard dipasang ulang beberapa kali saat masuk (StrictMode + `App` memuat ulang sesi ketika pindah dari `/auth/callback` ke `/dashboard`). Setiap pemasangan membuat `new Audio()` sendiri.
+2. Listener "ketuk untuk memutar" dipasang di dalam `play().catch()` yang selesai **setelah** komponen dilepas, jadi listener instance lama tidak pernah dibersihkan. Satu sentuhan memutar semua audio lama.
+3. Subtitle hanya berjalan bila `play()` milik instance yang tampil berhasil. Audio yang bunyi milik instance lain, jadi subtitle diam.
+4. Di HP, `pointerdown` dari sentuhan **bukan** aktivasi user yang sah untuk audio (yang sah: `pointerup`/`touchend`/`click`/`keydown`), jadi percobaan pertama gagal diam-diam.
+
+**Perbaikan (`src/lib/welcomeVoice.ts`):**
+- **Satu pemutar tunggal di level modul** (satu `HTMLAudioElement` per pemuatan halaman), dibaca komponen lewat `useSyncExternalStore`. Pemasangan ulang komponen tidak membuat audio baru dan tidak menghentikan suara.
+- **Subtitle digerakkan event audio** (`playing`, `timeupdate`, rAF), bukan oleh pemanggil `play()`, jadi selalu sinkron dari jalur mana pun audio dimulai.
+- Autoplay dicoba langsung. Bila browser memblokir, pembuka-kunci dipasang **sekali** di `window` (capture) pada `pointerup`/`touchend`/`click`/`keydown`, lalu dilepas saat event `playing`. Tombol "Lewati" (`data-welcome-skip`) tidak ikut memicu suara.
+- Catatan: browser (Chrome/Safari/Firefox) tidak mengizinkan suara diputar otomatis tanpa interaksi pada halaman yang baru dibuka dari redirect login, kecuali situs sudah punya skor keterlibatan media tinggi. Tidak ada cara sah untuk melewati kebijakan ini. Di kondisi itu, suara mulai pada sentuhan/klik pertama di mana saja, tetap satu suara dengan subtitle sinkron.
+
+**Validasi (Playwright, 5 skenario):** HP autoplay diblokir + tap tombol · HP (iPhone 13) autoplay diblokir + tap layar · desktop autoplay diblokir + klik layar · desktop & HP autoplay diizinkan. Semua: **tepat 1 elemen audio**, subtitle berganti sesuai posisi audio (detik 4,2 → kalimat 2, detik 10,2 → kalimat 3), tap tambahan tidak memulai suara baru, selesai kembali ke "Halo, username", 0 error halaman.
+
+## 9. Keterangan biaya GoPay
+- `AlamatPenarikan.tsx`: opsi "Gopay (biaya Rp 999)". Saat GoPay dipilih muncul kotak "Penarikan via GoPay dikenakan biaya fee Rp 999 per transaksi"; untuk metode lain tampil catatan kecil.
+- `WithdrawPage.tsx`: poin baru di Syarat & Ketentuan, "Penarikan via GoPay dikenakan biaya fee Rp 999".
+- Hanya keterangan. Fee belum dipotong otomatis dari saldo; admin memotongnya saat membayar.

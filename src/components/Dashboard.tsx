@@ -145,7 +145,7 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, pendingBalan
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 flex items-center gap-1.5">
                     <Volume2 size={12} className={welcome.phase === 'playing' ? 'animate-pulse' : ''} /> Sambutan
                   </p>
-                  <button onClick={welcome.skip} className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25" aria-label="Lewati sambutan">Lewati</button>
+                  <button data-welcome-skip onClick={welcome.skip} className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25" aria-label="Lewati sambutan">Lewati</button>
                 </div>
                 {/* Subtitle per kalimat utuh, berganti mengikuti audio */}
                 <p key={welcome.index} aria-live="polite" className="jg-subtitle-in text-sm sm:text-base lg:text-xl font-black leading-snug mt-1.5 text-white line-clamp-3 lg:pr-16">

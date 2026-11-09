@@ -285,9 +285,16 @@ const AlamatPenarikan: React.FC<AlamatPenarikanProps> = ({ onBack, onConfirm, sa
               className="w-full px-4 py-3 rounded-xl bg-gray-50 border-gray-100 focus:border-blue-400 focus:bg-white outline-none appearance-none font-medium disabled:opacity-60"
             >
               <option value="Dana">Dana</option>
-              <option value="Gopay">Gopay</option>
+              <option value="Gopay">Gopay (biaya Rp 999)</option>
               <option value="Qris">Qris</option>
             </select>
+            {method === 'Gopay' ? (
+              <p role="note" className="mt-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] font-bold text-amber-700 leading-relaxed">
+                Penarikan via GoPay dikenakan biaya fee <span className="font-black">Rp 999</span> per transaksi.
+              </p>
+            ) : (
+              <p className="mt-2 text-[10px] text-gray-400">Catatan: penarikan via GoPay dikenakan biaya fee Rp 999.</p>
+            )}
           </div>
 
           {method!== 'Qris'? (
