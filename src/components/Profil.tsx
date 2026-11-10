@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { HONOR_DEFAULT, HONOR_INFO, honorTier, HONOR_PENALTY_REJECT, HONOR_RECOVER_ACCEPT, HONOR_BLUE_MIN, HONOR_YELLOW_MIN } from '../lib/honor';
 import { BadgeCheck, XCircle, Wallet, Info, ChevronRight, CheckCircle2, XCircle as XIcon, Users, CreditCard, ShieldCheck } from 'lucide-react';
 import { supabase } from '../supabase';
 import { Copy, Check, Gift, HardHat, Briefcase } from 'lucide-react';
@@ -9,6 +10,8 @@ import { buildReferralLink, fetchReferralSummary, maskEmail, REFERRAL_REWARD, Re
 
 interface ProfilProps {
   tasksDone: number; // <- ini udah ga kepake tapi biarin aja biar ga error di App
+  /** Honor score dari server (0..100) */
+  honorScore?: number;
   totalIncome: number; // <- ini juga
   isVerified: boolean;
   userId: string;
@@ -20,7 +23,8 @@ interface ProfilProps {
   onNavigateToTopup?: () => void;
 }
 
-const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdraw, onNavigateToAbout, onLogout, balance = 0, onNavigateToTopup }) => {
+const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdraw, onNavigateToAbout, onLogout, balance = 0, onNavigateToTopup, honorScore = HONOR_DEFAULT }) => {
+  const honor = HONOR_INFO[honorTier(honorScore)];
   const pencariLocked = balance < MIN_SALDO_PENCARI;
   const [nama, setNama] = useState('User Member');
   const [email, setEmail] = useState('Kesalahan: Harap Login ulang');
@@ -144,16 +148,40 @@ const Profil: React.FC<ProfilProps> = ({ isVerified, userId, onNavigateToWithdra
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Income Referral</p>
           <p className="text-base font-black text-purple-600">Rp. {referral.earnings.toLocaleString('id-ID')}</p>
         </div>
-        <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
-          <ShieldCheck size={16} className="text-blue-600 mb-1.5" />
+        <div className={`p-3 rounded-xl border shadow-sm flex flex-col items-center ${honor.bg} ${honor.border}`} title={honor.desc}>
+          <ShieldCheck size={16} className={`${honor.text} mb-1.5`} />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Honor Score</p>
-          <p className="text-base font-black text-gray-800">100%</p>
+          <p className={`text-base font-black ${honor.text}`}>{honorScore}%</p>
+          <div className="w-full h-1.5 rounded-full bg-white/80 mt-1 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={honorScore} aria-label="Honor score">
+            <div className={`h-full rounded-full ${honor.bar}`} style={{ width: `${honorScore}%` }} />
+          </div>
+          <p className={`text-[9px] font-black uppercase mt-1 ${honor.text}`}>{honor.label}</p>
         </div>
         <div className="bg-white p-3 rounded-xl border-gray-100 shadow-sm flex flex-col items-center">
           <Wallet size={16} className="text-emerald-600 mb-1.5" />
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total Pendapatan</p>
           <p className="text-base font-black text-emerald-600">Rp. {totalIncome.toLocaleString('id-ID')}</p> {/* UDAH DARI DB */}
         </div>
+      </div>
+
+      {/* Detail Honor Score */}
+      <div className={`rounded-2xl p-4 lg:p-5 shadow-sm border lg:col-span-2 ${honor.bg} ${honor.border}`}>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h3 className="font-black text-xs text-gray-800 uppercase tracking-wider">Honor Score</h3>
+          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-white ${honor.text}`}>{honorScore}% · {honor.label}</span>
+        </div>
+        <div className="h-2.5 rounded-full bg-white overflow-hidden flex" aria-hidden="true">
+          <div className={`h-full ${honor.bar} transition-all`} style={{ width: `${honorScore}%` }} />
+        </div>
+        <div className="flex justify-between text-[9px] font-bold text-gray-400 mt-1">
+          <span>0</span><span>Merah &lt; {HONOR_YELLOW_MIN}</span><span>Kuning {HONOR_YELLOW_MIN}–{HONOR_BLUE_MIN - 1}</span><span>Biru ≥ {HONOR_BLUE_MIN}</span>
+        </div>
+        <p className={`text-[11px] font-bold mt-2 ${honor.text}`}>{honor.desc}</p>
+        <ul className="mt-2 space-y-1 text-[10px] text-gray-500 list-disc ml-4">
+          <li>Setiap akun yang <b>ditolak</b> admin: honor −{HONOR_PENALTY_REJECT}.</li>
+          <li>Setiap akun yang <b>diterima</b> admin: honor +{HONOR_RECOVER_ACCEPT} (maks 100).</li>
+          <li><b className="text-blue-600">Biru</b> aman · <b className="text-amber-600">Kuning</b> hanya 1× kirim tugas per hari &amp; tanpa setor bulk · <b className="text-red-600">Merah</b> akun otomatis diblokir.</li>
+        </ul>
       </div>
 
       {/* Mode Akun */}

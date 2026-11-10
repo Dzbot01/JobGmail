@@ -7,6 +7,7 @@ import {
   ticketsErrorMessage, uploadTicketImage,
 } from '../../lib/tickets';
 import { formatDateLongWIB, formatTimeWIB, formatWIB } from '../../lib/datetime';
+import { markTicketSeen } from '../../lib/ticketNotify';
 
 interface Props {
   viewer: 'user' | 'admin';
@@ -35,13 +36,15 @@ const TicketChat: React.FC<Props> = ({ viewer, userId, showAlert }) => {
       const [t, m] = await Promise.all([getTicket(id), listMessages(id)]);
       setTicket(t);
       setMessages(m);
+      // User membuka balasan admin → indikator di menu hilang
+      if (viewer === 'user' && t.status === 'dibalas') markTicketSeen(t);
       setError('');
     } catch (e) {
       if (!silent) setError(ticketsErrorMessage(e));
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [id]);
+  }, [id, viewer]);
 
   useEffect(() => {
     load();

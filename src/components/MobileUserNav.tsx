@@ -5,6 +5,8 @@ interface Props {
   pathname: string;
   navigate: (to: string) => void;
   onSetor: () => void;
+  /** Jumlah tiket yang dibalas admin & belum dibuka */
+  ticketBadge?: number;
 }
 
 const NAV_H = 72;          // tinggi bottom navbar (lihat .premium-nav-container)
@@ -34,7 +36,7 @@ const NavItem = ({ active, onClick, icon, label }: { active: boolean; onClick: (
  * Bottom navbar mobile yang bisa ditarik ke atas (hingga ±tengah layar) untuk menampilkan menu tambahan.
  * Navbar memantul tipis sebagai petunjuk sampai panel pertama kali dibuka.
  */
-const MobileUserNav: React.FC<Props> = ({ pathname, navigate, onSetor }) => {
+const MobileUserNav: React.FC<Props> = ({ pathname, navigate, onSetor, ticketBadge = 0 }) => {
   const [maxLift, setMaxLift] = useState(() => (typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.5) - NAV_H : 300));
   const [lift, setLift] = useState(0);            // seberapa tinggi navbar terangkat (px)
   const [dragging, setDragging] = useState(false);
@@ -135,7 +137,14 @@ const MobileUserNav: React.FC<Props> = ({ pathname, navigate, onSetor }) => {
                 tabIndex={open ? 0 : -1}
                 className={`flex flex-col items-center gap-2 py-2 text-center transition-colors active:scale-95 ${active ? 'text-white' : 'text-[#A0A0A0] hover:text-white'}`}
               >
-                <Icon size={26} strokeWidth={1.8} />
+                <span className="relative">
+                  <Icon size={26} strokeWidth={1.8} />
+                  {item.to === '/tiket' && ticketBadge > 0 && (
+                    <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center ring-2 ring-[#262626]">
+                      {ticketBadge > 9 ? '9+' : ticketBadge}
+                    </span>
+                  )}
+                </span>
                 <span className="text-[10px] font-bold uppercase tracking-wide leading-tight">{item.label}</span>
               </button>
             );
@@ -163,6 +172,10 @@ const MobileUserNav: React.FC<Props> = ({ pathname, navigate, onSetor }) => {
           aria-expanded={open}
         >
           <span className="nav-grabber-pill" />
+          {/* Titik merah: ada tiket dibalas admin di menu lainnya */}
+          {ticketBadge > 0 && !open && (
+            <span className="absolute top-0.5 left-[calc(50%+26px)] w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse" aria-label={`${ticketBadge} tiket dibalas admin`} />
+          )}
           <ChevronUp size={12} className={`nav-grabber-chevron ${open ? 'rotate-180' : ''}`} />
         </button>
 

@@ -1,3 +1,4 @@
+import { submissionStatus } from '../../lib/submissionStatus';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Ban, ShieldCheck, Search, RefreshCw, Loader2, ChevronDown, AlertTriangle, Users, UserX, Mail } from 'lucide-react';
 import { supabase } from '../../supabase';
@@ -48,8 +49,7 @@ const formatTime = (iso: string) => {
   return isNaN(d.getTime()) ? '-' : d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 };
 
-const statusClass = (s: string) =>
-  s === 'paid' ? 'bg-emerald-100 text-emerald-600' : s === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600';
+const statusClass = (s: string) => submissionStatus(s).badge;
 
 const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -324,7 +324,7 @@ const BannedUsers: React.FC<BannedUsersProps> = ({ showAlert }) => {
                                   <p className="text-xs font-bold text-gray-700 truncate">{t.email}</p>
                                   <p className="text-[10px] text-gray-400">{formatTime(t.timestamp)}{t.password ? ` · ${t.password}` : ''}</p>
                                 </div>
-                                <span className={`flex-shrink-0 px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${statusClass(t.status)}`}>{t.status}</span>
+                                <span className={`flex-shrink-0 px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${statusClass(t.status)}`}>{submissionStatus(t.status).label}</span>
                               </div>
                             ))}
                           </div>

@@ -1,11 +1,13 @@
 import React from 'react';
-import { Mail, Clock, CheckCircle, X } from 'lucide-react';
+import { Mail, Clock, CheckCircle, X, Eye } from 'lucide-react';
+import { submissionStatus } from '../lib/submissionStatus';
+import { formatWIB } from '../lib/datetime';
 import { HISTORY_LIMIT } from '../lib/jobs';
 
 interface HistoryItem {
   id: string;
   email: string;
-  status: 'process' | 'paid' | 'rejected';
+  status: 'process' | 'review' | 'paid' | 'rejected';
   timestamp: string;
   reason?: string;
 }
@@ -36,27 +38,25 @@ const UserHistory: React.FC<UserHistoryProps> = ({ submissions }) => {
           <div key={item.id} className="bg-white rounded-xl shadow-md border border-gray-50 overflow-hidden">
             <div className="p-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className={`w-9 h-9 flex-shrink-0 rounded-lg flex items-center justify-center ${
-                  item.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 
-                  item.status === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'
-                }`}>
+                <div className={`w-9 h-9 flex-shrink-0 rounded-lg flex items-center justify-center ${submissionStatus(item.status).soft}`}>
                   {item.status === 'paid' ? <CheckCircle size={18} /> : 
-                   item.status === 'rejected' ? <X size={18} /> : <Clock size={18} />}
+                   item.status === 'rejected' ? <X size={18} /> :
+                   item.status === 'review' ? <Eye size={18} /> : <Clock size={18} />}
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-black text-gray-800 truncate uppercase">{item.email}</p>
-                  <p className="text-[9px] text-gray-400 font-bold">{item.timestamp}</p>
+                  <p className="text-[9px] text-gray-400 font-bold">{formatWIB(item.timestamp)}</p>
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tight ${
-                  item.status === 'paid' ? 'bg-emerald-100 text-emerald-600' : 
-                  item.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'
-                }`}>
-                  {item.status}
+                <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tight ${submissionStatus(item.status).badge}`}>
+                  {submissionStatus(item.status).label}
                 </span>
               </div>
             </div>
+            {item.status === 'review' && (
+              <p className="px-4 pb-3 text-[10px] font-bold text-blue-600">Setoran ini sedang diproses admin.</p>
+            )}
             {item.status === 'rejected' && item.reason && (
               <div className="px-4 pb-3">
                 <div className="bg-red-50 p-2 rounded-lg border border-red-100">
