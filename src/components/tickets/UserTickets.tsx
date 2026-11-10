@@ -4,6 +4,7 @@ import { LifeBuoy, Loader2, Plus, RefreshCw, X, ChevronRight, Clock } from 'luci
 import TicketComposer from './TicketComposer';
 import { STATUS_LABEL, Ticket, createTicket, firstLine, listMyTickets, ticketsErrorMessage, uploadTicketImage } from '../../lib/tickets';
 import { formatWIB } from '../../lib/datetime';
+import { isTicketUnread } from '../../lib/ticketNotify';
 
 interface Props {
   userId: string;
@@ -95,12 +96,14 @@ const UserTickets: React.FC<Props> = ({ userId, showAlert }) => {
         <div className="grid gap-3">
           {tickets.map(t => {
             const st = STATUS_LABEL[t.status] || STATUS_LABEL.pending;
+            const unread = isTicketUnread(t);
             return (
               <button key={t.id} onClick={() => navigate(`/tiket/${t.id}`)}
-                className="w-full text-left bg-white rounded-2xl p-4 shadow-md border border-gray-100 flex items-center gap-3 hover:shadow-lg transition-shadow">
+                className={`w-full text-left bg-white rounded-2xl p-4 shadow-md border flex items-center gap-3 hover:shadow-lg transition-shadow ${unread ? 'border-emerald-300 ring-2 ring-emerald-100' : 'border-gray-100'}`}>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${st.cls}`}>{st.label}</span>
+                    {unread && <span className="px-2 py-0.5 rounded-md bg-red-500 text-white text-[9px] font-black uppercase">Balasan baru</span>}
                     <span className="text-[10px] text-gray-400 truncate">{formatWIB(t.created_at)}</span>
                   </div>
                   <p className="text-sm font-bold text-gray-700 truncate mt-1.5">{firstLine(t.first_message)}</p>

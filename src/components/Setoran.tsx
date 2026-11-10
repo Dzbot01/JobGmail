@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Send, Eye, EyeOff, Loader, Timer, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, Send, Eye, EyeOff, Loader, Timer, CheckCircle2, ShieldAlert, ShieldCheck, LogOut, PhoneOff, X } from 'lucide-react';
+import { HONOR_DEFAULT, HONOR_INFO, honorTier, submittedToday } from '../lib/honor';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import OtpModal from './OtpModal';
 import { validateGmailAddress, MAX_DIGITS } from '../lib/gmailValidation';
@@ -19,6 +20,8 @@ interface SetoranProps {
   userEmail: string;
   /** Riwayat setoran milik user (kolom history) untuk menghitung jeda pengiriman */
   submissions: Array<{ timestamp?: string }>;
+  /** Honor score user: kuning = 1x kirim/hari tanpa bulk, merah = diblokir */
+  honorScore?: number;
   settings: {
     taskReward: number;
     taskPassword: string;
@@ -27,7 +30,45 @@ interface SetoranProps {
   };
 }
 
-const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, settings, userEmail, submissions }) => {
+const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, settings, userEmail, submissions, honorScore = HONOR_DEFAULT }) => {
+  // ===== Honor score =====
+  const tier = honorTier(honorScore);
+  const honor = HONOR_INFO[tier];
+  const yellowUsedToday = tier === 'yellow' && submittedToday(submissions || []);
+  const honorBlocksSingle = tier === 'red' || yellowUsedToday;
+  const honorBlocksBulk = tier !== 'blue';
+  const checkHonor = (bulk: boolean) => {
+    if (tier === 'red') {
+      showAlert('Akun Diblokir', 'Honor score kamu merah. Hubungi admin lewat Tiket Bantuan.', 'error');
+      return false;
+    }
+    if (bulk && honorBlocksBulk) {
+      showAlert('Setor Bulk Dibatasi', 'Honor score kamu kuning: setor bulk tidak tersedia. Kirim 1 akun saja.', 'error');
+      return false;
+    }
+    if (yellowUsedToday) {
+      showAlert('Batas Harian', 'Honor score kamu kuning: hanya 1 kali kirim tugas per hari. Coba lagi besok.', 'error');
+      return false;
+    }
+    return true;
+  };
+
+  // ===== Checklist wajib sebelum kirim (lalu OTP) =====
+  const [checklist, setChecklist] = useState<{ purpose: string; run: () => void } | null>(null);
+  const [loggedOut, setLoggedOut] = useState(false);
+  const [noRecovery, setNoRecovery] = useState(false);
+  const requireChecklist = (purpose: string, run: () => void) => {
+    setLoggedOut(false);
+    setNoRecovery(false);
+    setChecklist({ purpose, run });
+  };
+  useEffect(() => {
+    if (!checklist) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setChecklist(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [checklist]);
+
   // Jeda wajib antar pengiriman (10 menit, 30 menit, lalu 7 jam)
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -92,15 +133,16 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
       return;
     }
 
+    if (!checkHonor(false)) return;
     if (!checkCooldown()) return;
 
     const submitted = { email, pass: password };
-    requireOtp(`setoran akun ${email}`, () => {
+    requireChecklist(`setoran akun ${email}`, () => requireOtp(`setoran akun ${email}`, () => {
       onTaskSubmit(submitted);
       setEmail('');
       setPassword('');
       setAgreed(false);
-    });
+    }));
   };
 
   const handleBulkSave = () => {
@@ -142,18 +184,19 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
       return;
     }
 
+    if (!checkHonor(true)) return;
     if (!checkCooldown()) return;
 
     const list = emailList.map(m => m.trim());
     const pass = bulkPassword;
-    requireOtp(`setoran ${list.length} akun sekaligus`, () => {
+    requireChecklist(`setoran ${list.length} akun sekaligus`, () => requireOtp(`setoran ${list.length} akun sekaligus`, () => {
       // Kirim semua akun dalam satu kali simpan (notifikasi sukses ditampilkan oleh App)
       onTaskSubmit(list.map(mail => ({ email: mail, pass })));
 
       setBulkEmailsText('');
       setBulkPassword('');
       setBulkAgreed(false);
-    });
+    }));
   };
 
   return (
@@ -169,7 +212,48 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
         action?.run();
       }}
     />
+    {checklist && (
+      <div className="fixed inset-0 z-[70] bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setChecklist(null)}>
+        <div role="dialog" aria-modal="true" aria-labelledby="checklist-title"
+          className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 space-y-4 shadow-2xl pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between">
+            <h3 id="checklist-title" className="text-lg font-black text-gray-800">Konfirmasi Sebelum Kirim</h3>
+            <button onClick={() => setChecklist(null)} className="p-2 rounded-full bg-gray-100 text-gray-500" aria-label="Tutup"><X size={16} /></button>
+          </div>
+          <p className="text-xs text-gray-500">Pastikan kedua hal ini benar untuk <b>{checklist.purpose}</b>. Akun yang belum logout atau punya pemulihan akan ditolak dan menurunkan honor score.</p>
+          <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${loggedOut ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}>
+            <input type="checkbox" checked={loggedOut} onChange={e => setLoggedOut(e.target.checked)} className="mt-0.5 w-4 h-4" />
+            <span className="text-sm font-bold text-gray-700 flex items-start gap-2"><LogOut size={16} className="text-blue-600 flex-shrink-0 mt-0.5" /> Saya sudah logout dari akun ini</span>
+          </label>
+          <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${noRecovery ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}>
+            <input type="checkbox" checked={noRecovery} onChange={e => setNoRecovery(e.target.checked)} className="mt-0.5 w-4 h-4" />
+            <span className="text-sm font-bold text-gray-700 flex items-start gap-2"><PhoneOff size={16} className="text-blue-600 flex-shrink-0 mt-0.5" /> Saya tidak menautkan nomor atau email pemulihan apa pun pada akun ini</span>
+          </label>
+          <button
+            type="button"
+            disabled={!loggedOut || !noRecovery}
+            onClick={() => { const c = checklist; setChecklist(null); c?.run(); }}
+            className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-bold text-sm disabled:bg-gray-100 disabled:text-gray-400"
+          >
+            Lanjutkan Kirim
+          </button>
+        </div>
+      </div>
+    )}
     <div className="space-y-8 pb-10 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+      {/* Status honor score (hanya bila dibatasi) */}
+      {tier !== 'blue' && (
+        <div className={`lg:col-span-2 rounded-2xl p-4 border flex items-start gap-3 ${honor.bg} ${honor.border}`}>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-white ${honor.text}`}>
+            {tier === 'red' ? <ShieldAlert size={20} /> : <ShieldCheck size={20} />}
+          </div>
+          <div className="min-w-0">
+            <p className={`text-sm font-black ${honor.text}`}>Honor score {honorScore}% · {honor.label}</p>
+            <p className="text-xs text-gray-600 mt-0.5">{honor.desc}{yellowUsedToday ? ' Kamu sudah mengirim tugas hari ini.' : ''}</p>
+          </div>
+        </div>
+      )}
       {/* Status jeda pengiriman */}
       <div className={`lg:col-span-2 rounded-2xl p-4 border flex items-start gap-3 ${inCooldown ? 'bg-orange-50 border-orange-200' : 'bg-emerald-50 border-emerald-100'}`}>
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${inCooldown ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
@@ -299,13 +383,13 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
 
    <button 
   type="submit"
-  disabled={!agreed || isLoading || inCooldown} // 1. Tambah isLoading ke disabled
+  disabled={!agreed || isLoading || inCooldown || honorBlocksSingle} // 1. Tambah isLoading ke disabled
   className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg ${
-    agreed && !isLoading && !inCooldown ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed' // 2. Tambah !isLoading
+    agreed && !isLoading && !inCooldown && !honorBlocksSingle ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed' // 2. Tambah !isLoading
   }`}
 >
   {isLoading ? <Loader size={18} className="animate-spin" /> : <Send size={18} />} {/* 3. Ganti icon pas loading */}
-  {isLoading ? 'Mengirim...' : inCooldown ? `Tunggu ${formatDuration(cooldown.waitMs)}` : 'Kirim Setoran'} {/* 4. Ganti text pas loading */}
+  {isLoading ? 'Mengirim...' : honorBlocksSingle ? (tier === 'red' ? 'Akun diblokir' : 'Batas 1x per hari tercapai') : inCooldown ? `Tunggu ${formatDuration(cooldown.waitMs)}` : 'Kirim Setoran'} {/* 4. Ganti text pas loading */}
 </button>
           </form>
         </div>
@@ -319,6 +403,11 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
 
         <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
           <h2 className="text-xl font-bold mb-2 text-gray-800">Setor sekaligus 10 Akun</h2>
+          {honorBlocksBulk && (
+            <p className={`mb-4 rounded-xl border px-3 py-2 text-[11px] font-bold ${honor.bg} ${honor.border} ${honor.text}`}>
+              Setor bulk tidak tersedia karena honor score kamu {honor.label.toLowerCase()} ({honorScore}%). Tingkatkan dengan setoran yang diterima admin.
+            </p>
+          )}
           
           <div className="bg-emerald-50/50 rounded-xl p-4 mb-5 border border-emerald-100 space-y-3 relative">
             <div 
@@ -427,12 +516,12 @@ const Setoran: React.FC<SetoranProps> = ({ isLoading, onTaskSubmit, showAlert, s
                 </button>
                 <button 
                   type="submit"
-                  disabled={!bulkAgreed || emailList.length < 10 || inCooldown}
+                  disabled={!bulkAgreed || emailList.length < 10 || inCooldown || honorBlocksBulk}
                   className={`py-3 px-4 rounded-xl font-black text-xs uppercase shadow-lg transition-all ${
-                    bulkAgreed && emailList.length >= 10 && !inCooldown ? 'bg-emerald-600 text-white shadow-emerald-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                    bulkAgreed && emailList.length >= 10 && !inCooldown && !honorBlocksBulk ? 'bg-emerald-600 text-white shadow-emerald-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                   }`}
                 >
-                  {inCooldown ? `Tunggu ${formatDuration(cooldown.waitMs)}` : 'Setor Sekarang'}
+                  {honorBlocksBulk ? 'Bulk tidak tersedia' : inCooldown ? `Tunggu ${formatDuration(cooldown.waitMs)}` : 'Setor Sekarang'}
                 </button>
               </div>
             </div>

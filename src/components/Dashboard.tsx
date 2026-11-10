@@ -5,8 +5,12 @@ import ElectricBorder from './ElectricBorder';
 import { Autoplay, Pagination } from 'swiper/modules';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { withdrawScheduleText, WithdrawSchedule } from '../lib/settings';
-import { useWelcomeVoice } from '../lib/welcomeVoice';
-import { Volume2 } from 'lucide-react';
+import { welcomeClip, ticketReplyClip } from '../lib/welcomeVoice';
+import { enqueueVoice, useVoice } from '../lib/voice';
+import { markTicketsReminded } from '../lib/ticketNotify';
+import type { Ticket } from '../lib/tickets';
+import { useNavigate } from 'react-router-dom';
+import { Volume2, LifeBuoy } from 'lucide-react';
 
 import 'swiper/css';
 import 'swiper/css/pagination';
@@ -25,11 +29,27 @@ interface DashboardProps {
   /** Putar suara sambutan (hanya tepat setelah login berhasil, bukan saat refresh) */
   playWelcome?: boolean;
   onWelcomeDone?: () => void;
+  /** Tiket yang baru dibalas admin dan belum diingatkan lewat suara */
+  ticketsToRemind?: Ticket[];
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, pendingBalance = 0, settings, isMusicPlaying, userEmail, playWelcome = false, onWelcomeDone }) => {
-  const welcome = useWelcomeVoice(playWelcome, () => onWelcomeDone?.());
-  const showSubtitle = playWelcome && welcome.phase !== 'idle' && welcome.phase !== 'done';
+const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, pendingBalance = 0, settings, isMusicPlaying, userEmail, playWelcome = false, onWelcomeDone, ticketsToRemind = [] }) => {
+  const navigate = useNavigate();
+  // Suara di header: sambutan (setelah login) lalu pengingat tiket dibalas. Satu antrean, satu suara.
+  const voice = useVoice();
+  const welcomeDoneRef = useRef(onWelcomeDone);
+  welcomeDoneRef.current = onWelcomeDone;
+  useEffect(() => {
+    if (playWelcome) enqueueVoice(welcomeClip(() => welcomeDoneRef.current?.()));
+  }, [playWelcome]);
+  const remindKey = ticketsToRemind.map(t => `${t.id}@${t.updated_at}`).sort().join('|');
+  useEffect(() => {
+    if (!remindKey) return;
+    const list = ticketsToRemind;
+    enqueueVoice(ticketReplyClip(remindKey, () => markTicketsReminded(list)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remindKey]);
+  const showSubtitle = !!voice.clip && voice.phase !== 'done';
   // Username = prefix email yang dipakai mendaftar
   const username = (userEmail || '').split('@')[0] || 'Member';
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -143,17 +163,21 @@ const Dashboard: React.FC<DashboardProps> = ({ balance, onWithdraw, pendingBalan
               <>
                 <div className="flex items-center gap-2">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 flex items-center gap-1.5">
-                    <Volume2 size={12} className={welcome.phase === 'playing' ? 'animate-pulse' : ''} /> Sambutan
+                    {voice.clip?.action ? <LifeBuoy size={12} /> : <Volume2 size={12} className={voice.phase === 'playing' ? 'animate-pulse' : ''} />} {voice.clip?.label}
                   </p>
-                  <button data-welcome-skip onClick={welcome.skip} className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25" aria-label="Lewati sambutan">Lewati</button>
+                  <button data-voice-skip onClick={voice.skip} className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/25" aria-label="Lewati suara">Lewati</button>
                 </div>
-                {/* Subtitle per kalimat utuh, berganti mengikuti audio */}
-                <p key={welcome.index} aria-live="polite" className="jg-subtitle-in text-sm sm:text-base lg:text-xl font-black leading-snug mt-1.5 text-white line-clamp-3 lg:pr-16">
-                  {welcome.sentence}
+                {/* Subtitle per kalimat utuh, berganti mengikuti suara */}
+                <p key={`${voice.clip?.id}-${voice.index}`} aria-live="polite" className="jg-subtitle-in text-sm sm:text-base lg:text-xl font-black leading-snug mt-1.5 text-white line-clamp-3 lg:pr-16">
+                  {voice.sentence}
                 </p>
-                {welcome.phase === 'blocked' && (
-                  <button onClick={welcome.play} className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full bg-white text-blue-700 shadow">
-                    <Volume2 size={13} /> Ketuk untuk dengar sambutan
+                {voice.phase === 'blocked' && (
+                  <p className="mt-1 text-[10px] font-bold text-white/70">Sentuh layar di mana saja untuk memutar suara</p>
+                )}
+                {voice.clip?.action && (
+                  <button data-voice-skip onClick={() => { const to = voice.clip!.action!.to; voice.skip(); navigate(to); }}
+                    className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full bg-white text-blue-700 shadow">
+                    <LifeBuoy size={13} /> {voice.clip.action.label}
                   </button>
                 )}
               </>

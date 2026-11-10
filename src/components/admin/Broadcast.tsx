@@ -94,7 +94,7 @@ const Broadcast: React.FC<BroadcastProps> = ({ showAlert }) => {
         id: u.id,
         email: u.email,
         nama: u.nama || u.email.split('@')[0],
-        processCount: (u.history || []).filter((t: any) => t.status === 'process').length,
+        processCount: (u.history || []).filter((t: any) => t.status === 'process' || t.status === 'review').length,
       }))
       .sort((a: Recipient, b: Recipient) => b.processCount - a.processCount || a.email.localeCompare(b.email));
     setUsers(list);

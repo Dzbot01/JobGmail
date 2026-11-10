@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { supabase } from '../../supabase';
 import { formatWIB, timeAgo } from '../../lib/datetime';
+import { isPendingSubmission, submissionStatus } from '../../lib/submissionStatus';
+import { Eye } from 'lucide-react';
 import { ActivityItem, buildActivities, fetchRecentSpinWins } from '../../lib/activity';
 import { Send, Gift, ArrowUpRight } from 'lucide-react';
 import { Users, Database, CreditCard, Loader2, CheckCircle, Mail, Settings, Wallet, ClipboardList, LogOut, ChevronRight, User as UserIcon } from 'lucide-react';
@@ -9,7 +11,7 @@ import { Users, Database, CreditCard, Loader2, CheckCircle, Mail, Settings, Wall
 interface AdminPanelProps {
   submissions: any[];
   withdrawRequests: any[];
-  onUpdateStatus: (id: string, status: 'paid' | 'rejected', reason?: string) => void;
+  onUpdateStatus: (id: string, status: 'paid' | 'rejected' | 'review', reason?: string) => void;
   onUpdateWithdrawStatus: (id: string, status: 'paid' | 'rejected', reason?: string) => void;
   activeTab: 'dashboard' | 'setoran' | 'payout' | 'profil' | 'withdraw-settings' | 'task-settings';
   setTab: (tab: any) => void;
@@ -104,7 +106,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   // Halaman Setor & Pay hanya menampilkan yang masih perlu diproses (riwayat tetap ada di akun user)
-  const pendingSubmissions = submissions.filter((s: any) => s.status === 'process');
+  // Setoran yang belum diputuskan: status proses atau sedang direview admin
+  const pendingSubmissions = submissions.filter((s: any) => isPendingSubmission(s.status));
+  const reviewCount = pendingSubmissions.filter((s: any) => s.status === 'review').length;
   const pendingWithdraws = withdrawRequests.filter((w: any) => w.status === 'process');
 
   if (activeTab === 'dashboard') {
@@ -318,7 +322,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
       <div className="space-y-4">
         <div className="flex items-baseline justify-between gap-2 mb-2">
           <h2 className="text-xl font-bold text-gray-800">Data Setoran User</h2>
-          <span className="text-xs font-bold text-orange-600">{pendingSubmissions.length} menunggu proses</span>
+          <span className="text-xs font-bold text-orange-600">{pendingSubmissions.length} menunggu proses{reviewCount > 0 && <span className="text-blue-600"> · {reviewCount} direview</span>}</span>
         </div>
         {pendingSubmissions.length === 0 ? (
           <div className="bg-white p-10 rounded-2xl shadow-lg text-center text-gray-400">
@@ -358,15 +362,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
                 <div className="flex justify-between text-[10px]">
                    <span className="text-gray-400">Status</span>
-                   <span className={`font-bold uppercase ${sub.status === 'paid' ? 'text-emerald-600' : sub.status === 'rejected' ? 'text-red-600' : 'text-orange-600'}`}>{sub.status}</span>
+                   <span className={`px-2 py-0.5 rounded-md font-black uppercase ${submissionStatus(sub.status).badge}`}>{submissionStatus(sub.status).label}</span>
                 </div>
               </div>
 
-              {sub.status === 'process' && (
+              {isPendingSubmission(sub.status) && (
                 <div className="flex gap-2">
+                  {/* Review (biru) = setoran sedang diproses admin; terlihat juga oleh user */}
+                  {sub.status === 'process' ? (
+                    <button
+                      onClick={() => onUpdateStatus(sub.id, 'review')}
+                      className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1"
+                    >
+                      <Eye size={14} /> Review
+                    </button>
+                  ) : (
+                    <span className="flex-1 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1">
+                      <Eye size={14} /> Direview
+                    </span>
+                  )}
                   <button 
                     onClick={() => onUpdateStatus(sub.id, 'paid')}
-                    className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold"
+                    className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold"
                   >
                     Set Paid
                   </button>

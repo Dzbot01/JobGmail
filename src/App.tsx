@@ -21,6 +21,8 @@ import AdminTickets from './components/admin/AdminTickets';
 import UserTickets from './components/tickets/UserTickets';
 import TicketChat from './components/tickets/TicketChat';
 import { OPENED_FROM_LOGIN } from './lib/welcomeVoice';
+import { useTicketNotifications } from './lib/ticketNotify';
+import { HONOR_DEFAULT, fetchHonorScore } from './lib/honor';
 import JobsPage from './components/jobs/JobsPage';
 import JobDetail from './components/jobs/JobDetail';
 import TopupPage from './components/topup/TopupPage';
@@ -81,6 +83,8 @@ useEffect(() => {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   // Suara sambutan di dashboard: hanya setelah login berhasil (refresh tidak dihitung)
   const [playWelcome, setPlayWelcome] = useState(false);
+  // Honor score user (dihitung server dari setoran diterima/ditolak)
+  const [honorScore, setHonorScore] = useState(HONOR_DEFAULT);
 
   // Banner info PanelKitaLegalbot (ditutup = tidak muncul lagi di sesi ini)
   const [showPromo, setShowPromo] = useState(() => {
@@ -263,6 +267,7 @@ const fetchSproutGigsBalance = async () => {
           console.error('Gagal fetch profile:', profileError);
         } else {
           setIsBanned(profile?.is_banned ?? false);
+          fetchHonorScore(session.user.id).then(h => { if (mounted) setHonorScore(h); });
           setBalance(profile?.saldo?? 0);
           setAllSubmissions(profile?.history?? []);
           setWithdrawHistory(profile?.withdraw_history?? []);
@@ -480,7 +485,7 @@ const handleTaskSubmit = async (input: { email: string, pass: string } | { email
   }
 };
 
-const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected', reason?: string) => {
+const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected' | 'review', reason?: string) => {
   // 1. CARI TUGAS DI STATE ADMIN DULU BUAT DAPET userId
   const taskYangDiubah = allSubmissions.find(s => s.id === id);
   if (!taskYangDiubah) return;
@@ -531,7 +536,9 @@ const updateSubmissionStatus = async (id: string, newStatus: 'paid' | 'rejected'
     s.id === id? {...s, status: newStatus, reason, ...(newStatus === 'paid' ? { paidAt: decidedAt } : {}) } : s
   ));
 
-  if (newStatus === 'paid') {
+  if (newStatus === 'review') {
+    showAlert('Sedang Direview', `Setoran ${taskYangDiubah.email} ditandai sedang diproses admin.`);
+  } else if (newStatus === 'paid') {
     setTasksDone(t => t + 1);
     setTotalIncome(i => i + systemSettings.taskReward);
     // Bonus referral: hanya saat tugas benar-benar berubah menjadi "paid" (bukan saat masih proses)
@@ -608,6 +615,9 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
 
   // Saldo pending (bayaran pekerjaan yang masih direview) — dimuat ulang saat pindah halaman
   const pendingEarnings = usePendingEarnings(userRole === 'user' ? userId : '', location.pathname);
+
+  // Indikator & pengingat suara saat tiket bantuan dibalas admin
+  const ticketNotif = useTicketNotifications(userId, userRole === 'user');
 
   const refreshBalance = async () => {
     if (!userId) return;
@@ -696,7 +706,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               <SideNavItem active={location.pathname === '/history'} onClick={() => navigate('/history')} icon={<HistoryIcon size={20} />} label="Riwayat Tugas" />
               <SideNavItem active={location.pathname.startsWith('/topup')} onClick={() => navigate('/topup')} icon={<PlusCircle size={20} />} label="Top Up" />
               <SideNavItem active={location.pathname === '/withdraw'} onClick={() => navigate('/withdraw')} icon={<CreditCard size={20} />} label="Withdraw" />
-              <SideNavItem active={location.pathname.startsWith('/tiket')} onClick={() => navigate('/tiket')} icon={<LifeBuoy size={20} />} label="Tiket Bantuan" />
+              <SideNavItem active={location.pathname.startsWith('/tiket')} onClick={() => navigate('/tiket')} icon={<LifeBuoy size={20} />} label="Tiket Bantuan" badge={ticketNotif.unreadCount} />
               <SideNavItem active={['/profil', '/penarikan', '/about-us'].includes(location.pathname)} onClick={() => navigate('/profil')} icon={<User size={20} />} label="Profil" />
             </>
           )}
@@ -736,6 +746,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               userName={userName}
               userEmail={userEmail}
               playWelcome={playWelcome}
+              ticketsToRemind={ticketNotif.toRemind}
               onWelcomeDone={() => setPlayWelcome(false)}
             />
           } />
@@ -765,6 +776,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
               submissions={allSubmissions}
               onTaskSubmit={handleTaskSubmit}
               showAlert={showAlert}
+              honorScore={honorScore}
               settings={{...systemSettings, withdrawDetailsSet:!!withdrawDetails.method}}
             />
           } />
@@ -772,6 +784,7 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
           <Route path="/profil" element={
             <Profil
               userId={userId}
+              honorScore={honorScore}
               balance={balance}
               onNavigateToTopup={() => navigate('/topup')}
               isVerified={isVerified}
@@ -995,18 +1008,23 @@ const updateWithdrawStatus = async (id: string, newStatus: 'paid' | 'rejected', 
     <NavButton active={location.pathname === '/admin/profil'} onClick={() => {setAdminActiveTab('profil'); navigate('/admin/profil')}} icon={<User size={22} />} label="Profil" />
   </nav>
 ) : (
-  <MobileUserNav pathname={location.pathname} navigate={navigate} onSetor={goToSetoran} />
+  <MobileUserNav pathname={location.pathname} navigate={navigate} onSetor={goToSetoran} ticketBadge={ticketNotif.unreadCount} />
 )}
     </div>
   );
 };
-const SideNavItem = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
+const SideNavItem = ({ active, onClick, icon, label, badge = 0 }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, badge?: number }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors ${active ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`}
   >
     {icon}
-    <span>{label}</span>
+    <span className="flex-1 text-left">{label}</span>
+    {badge > 0 && (
+      <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center" aria-label={`${badge} tiket dibalas admin`}>
+        {badge > 9 ? '9+' : badge}
+      </span>
+    )}
   </button>
 );
 
